@@ -1,5 +1,5 @@
-# COURSENAME
-This is the repository for the LinkedIn Learning course `course-name`. The full course is available from [LinkedIn Learning][lil-course-url].
+# Docker for Local AI App Development: Build Lightweight, Containerized AI Applications
+This is the repository for the LinkedIn Learning course `Docker for Local AI App Development: Build Lightweight, Containerized AI Applications`. The full course is available from [LinkedIn Learning][lil-course-url].
 
 ![lil-thumbnail-url]
 
