@@ -1,0 +1,41 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Editor / IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Python build artifacts
+__pycache__
+*.py[cod]
+*.egg-info
+.venv
+venv
+dist
+build
+
+# OS / misc
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+tmp
+.cache
+
+# Secrets — never ship these into image layers
+.env
+.env.*
+*.pem
+*.key
+*.crt
+secrets
+
+# Documentation that the build doesn't need
+README.md
+docs
