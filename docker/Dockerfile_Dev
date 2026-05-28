@@ -1,0 +1,29 @@
+FROM docker.io/rkrispin/python-base:0.0.4
+
+# Arguments
+ARG PYTHON_VER="3.11"
+ARG VENV_NAME="my_project"
+ARG RUFF_VER="0.12.0"
+
+# Environment variables
+ENV VENV_NAME=$VENV_NAME
+ENV PYTHON_VER=$PYTHON_VER
+ENV RUFF_VER=$RUFF_VER
+
+# Bake all HuggingFace / Docling model downloads into an image-internal
+# path so they survive container restarts and aren't overlaid by any
+# host-side bind mount on /root/.cache/huggingface.
+ENV HF_HOME=/opt/hf-cache
+
+# Set Python environment
+COPY install_uv.sh requirements.txt cache_docling_models.py settings/
+RUN bash ./settings/install_uv.sh $VENV_NAME $PYTHON_VER $RUFF_VER
+
+# Pre-download Docling layout + TableFormer models and the cross-encoder
+# reranker into HF_HOME so first-use latency is near zero.
+RUN mkdir -p $HF_HOME && \
+    /opt/$VENV_NAME/bin/python ./settings/cache_docling_models.py
+
+RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/root/.zsh_history && export HISTIGNORE='ls'" \
+    && echo "export HISTFILESIZE=1000" >> "/root/.bashrc"\
+    && echo "$SNIPPET" >> "/root/.zshrc"
