@@ -26,8 +26,8 @@
 | 3 | docker build | **build** an image from a Dockerfile, and **use** the build context, `.dockerignore`, and layer cache to make builds correct and fast. |
 | 4 | Working with Registries | **pull and push** images to a registry, **tag** them for a namespace, and **share** an image via Docker Hub. |
 | 5 | docker run | **run, manage, and inspect** containers from an image using the everyday `docker run` flags and lifecycle commands. |
-| 6 | Dockerfile Best Practices | **apply** Dockerfile best practices to produce images that are smaller, faster to build, more reproducible, and more secure. |
-| 7 | Managing Containers and Images | **list, inspect, debug, and clean up** Docker images, containers, volumes, and networks using the `docker` CLI. |
+| 6 | Managing Containers and Images | **list, inspect, debug, and clean up** Docker images, containers, volumes, and networks using the `docker` CLI. |
+| 7 | Dockerfile Best Practices | **apply** Dockerfile best practices to produce images that are smaller, faster to build, more reproducible, and more secure. |
 
 ## Chapter 3 — Building a Containerized AI Development Environment
 

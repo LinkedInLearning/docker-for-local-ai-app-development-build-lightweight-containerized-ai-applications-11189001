@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Chapter 2 / Lesson 7 — guided tour of the management commands.
+# Chapter 2 / Lesson 6 — guided tour of the management commands.
 #
 # Assumes the `demo:0.1` image from Lesson 3 exists and a container
 # named `demo` is running (start it with `bash chapter_2/l5/run.sh`).

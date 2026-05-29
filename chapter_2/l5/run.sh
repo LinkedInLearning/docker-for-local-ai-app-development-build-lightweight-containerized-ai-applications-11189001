@@ -13,7 +13,7 @@
 set -euo pipefail
 
 IMAGE="demo:0.1"
-NAME="demo"
+NAME="rag-api"
 HOST_PORT=8080
 CTR_PORT=8080
 
@@ -26,7 +26,11 @@ case "${1:-up}" in
       -p "${HOST_PORT}:${CTR_PORT}" \
       "${IMAGE}"
     echo ""
-    echo "Container started. Try:"
+    echo "Container started. The FastAPI app is now published on the host:"
+    echo "  open  http://localhost:${HOST_PORT}/        # JSON from the app"
+    echo "  open  http://localhost:${HOST_PORT}/docs    # auto-generated Swagger UI"
+    echo ""
+    echo "Other handy commands:"
     echo "  curl http://localhost:${HOST_PORT}/"
     echo "  docker logs -f ${NAME}"
     echo "  docker exec -it ${NAME} bash"

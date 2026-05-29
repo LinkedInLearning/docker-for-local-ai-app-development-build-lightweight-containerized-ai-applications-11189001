@@ -152,8 +152,8 @@ The canonical lesson titles as they should appear everywhere:
 | 2 | Core Dockerfile Commands |
 | 3 | docker build |
 | 4 | docker run |
-| 5 | Dockerfile Best Practices |
-| 6 | Managing Containers and Images |
+| 5 | Managing Containers and Images |
+| 6 | Dockerfile Best Practices |
 
 **Chapter 3 — Building a Containerized AI Development Environment**
 

@@ -223,28 +223,58 @@ After building the image from Lesson 3:
 
 ```bash
 # Start it detached and publish the port
-docker run -d --name demo -p 8080:8080 demo:0.1
+docker run -d --name rag-api -p 8080:8080 demo:0.1
 
-# Check it's listed
+# Check it's listed (note the 0.0.0.0:8080->8080/tcp mapping)
 docker ps
 
-# Hit the app
+# Hit the app from the host
 curl http://localhost:8080/
 
+# ...or open it in the browser:
+#   http://localhost:8080/        -> JSON from the FastAPI app
+#   http://localhost:8080/docs    -> auto-generated Swagger UI
+
 # Look at the logs
-docker logs demo
+docker logs rag-api
 
 # Drop into a shell inside the running container
-docker exec -it demo bash
+docker exec -it rag-api bash
 
 # Stop and remove when done
-docker stop demo && docker rm demo
+docker rm -f rag-api
 ```
 
 The script `run.sh` in this folder bundles a typical detached
 launch (`docker run -d ...`) so you can see the pattern in one
 place.
 
-In the next lesson, we will look at Dockerfile **best practices** —
-how to make our images smaller, faster to build, and safer to run in
-production.
+### Why this pattern matters for AI applications
+
+The `demo:0.1` image is a tiny **FastAPI** app — and that is exactly
+how we package and run AI services throughout this course. A
+real-world **RAG data-ingestion** service is the same shape: a
+FastAPI app exposing an endpoint like `POST /ingest` that chunks
+documents, generates embeddings, and writes them to a vector store.
+
+You run it with the *same* `docker run` flags — only the image and
+configuration change:
+
+```bash
+docker run -d --name rag-ingest \
+  -p 8080:8080 \
+  -v "$(pwd)/data:/data" \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+  rag-ingest:0.1
+```
+
+* `-p` publishes the API so you can call `/ingest` and browse `/docs`.
+* `-v` mounts the folder of documents to ingest.
+* `-e` injects the embedding API key without baking it into the image.
+
+Build the FastAPI image once, then `docker run` it — published,
+mounted, and configured — wherever the work needs to happen.
+
+In the next lesson, we will look at **managing containers and images** —
+listing, inspecting, debugging, and cleaning up the objects Docker
+creates as you work.

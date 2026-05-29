@@ -1,89 +1,118 @@
-# Chapter 2 — Lesson 7: Managing containers and images
+# Chapter 2 — Lesson 7: Dockerfile best practices
 
-In the previous lessons, we learned how to build images and run containers.
-
-Once we start working with Docker every day, we end up with many images and containers on our machine. Some are running, some are stopped, and some are taking up disk space we no longer need.
-
-This lesson covers the commands we use to **list, inspect, debug, and clean up** these objects.
+So far in this chapter we have built, run, and managed our first containers. To close the chapter, we will look at how to write Dockerfiles that are smaller, faster to build, and easier to maintain.
 
 [CLICK]
 
-Docker manages four types of objects:
+The first best practice is to **pin versions**.
 
-* **Images** — read-only templates we built or pulled.
-* **Containers** — running or stopped instances of an image.
-* **Volumes** — persistent storage attached to containers.
-* **Networks** — virtual networks containers connect to.
+A Dockerfile that starts with `FROM python` may build today but break tomorrow when `python:latest` moves to a new version. We always pin a specific tag, such as `python:3.11-slim`, or, better, a digest for full reproducibility.
 
-Each one has its own family of commands that follow the same pattern: `docker <object> ls`, `inspect`, `rm`, `prune`.
-
-In this lesson we focus on the two we touch most often: images and containers.
+The same applies to packages installed inside the image. Pin them in a requirements file or with explicit versions in `apt-get`.
 
 [CLICK]
 
-Let's start with **listing things**.
+The second best practice is to **order instructions for cache efficiency**.
 
-`docker ps` shows running containers.
+Docker caches each layer. As soon as one instruction changes, every instruction after it is rebuilt.
 
-`docker ps -a` shows all containers, including stopped ones. This is important, because by default `docker run` does not delete the container when it exits. Stopped containers sit around until we remove them.
+Put the things that change rarely at the top of the Dockerfile, and the things that change often at the bottom. A common pattern is:
 
-`docker images` shows all images stored locally, along with their tag and size.
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+```
 
-These two commands give us a snapshot of what is on our machine right now.
-
-[CLICK]
-
-Next, **looking inside a container**.
-
-`docker logs <name>` prints everything the container wrote to stdout and stderr. We use this to find out why a container crashed or what an app is doing.
-
-`docker logs -f <name>` follows the log output in real time, similar to `tail -f` on a regular log file.
-
-`docker exec -it <name> bash` opens an interactive shell *inside* a running container. This is one of the most useful debugging commands in Docker. We can move around the filesystem, check installed packages, and see what the app sees.
-
-`docker inspect <name>` prints a large JSON document with every detail about the container: its mounts, its environment variables, its network, the command it is running. We pipe it through `jq` to extract specific fields.
+The application code is copied last because it changes most often. The dependency install layer stays cached as long as `requirements.txt` is unchanged.
 
 [CLICK]
 
-Then, **lifecycle commands**.
+The third best practice is to **use `ARG` and `ENV` deliberately**.
 
-`docker stop <name>` sends a polite shutdown signal. After 10 seconds, if the container has not exited, Docker forces it to.
+`ARG` values are available only during the build, and are perfect for tool versions or feature flags. Combine `ARG` with `--build-arg` to override them from the command line.
 
-`docker start <name>` starts a stopped container again with the same configuration.
+`ENV` values persist into the running container, which is what we want for runtime configuration such as paths or feature toggles.
 
-`docker restart <name>` is stop + start in one step.
+In our RAG project, the development Dockerfile uses both:
 
-`docker rm <name>` removes a stopped container. Add `-f` to remove a running container.
+```dockerfile
+ARG PYTHON_VER="3.11"
+ENV PYTHON_VER=$PYTHON_VER
+```
 
-`docker rmi <image>` removes an image. Docker refuses if any container, even a stopped one, is still using it.
-
-[CLICK]
-
-Finally, **cleaning up**.
-
-Disk usage adds up quickly. Every build leaves behind dangling layers, and every run leaves a stopped container.
-
-`docker ps -a` and `docker images` are the first step. They show what is there.
-
-`docker system df` summarizes how much disk space images, containers, volumes, and the build cache are using.
-
-`docker container prune` removes all stopped containers.
-
-`docker image prune` removes dangling images. Adding `-a` removes every image not used by at least one container.
-
-`docker system prune` removes containers, networks, and dangling images in one shot. Adding `-a --volumes` also removes unused images and volumes — powerful, but irreversible.
+The `ARG` lets us pass the Python version at build time. The `ENV` makes that value visible to scripts inside the container.
 
 [CLICK]
 
-A short list of commands worth memorizing:
+The fourth best practice is to **combine related commands into a single `RUN`**.
 
-* `docker ps -a` — what containers exist.
-* `docker images` — what images exist.
-* `docker logs -f <name>` — what is the container doing.
-* `docker exec -it <name> bash` — get inside.
-* `docker stop` / `docker rm` — shut down and clean up.
-* `docker system prune` — reclaim disk space.
+Every `RUN` creates a new layer. Splitting an install into many `RUN`s bloats the image. Combine them with `&&` and clean up in the same layer:
 
-The README for this lesson has the full reference, sample output, and a cheat sheet you can keep open while working.
+```dockerfile
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+```
 
-This concludes Chapter 2. In the next chapter, we put everything together and start building the development environment for our RAG application.
+This installs `curl`, then cleans up the apt cache, all in one layer. If we cleaned up in a separate `RUN`, the cache would still live inside the previous layer and inflate the image.
+
+[CLICK]
+
+The fifth best practice is to **move complex setup into shell scripts**.
+
+When a `RUN` instruction grows beyond a few lines, it becomes hard to read. Move it into a script, copy the script into the image, and call it from a single `RUN`:
+
+```dockerfile
+COPY install_dependencies.sh settings/
+RUN bash ./settings/install_dependencies.sh
+```
+
+This is exactly what we do in our RAG project for installing system dependencies, Quarto, and `uv`. The Dockerfile stays clean and the script is easy to test in isolation.
+
+[CLICK]
+
+The sixth best practice is to **use a `.dockerignore` file**.
+
+Files like `.git`, `node_modules`, virtual environments, and caches do not belong in the image. Excluding them from the build context shrinks the image and speeds up the build.
+
+[CLICK]
+
+The seventh best practice is to **run as a non-root user when possible**.
+
+Production containers should not run as root. Create a dedicated user and switch to it:
+
+```dockerfile
+RUN useradd -m -u 1000 appuser
+USER appuser
+```
+
+[CLICK]
+
+The eighth best practice is to **keep secrets and data out of the image**.
+
+Never bake API keys, passwords, or credentials into a Dockerfile — for example with `ENV OPENAI_API_KEY=...` or by `COPY`-ing a `.env` file. Image layers are cached, shared, and pushed to registries, and anyone who has the image can read them back with `docker history`. The same applies to application data: an image is a static, shareable artifact, not a place to store data.
+
+Instead, pass secrets at **runtime** and keep data in **mounted volumes**:
+
+```bash
+docker run -e OPENAI_API_KEY --env-file .env -v "$PWD/data:/app/data" my-image
+```
+
+And let `.dockerignore` exclude files like `.env`, so a secret can't slip into the build context in the first place.
+
+[CLICK]
+
+A few more habits worth adopting:
+
+* Prefer `COPY` over `ADD` unless we need URL fetching or tar extraction.
+* Use the exec form of `CMD` and `ENTRYPOINT` so signals are forwarded correctly.
+* Add a `HEALTHCHECK` so Docker knows when the container is actually ready.
+* Add `LABEL` metadata to make images easier to inspect.
+
+[CLICK]
+
+The Dockerfiles we built in this chapter are intentionally simple. As our application grows, these practices keep our images small, our builds fast, and our containers safe to run in production.
+
+This concludes Chapter 2. In the next chapter, we will return to our RAG project and start applying everything we learned here to build the development environment.

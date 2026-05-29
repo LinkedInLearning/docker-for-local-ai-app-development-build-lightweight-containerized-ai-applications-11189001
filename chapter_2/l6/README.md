@@ -1,358 +1,300 @@
-# Chapter 2 — Lesson 6: Dockerfile best practices
+# Chapter 2 — Lesson 6: Managing containers and images
 
-> **Learning goal:** Apply Dockerfile best practices to produce images that
-> are smaller, faster to build, more reproducible, and more secure.
+> **Learning goal:** List, inspect, debug, and clean up Docker images,
+> containers, volumes, and networks using the `docker` CLI.
 
-The previous lessons showed how to write, build, and run a Dockerfile.
-This lesson is about *how to write a Dockerfile well*: smaller images,
-faster builds, fewer surprises in production.
-
-Each section pairs a rule with a short before/after example and, where
-relevant, points at the version of that pattern actually used in this
-repo's `docker/` folder.
+By now we can build images and start containers. This lesson is
+about everything *between* those two actions: listing, inspecting,
+debugging, cleaning up. These are the commands you'll type dozens
+of times a day once Docker is part of your workflow.
 
 ---
 
-## 1. The mental model: layers, cache, and reproducibility
+## 1. The four object types
+
+Docker manages four kinds of objects. Each has the same little family
+of subcommands (`ls`, `inspect`, `rm`, `prune`).
 
 ```mermaid
 flowchart TD
-    A[Pin everything] --> R[Reproducibility]
-    B[Order matters] --> C[Cache efficiency]
-    D[Fewer, fatter layers] --> S[Smaller images]
-    E[Externalize complexity] --> M[Maintainability]
-    F[Drop root] --> SEC[Security]
+    D[Docker engine] --> I[Images]
+    D --> C[Containers]
+    D --> V[Volumes]
+    D --> N[Networks]
 
-    R & C & S & M & SEC --> G[Good Dockerfile]
+    I --> I1["docker images / docker image ls"]
+    I --> I2["docker image inspect"]
+    I --> I3["docker rmi / docker image rm"]
+    I --> I4["docker image prune"]
+
+    C --> C1["docker ps / docker container ls"]
+    C --> C2["docker inspect / container inspect"]
+    C --> C3["docker rm / docker container rm"]
+    C --> C4["docker container prune"]
+
+    V --> V1["docker volume ls"]
+    V --> V2["docker volume inspect"]
+    V --> V3["docker volume rm"]
+    V --> V4["docker volume prune"]
+
+    N --> N1["docker network ls"]
+    N --> N2["docker network inspect"]
+    N --> N3["docker network rm"]
+    N --> N4["docker network prune"]
 ```
 
-Every "best practice" below maps to one of these five outcomes. Keep
-them in mind when reading the rules.
+This lesson focuses on **images** and **containers**, the two you
+touch every day. Volumes and networks come back in Chapter 3 when
+the RAG project introduces multi-service setups.
 
 ---
 
-## 2. Pin everything
+## 2. Listing what's on your machine
 
-**Rule.** Never depend on `latest`. Pin base images, system packages,
-and language dependencies.
+### Containers
 
-```dockerfile
-# Bad
-FROM python
-RUN apt-get install -y curl
-RUN pip install fastapi
-
-# Good
-FROM python:3.11-slim
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl=7.88.* \
-    && rm -rf /var/lib/apt/lists/*
-RUN pip install --no-cache-dir fastapi==0.115.0
+```bash
+docker ps           # running containers only
+docker ps -a        # all containers, including stopped
+docker ps -q        # just the IDs (handy for scripting)
+docker ps -s        # include the writable layer size
+docker ps --filter "status=exited"   # filter by status
 ```
 
-For maximum reproducibility, pin the base image by digest:
+Sample output:
 
-```dockerfile
-FROM python:3.11-slim@sha256:<digest>
+```
+CONTAINER ID   IMAGE          COMMAND                  STATUS         PORTS                    NAMES
+3b9f1c2a4d5e   demo:0.1       "python main.py"         Up 12 minutes  0.0.0.0:8080->8080/tcp   demo
+9a8b7c6d5e4f   chromadb:1.3   "chroma run ..."         Up 12 minutes  0.0.0.0:8000->8000/tcp   chromadb
 ```
 
-In this repo, the API image pins to a slim, versioned base
-(`docker/Dockerfile_API` → `FROM python:3.11-slim`) and Python deps
-live in `docker/requirements-api.txt`.
+### Images
+
+```bash
+docker images                  # short form
+docker image ls                # same thing, long form
+docker images --filter "dangling=true"   # untagged leftovers
+docker image ls --digests      # show content digests
+```
+
+Sample output:
+
+```
+REPOSITORY      TAG     IMAGE ID       CREATED         SIZE
+demo            0.1     7c4e8a1b9f23   3 minutes ago   145MB
+python          3.11    a1b2c3d4e5f6   2 weeks ago     1.02GB
+<none>          <none>  e5d4c3b2a1f0   1 hour ago      420MB   <-- dangling
+```
+
+A `<none>:<none>` entry is a **dangling image** — an old build that
+has been replaced. Safe to remove with `docker image prune`.
 
 ---
 
-## 3. Order for cache efficiency
+## 3. Looking inside a container
 
-**Rule.** Put rarely-changing instructions at the top, frequently-
-changing ones at the bottom.
+Three commands cover 95% of debugging.
+
+### `docker logs` — see what the app is saying
+
+```bash
+docker logs demo                # everything written so far
+docker logs -f demo             # follow in real time (like tail -f)
+docker logs --tail 100 demo     # only the last 100 lines
+docker logs --since 10m demo    # only the last 10 minutes
+```
+
+### `docker exec` — run a command inside a running container
+
+```bash
+docker exec -it demo bash       # interactive shell
+docker exec demo ls -la /app    # one-off command
+docker exec demo env            # show env vars actually visible
+docker exec -u root demo bash   # exec as a different user
+```
+
+This is the single most useful debugging tool in Docker. If
+something looks wrong, get inside and look around.
+
+### `docker inspect` — full JSON metadata
+
+```bash
+docker inspect demo
+docker inspect demo | jq '.[0].Config.Env'
+docker inspect demo | jq '.[0].NetworkSettings.IPAddress'
+docker inspect demo | jq '.[0].Mounts'
+```
+
+Anything Docker knows about the container is in there: mounts, env,
+network, the exact command being run, restart policy, etc.
+
+### Bonus: live resource use
+
+```bash
+docker stats              # live CPU / memory / I/O for all containers
+docker stats demo         # just one container
+docker top demo           # the processes running inside the container
+```
+
+---
+
+## 4. Container lifecycle commands
 
 ```mermaid
-flowchart TB
-    subgraph Bad
-      direction TB
-      B1[FROM base] --> B2["COPY . . &lt;-- changes constantly"]
-      B2 --> B3["RUN pip install &lt;-- rebuilt every time"]
-    end
-    subgraph Good
-      direction TB
-      G1[FROM base] --> G2["COPY requirements.txt &lt;-- changes rarely"]
-      G2 --> G3["RUN pip install &lt;-- cached"]
-      G3 --> G4["COPY . . &lt;-- only this is rebuilt"]
-    end
+stateDiagram-v2
+    [*] --> created : docker create
+    created --> running : docker start / docker run
+    running --> paused : docker pause
+    paused --> running : docker unpause
+    running --> stopped : docker stop / process exit
+    stopped --> running : docker start
+    stopped --> [*] : docker rm
+    running --> [*] : docker rm -f
 ```
 
-The "Good" layout reinstalls dependencies only when
-`requirements.txt` actually changes.
+| Command                  | What it does                                              |
+| ------------------------ | --------------------------------------------------------- |
+| `docker stop <name>`     | SIGTERM, then SIGKILL after `--time` (default 10s).        |
+| `docker kill <name>`     | Immediate SIGKILL.                                        |
+| `docker start <name>`    | Start a stopped container with its original config.       |
+| `docker restart <name>`  | Stop + start.                                             |
+| `docker pause <name>`    | Freeze all processes inside (rare).                       |
+| `docker unpause <name>`  | Resume from `pause`.                                      |
+| `docker rename old new`  | Change the friendly name without restarting.              |
+| `docker rm <name>`       | Remove a stopped container.                               |
+| `docker rm -f <name>`    | Force remove (stops first).                               |
 
 ---
 
-## 4. `ARG` and `ENV`, used deliberately
-
-**Rule.** `ARG` for build-time knobs, `ENV` for runtime configuration.
-Use both when a value is set at build time but must be visible at
-runtime.
-
-```dockerfile
-ARG PYTHON_VER="3.11"
-ARG VENV_NAME="my_project"
-
-ENV PYTHON_VER=$PYTHON_VER
-ENV VENV_NAME=$VENV_NAME
-
-COPY install_uv.sh settings/
-RUN bash ./settings/install_uv.sh $VENV_NAME $PYTHON_VER
-```
-
-Override at build time without editing the Dockerfile:
+## 5. Removing images
 
 ```bash
-docker build --build-arg PYTHON_VER=3.12 -t dev:0.1 .
+docker rmi demo:0.1             # remove one image
+docker image rm demo:0.1        # same thing, long form
+docker rmi -f demo:0.1          # force, even if a container uses it
 ```
 
-This is exactly the pattern in `docker/Dockerfile_Dev` /
-`docker/build_dev_docker.sh`.
-
-| Use case                         | Use `ARG`? | Use `ENV`? |
-| -------------------------------- | ---------- | ---------- |
-| Tool / language version          | ✓          | (optional) |
-| Feature flag for the build       | ✓          | ✗          |
-| Build-time secret                | ✓ (or `--mount=type=secret`) | ✗ |
-| Runtime config (paths, URLs)     | ✗          | ✓          |
-| Runtime secret                   | ✗          | inject via `-e` at run |
+Docker refuses to remove an image if **any** container — running or
+stopped — depends on it. The fix is usually `docker rm` first, then
+`docker rmi`.
 
 ---
 
-## 5. One `RUN`, not five
+## 6. Cleaning up disk space
 
-**Rule.** Group related commands into a single `RUN` and clean up in
-the same layer.
+Builds and runs accumulate quickly. After a few weeks of active
+development it is normal to have 50+ GB of unused Docker data on
+disk.
 
-```dockerfile
-# Bad — three layers, apt cache left behind
-RUN apt-get update
-RUN apt-get install -y curl git
-RUN rm -rf /var/lib/apt/lists/*
-
-# Good — one layer, no leftover cache
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl git \
-    && rm -rf /var/lib/apt/lists/*
-```
-
-Why this matters: `rm -rf /var/lib/apt/lists/*` in a *later* layer
-does not shrink the image. The cache is already baked into the
-previous layer.
-
-Same idea for `pip`:
-
-```dockerfile
-# Good
-RUN pip install --no-cache-dir -r requirements.txt
-```
-
-`--no-cache-dir` prevents pip from writing its wheel cache into the
-image.
-
----
-
-## 6. Move complex setup into scripts
-
-**Rule.** When a `RUN` grows past ~5 lines, extract it.
-
-```dockerfile
-# Before — 30-line RUN inside the Dockerfile
-RUN apt-get update && apt-get install -y curl git zsh ... \
-    && sh -c "$(curl -fsSL .../oh-my-zsh/install.sh)" -s --batch \
-    && chsh -s $(which zsh) \
-    && ... 30 more lines ...
-
-# After — Dockerfile stays readable
-COPY install_dependencies.sh settings/
-RUN bash ./settings/install_dependencies.sh
-```
-
-Benefits:
-
-* The script is easy to test on its own.
-* The Dockerfile becomes a high-level outline of what's installed.
-* The script is editable without re-reading the whole Dockerfile.
-
-This is exactly how `docker/Dockerfile_Base` is structured: the
-heavy lifting lives in `install_dependencies.sh`, `install_quarto.sh`,
-and `setting_git.sh`.
-
----
-
-## 7. `.dockerignore` is non-optional
-
-**Rule.** Always have a `.dockerignore` and exclude anything that
-isn't needed for the build.
-
-```text
-# .dockerignore
-.git
-__pycache__/
-*.pyc
-.venv/
-node_modules/
-.env
-.env.*
-chroma_data/
-*.log
-.DS_Store
-.pytest_cache/
-.ruff_cache/
-```
-
-Benefits:
-
-* Faster builds — less data sent to the build engine.
-* Smaller images — `COPY . .` no longer drags in caches and secrets.
-* Better cache hits — irrelevant file changes no longer invalidate
-  the layer.
-
----
-
-## 8. Drop root
-
-**Rule.** Production containers should not run as root.
-
-```dockerfile
-RUN useradd -m -u 1000 -s /bin/bash appuser \
-    && chown -R appuser:appuser /app
-USER appuser
-```
-
-Even better, use a fixed UID/GID so the user ID is predictable when
-bind-mounting host directories.
-
-For development containers, root is often acceptable (it keeps bind
-mounts simple). The trade-off should be a conscious one.
-
----
-
-## 9. Keep secrets and data out of the image
-
-**Rule.** Never bake secrets or data into the image.
-
-API keys, passwords, and credentials must never be hard-coded into a
-Dockerfile — not via `ENV OPENAI_API_KEY=...`, and not by `COPY`-ing a
-`.env` file. Image layers are cached, shared, and pushed to registries,
-and anyone who has the image can read them back:
-
-```dockerfile
-# Bad — the key is baked into a layer, visible via `docker history`
-ENV OPENAI_API_KEY=sk-...
-COPY .env /app/.env
-```
+### Step 1 — see what's using the space
 
 ```bash
-# Good — inject secrets at runtime; keep data in a mounted volume
-docker run -e OPENAI_API_KEY --env-file .env \
-    -v "$PWD/data:/app/data" my-image
+docker system df
 ```
 
-The same logic applies to application data: an image is a static,
-shareable artifact, not a datastore. Combined with a `.dockerignore`
-that excludes `.env` (practice 7), a secret can't even reach the build
-context. Chapter 5 takes image security further — pinned bases and
-vulnerability scanning.
-
----
-
-## 10. Exec form for `CMD` and `ENTRYPOINT`
-
-**Rule.** Always use the JSON array form.
-
-```dockerfile
-# Bad — wrapped in /bin/sh -c, SIGTERM not forwarded
-CMD python main.py
-
-# Good — exec form, app receives signals directly
-CMD ["python", "main.py"]
+```
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          24        4         18.2GB    14.1GB (77%)
+Containers      9         2         142MB     128MB (90%)
+Local Volumes   12        3         3.4GB     2.1GB (61%)
+Build Cache     188       0         9.7GB     9.7GB
 ```
 
-Why it matters: when you `docker stop` a container running under
-`/bin/sh -c ...`, the shell receives `SIGTERM`, not your app, and
-your app gets killed ungracefully 10 seconds later.
+Add `-v` for a per-object breakdown.
 
----
-
-## 11. A few smaller habits
-
-| Habit                                       | Reason                                                      |
-| ------------------------------------------- | ----------------------------------------------------------- |
-| Prefer `COPY` over `ADD`.                   | `ADD` has hidden behaviors (URL fetch, tarball extraction). |
-| Add a `HEALTHCHECK`.                        | Docker / orchestrators can know when the app is ready.      |
-| Add OCI `LABEL`s.                           | Searchable, inspectable metadata.                           |
-| Use `--no-install-recommends` with `apt`.   | Skips optional packages, often halves install size.         |
-| Set `PYTHONDONTWRITEBYTECODE=1`.            | No `.pyc` files written into the image.                     |
-| Set `PYTHONUNBUFFERED=1`.                   | Real-time log output, no buffering surprises.               |
-| Multi-stage builds for compiled languages.  | Build in a fat image, copy artifacts into a slim one.       |
-
-### A multi-stage example
-
-```dockerfile
-# --- builder stage ---
-FROM python:3.11 AS builder
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
-
-# --- runtime stage ---
-FROM python:3.11-slim
-WORKDIR /app
-COPY --from=builder /root/.local /root/.local
-COPY . .
-ENV PATH=/root/.local/bin:$PATH
-EXPOSE 8080
-CMD ["python", "main.py"]
-```
-
-The build toolchain stays in `builder` and never ships to
-production.
-
----
-
-## 12. Putting it all together
-
-The `Dockerfile.good` in this folder is the "after" version of a
-small Python API. The `Dockerfile.bad` is the same thing written
-without any of these rules. Read them side by side:
+### Step 2 — targeted prunes
 
 ```bash
-diff chapter_2/l5/Dockerfile.bad chapter_2/l5/Dockerfile.good
+docker container prune          # remove all stopped containers
+docker image prune              # remove dangling images only
+docker image prune -a           # remove every image not used by a container
+docker volume prune             # remove volumes not used by any container
+docker network prune            # remove unused custom networks
+docker builder prune            # remove the BuildKit cache
 ```
 
-You will see in one place:
+Each command prompts for confirmation. Add `-f` to skip the prompt.
 
-* Pinned base image and pinned dependencies.
-* Dependency layer separated from source layer.
-* Single `RUN` for `apt-get`, with cleanup.
-* `ARG` + `ENV` pair for the Python version.
-* `.dockerignore` keeping the context small.
-* Non-root user.
-* Exec-form `CMD`.
+### Step 3 — the nuclear option
+
+```bash
+docker system prune             # containers + networks + dangling images
+docker system prune -a          # ... and all unused images
+docker system prune -a --volumes # ... and all unused volumes
+```
+
+`--volumes` is irreversible — it deletes named volumes that aren't
+attached to any container, including the `chroma_data` volume from
+this project if the chroma container is down. Use with care.
 
 ---
 
-## 13. Cheat sheet
+## 7. A handful of quality-of-life flags
 
-| Rule                                | Why                                  |
-| ----------------------------------- | ------------------------------------ |
-| Pin base images and packages.        | Reproducibility.                     |
-| Stable instructions first, volatile last. | Cache efficiency.                |
-| Use `ARG` + `--build-arg` for build knobs. | Configurable builds.            |
-| Use `ENV` for runtime config.        | Override with `docker run -e`.       |
-| One `RUN` with cleanup.              | Smaller images.                      |
-| Extract long `RUN`s into scripts.    | Readability.                         |
-| Maintain a `.dockerignore`.          | Faster builds, smaller images.       |
-| Run as non-root.                     | Security.                            |
-| Exec form for `CMD`/`ENTRYPOINT`.    | Signal handling.                     |
-| Multi-stage when compiling.          | Drop the toolchain from runtime.     |
+| Flag / variant                           | Why                                                       |
+| ---------------------------------------- | --------------------------------------------------------- |
+| `docker ps --format '{{.Names}}\t{{.Status}}'` | Clean tabular output without the noise.             |
+| `docker logs --timestamps demo`          | Prefix each log line with a timestamp.                    |
+| `docker exec -e DEBUG=1 demo my-cmd`     | Set an env var just for this one `exec` call.             |
+| `docker container ls --filter "name=rag"`| Show only containers whose name matches `rag`.            |
+| `docker image ls --filter "reference=rag-*"` | Filter images by name pattern.                        |
+| `docker inspect --format '{{.State.Health.Status}}' demo` | Pull a single field without `jq`.       |
 
-Apply these and your Dockerfile will already be in the top decile
-of what most teams ship. In the next chapter, we return to the RAG
-project and put every one of these rules into practice on a real
-application.
+---
+
+## 8. Try it yourself
+
+After running the container from Lesson 5:
+
+```bash
+# What's running?
+docker ps
+
+# What does it have to say?
+docker logs -f demo
+
+# Get inside and poke around
+docker exec -it demo bash
+> env
+> ps aux
+> exit
+
+# Find the IP and port mappings
+docker inspect demo | jq '.[0].NetworkSettings'
+
+# Check disk usage
+docker system df
+
+# Tidy up
+docker stop demo
+docker rm demo
+docker image prune
+```
+
+A handful of commands, but together they cover the day-to-day
+operational side of Docker.
+
+---
+
+## 9. Cheat sheet
+
+| Question                                 | Command                              |
+| ---------------------------------------- | ------------------------------------ |
+| What containers are running?             | `docker ps`                          |
+| What containers exist at all?            | `docker ps -a`                       |
+| What images do I have?                   | `docker images`                      |
+| What is this container doing?            | `docker logs -f <name>`              |
+| Let me into the container.               | `docker exec -it <name> bash`        |
+| What is this container's config?         | `docker inspect <name>`              |
+| Stop / start / restart.                  | `docker stop|start|restart <name>`   |
+| Remove a container.                      | `docker rm <name>`                   |
+| Remove an image.                         | `docker rmi <image>`                 |
+| Live resource usage.                     | `docker stats`                       |
+| How much disk am I using?                | `docker system df`                   |
+| Clean up safely.                         | `docker container prune` + `docker image prune` |
+| Clean up aggressively.                   | `docker system prune -a`             |
+
+In the next lesson — the last in this chapter — we turn to Dockerfile
+**best practices**: how to write Dockerfiles that produce smaller,
+faster, more reproducible, and more secure images.
