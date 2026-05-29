@@ -85,6 +85,58 @@ And the **tag** matters. If you push without a version — just `myuser/demo` �
 
 [CLICK]
 
+---
+
+> **🎬 LIVE DEMO — pivot to the VS Code terminal.**
+> Switch to VS Code and open the integrated terminal. We'll pull a base image,
+> then push the `demo:0.1` image we built in Lesson 3 up to Docker Hub. Use your
+> own Docker Hub username in place of `myuser`, and have a browser tab ready on
+> hub.docker.com.
+
+Let's do this live. First, let's pull a base image on its own, to see a registry pull by itself:
+
+```bash
+docker pull python:3.11-slim
+```
+
+Docker contacts Docker Hub and downloads the image and its layers into our local store. If we already have it, it simply reports the image is up to date.
+
+Now let's share our *own* image — the `demo:0.1` image we built last lesson. Three steps: log in, tag, push.
+
+First, log in:
+
+```bash
+docker login
+```
+
+I'll enter my Docker Hub username and an access token — use a token rather than your password; it's revocable.
+
+Next, tag the local image with my namespace — my Docker Hub username in place of `myuser`:
+
+```bash
+docker tag demo:0.1 myuser/demo:0.1
+```
+
+And push it:
+
+```bash
+docker push myuser/demo:0.1
+```
+
+Docker uploads each layer the registry doesn't already have, skips the ones it does, and prints the digest when it finishes.
+
+Now let's confirm it landed.
+
+> **[SWITCH TO BROWSER]** Open `https://hub.docker.com/r/myuser/demo` (your username in place of `myuser`).
+
+There it is — the `demo` repository, the `0.1` tag we just pushed, the image size, and when it was last updated. Anyone with access can now run `docker pull myuser/demo:0.1` and get exactly this image.
+
+Back to the slides.
+
+---
+
+[CLICK]
+
 That is the whole everyday workflow: pull base images, tag your own with your namespace, push to share, pull to deploy.
 
 In the next lesson, we go back to running images — the `docker run` command and the flags you will use every day.

@@ -156,6 +156,17 @@
     .term .hd{color:#94a3b8;font-size:14px;letter-spacing:.04em}
     .term hr{border:0;border-top:1px solid #334155;margin:14px 0}
 
+    /* live-demo beats */
+    .beats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+    .beat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+      box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start}
+    .beat .bn{width:30px;height:30px;border-radius:50%;background:var(--blue-700);color:#fff;
+      font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .beat b{display:block;font-size:17px;color:var(--ink);margin-bottom:3px}
+    .beat span{font-size:15px;color:var(--ink-soft);line-height:1.45}
+    .beat code{font-family:ui-monospace,monospace;font-size:13px;background:var(--bg-soft);
+      border:1px solid var(--line-soft);border-radius:5px;padding:1px 6px;color:var(--ink)}
+
     /* visibility / latest cards */
     .twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px}
     .infocard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;
@@ -196,6 +207,7 @@
       .path .connector{transform:rotate(90deg);padding:4px 0}
       .regvis,.twoname{grid-template-columns:1fr}
       .twoname .arr{transform:rotate(90deg)}
+      .beats{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -490,7 +502,32 @@
       </div>
     </section>
 
-    <!-- 11. RECAP / TAKEAWAY -->
+    <!-- 11. LIVE DEMO — pull & push to Docker Hub -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Live demo · to the terminal</p>
+        <h2 class="h">Pull a base image, push ours to Docker Hub.</h2>
+        <h3 class="sub">Over to the VS Code terminal — pull <code class="inline">python:3.11-slim</code>, then share the <code class="inline">demo:0.1</code> image we built in Lesson 3.</h3>
+        <div class="cap">VS Code · terminal</div>
+        <div class="term">
+          <div><span class="prompt">$</span> docker pull <span class="hl">python:3.11-slim</span></div>
+          <div class="ok">Status: Image is up to date for python:3.11-slim</div>
+          <hr/>
+          <div><span class="prompt">$</span> docker login</div>
+          <div class="ok">Login Succeeded</div>
+          <div><span class="prompt">$</span> docker tag <span class="hl">demo:0.1</span> <span class="hl">myuser/demo:0.1</span></div>
+          <div><span class="prompt">$</span> docker push <span class="hl">myuser/demo:0.1</span></div>
+          <div class="ok">0.1: digest: sha256:7c4e8a1b…f23  size: 1789</div>
+        </div>
+        <div class="beats">
+          <div class="beat"><div class="bn">1</div><div><b>Pull a base image</b><span><code>docker pull</code> fetches <code>python:3.11-slim</code> from Docker Hub into the local store.</span></div></div>
+          <div class="beat"><div class="bn">2</div><div><b>Push our image</b><span><code>login</code>, then <code>tag</code> <code>demo:0.1</code> as <code>myuser/demo:0.1</code>, then <code>push</code>.</span></div></div>
+          <div class="beat"><div class="bn">3</div><div><b>See it on Docker Hub</b><span>Open <code>hub.docker.com/r/myuser/demo</code> — repo, <code>0.1</code> tag, and size are live.</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. RECAP / TAKEAWAY -->
     <section class="slide">
       <div class="wrap">
         <p class="eyebrow">Takeaway</p>
