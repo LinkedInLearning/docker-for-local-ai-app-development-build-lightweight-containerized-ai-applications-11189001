@@ -70,6 +70,48 @@ Other flags worth knowing:
 
 [CLICK]
 
+---
+
+> **🎬 LIVE DEMO — pivot to VS Code.**
+> Leave the slides on this "Live demo" cue. Switch to VS Code with the
+> Dockerfile from `chapter_2/l2` open on the **left** and an integrated
+> terminal open on the **right**, with the terminal's working directory set to
+> `chapter_2/l2` (the folder that holds the Dockerfile).
+
+Let's see this for real — I'll switch over to VS Code.
+
+On the left is the Dockerfile we wrote in Lesson 2: the same seven instructions. On the right is a terminal, opened in that same folder.
+
+I'll run the build command we just walked through:
+
+```bash
+docker build -t demo:0.1 .
+```
+
+Watch the output. Docker prints **one step per instruction** — `[1/6] FROM…`, `[2/6] WORKDIR…`, `[3/6] COPY…`, and so on. Each of those lines maps directly to a line in the Dockerfile on the left, and each one becomes a **layer** in the image. The `RUN pip install` step is the slow one — that's where Docker actually downloads and installs our dependencies. When it's done, Docker prints `exporting to image` and the final image ID.
+
+*(Optional — reinforces the cache slide.)* Let me run the **exact same command** again:
+
+```bash
+docker build -t demo:0.1 .
+```
+
+This time almost every step says `CACHED`. Nothing changed, so Docker reuses the layers from the first build and finishes in a fraction of a second — that's the layer cache in action.
+
+Finally, let's confirm the image is really there:
+
+```bash
+docker images
+```
+
+That lists **`demo`** with tag **`0.1`**, its image ID, and its size — the artifact we just built, now sitting in our local image store, ready to run. (`docker ps`, by contrast, lists *running containers* — we have none yet, and that's exactly what the next lesson, `docker run`, is about.)
+
+Now I'll switch back to the slides.
+
+---
+
+[CLICK]
+
 Once the build finishes, the image lives in our local Docker registry. We can list it with `docker images` and inspect its layers with `docker history`.
 
 The image is now ready to run.

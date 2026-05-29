@@ -212,6 +212,35 @@
     .term .hd{color:#94a3b8;font-size:14px;letter-spacing:.04em}
     .term hr{border:0;border-top:1px solid #334155;margin:14px 0}
 
+    /* live-demo — VS Code split mock (Dockerfile | terminal) */
+    .ide{display:grid;grid-template-columns:1fr 1fr;border:1px solid #334155;
+      border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.18);
+      margin:16px 0 20px;max-width:1180px}
+    .ide .col{display:flex;flex-direction:column;min-width:0}
+    .ide .col.editor{border-right:1px solid #334155}
+    .ide .tab{display:flex;align-items:center;gap:8px;padding:11px 16px;
+      font-size:14px;font-weight:600;background:#0b1220;color:#cbd5e1;
+      border-bottom:1px solid #334155;letter-spacing:.02em}
+    .ide .tab .dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+    .ide .pane{background:var(--code-bg);color:#e2e8f0;padding:18px 20px;
+      font:15px/1.85 ui-monospace,monospace;min-height:262px}
+    .ide .pane .kw{color:#93c5fd;font-weight:600}
+    .ide .pane .str{color:#fcd34d}
+    .ide .pane .prompt{color:#94a3b8;margin-right:8px}
+    .ide .pane .typed{color:#86efac}
+    .ide .pane .cursor{display:inline-block;width:9px;height:17px;
+      background:#86efac;vertical-align:-3px;margin-left:3px;border-radius:1px}
+
+    /* live-demo — the three beats */
+    .beats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .beat{background:#fff;border:1px solid var(--line);border-radius:14px;
+      padding:16px 18px;box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start}
+    .beat .bn{width:30px;height:30px;border-radius:50%;background:var(--blue-700);
+      color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;
+      justify-content:center;flex-shrink:0}
+    .beat b{display:block;font-size:17px;color:var(--ink);margin-bottom:3px}
+    .beat span{font-size:15px;color:var(--ink-soft);line-height:1.45}
+
     /* takeaway */
     .takeaway-card{margin:18px auto 0;max-width:1100px;
       background:linear-gradient(135deg,#fff,var(--bg-soft));border:1px solid var(--line);
@@ -229,6 +258,9 @@
       .path .connector{transform:rotate(90deg);padding:4px 0}
       .ctxvis,.layervis{grid-template-columns:1fr}
       .ctxvis .arr,.layervis .arr{transform:rotate(90deg)}
+      .ide{grid-template-columns:1fr}
+      .ide .col.editor{border-right:0;border-bottom:1px solid #334155}
+      .beats{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -587,7 +619,46 @@
       </div>
     </section>
 
-    <!-- 11. AFTER THE BUILD / TAKEAWAY -->
+    <!-- 11. LIVE DEMO — to the terminal -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Live demo · to the terminal</p>
+        <h2 class="h">Let's build it for real.</h2>
+        <h3 class="sub">Over to VS Code — the Dockerfile on the left, a terminal on the right — and run the exact command we just walked through.</h3>
+        <div class="ide">
+          <div class="col editor">
+            <div class="tab">
+              <span class="dot" style="background:#ef4444"></span>
+              <span class="dot" style="background:#f59e0b"></span>
+              <span class="dot" style="background:#10b981"></span>
+              &nbsp; Dockerfile — chapter_2/l2
+            </div>
+            <div class="pane">
+              <div><span class="kw">FROM</span> python:3.11-slim</div>
+              <div><span class="kw">WORKDIR</span> /app</div>
+              <div><span class="kw">COPY</span> requirements.txt .</div>
+              <div><span class="kw">RUN</span> pip install --no-cache-dir -r requirements.txt</div>
+              <div><span class="kw">COPY</span> . .</div>
+              <div><span class="kw">EXPOSE</span> 8080</div>
+              <div><span class="kw">CMD</span> [<span class="str">"python"</span>, <span class="str">"main.py"</span>]</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="tab">▶ &nbsp; TERMINAL — chapter_2/l2</div>
+            <div class="pane">
+              <div><span class="prompt">$</span><span class="typed">docker build -t demo:0.1 .</span><span class="cursor"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="beats">
+          <div class="beat"><div class="bn">1</div><div><b>Run the build</b><span>Execute the command and watch Docker step through the file.</span></div></div>
+          <div class="beat"><div class="bn">2</div><div><b>Read the output</b><span>One step per instruction → one layer; a re-run shows <code class="inline">CACHED</code>.</span></div></div>
+          <div class="beat"><div class="bn">3</div><div><b>Inspect the image</b><span>Run <code class="inline">docker images</code> to see the tag, ID, and size.</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. AFTER THE BUILD / TAKEAWAY -->
     <section class="slide">
       <div class="wrap">
         <p class="eyebrow">After the build</p>
