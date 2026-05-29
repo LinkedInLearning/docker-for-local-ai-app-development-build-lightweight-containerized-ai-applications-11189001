@@ -35,7 +35,7 @@ This step is often skipped, but it is the most important one. The clearer the re
 
 [CLICK]
 
-Step two — the Dockerfile.
+Step two is the Dockerfile.
 
 A Dockerfile is a plain text file that translates those requirements into instructions Docker can follow.
 
@@ -50,11 +50,11 @@ We can think of a Dockerfile as a recipe, and the image as the cake.
 
 [CLICK]
 
-Step three — `docker build`.
+The next step is building the image.
 
 Once we have a Dockerfile, we run the `docker build` command.
 
-Docker reads the file from top to bottom and executes each instruction, producing a new layer for most of them.
+Docker reads the file from top to bottom and executes each instruction, creating a dedicate layer for most of them.
 
 The final stack of layers is the image. The image is a read-only snapshot that contains everything the application needs to run.
 
@@ -62,7 +62,7 @@ Images are immutable. If we need to change something, we update the Dockerfile a
 
 [CLICK]
 
-Step four — `docker run`.
+Last but not least is the `docker run` command.
 
 The image is just a template. To actually execute our application, we use the `docker run` command.
 
@@ -76,7 +76,7 @@ This four-step workflow is repeated every time we change the application.
 
 When we update the code or change a dependency, we update the relevant requirements, the Dockerfile if needed, rebuild the image, and run a new container.
 
-Over time, this loop becomes very fast, because Docker caches the layers that did not change.
+Over time, this loop becomes very fast, because Docker uses a sophisticated caching system which we will discuss later on in the course.
 
 [CLICK]
 
@@ -84,4 +84,4 @@ The important takeaway from this lesson is that every container starts from clea
 
 Dockerfile → `docker build` → `docker run`.
 
-In the next lessons, we will zoom into each of these steps. We will start with the Dockerfile, then look at `docker build` in detail, then `docker run`, and finally cover Dockerfile best practices.
+In the next lessons, we will zoom into each of these steps. We will start with the Dockerfile, then look at `docker build` in detail, then `docker run`, and finally cover best practices for setting and running containers.
