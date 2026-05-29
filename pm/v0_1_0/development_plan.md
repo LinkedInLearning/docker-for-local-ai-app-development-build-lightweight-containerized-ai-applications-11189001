@@ -5,7 +5,7 @@
 **DRI**: RamiKrispin
 **Start date**: 2026-05-28
 **Source-of-truth roadmap**: `docs/api_production_roadmap.md` (§2 Tier 1, §3 Week 1, §5 Tier 1 acceptance)
-**Plan status**: Draft — pending user approval
+**Plan status**: In progress — tracked under `pm/v0_1_0/` (see `pm/project-state.md`)
 
 ---
 
@@ -157,10 +157,10 @@ stateDiagram-v2
 
 ## 3. Project status
 
-- [ ] **Phase 1** — Middleware stack (request ID, API-key auth, error sanitization)
-- [ ] **Phase 2** — Async ingestion (job registry, background runner, new endpoints)
-- [ ] **Phase 3** — Rate limiting, max upload size, path hardening
-- [ ] **Phase 4** — Tests, documentation, acceptance checklist verification
+- [x] **Phase 1** — Middleware stack (request ID, API-key auth, error sanitization) — _committed (`f83c221`)_
+- [x] **Phase 2** — Async ingestion (job registry, background runner, new endpoints) — _committed (`f83c221`, `f1e0090`)_
+- [x] **Phase 3** — Rate limiting, max upload size, path hardening — _committed (`71456fc`, `b4392a3`, `af4554c`)_
+- [ ] **Phase 4** — Tests, documentation, acceptance checklist verification — _not started_
 
 ---
 

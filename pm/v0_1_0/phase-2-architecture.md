@@ -2,7 +2,7 @@
 
 **Project**: RAG API Tier 1 Hardening (v0.1.0)
 **Phase**: 2 of 4
-**Source plan**: `docs/tier1_ingestion_plan.md` §9 Phase 2
+**Source plan**: `pm/v0_1_0/development_plan.md` §9 Phase 2
 **Phase 1 contract**: `docs/architecture/phase1_middleware.md` (especially §5 ordering, §8.1 downstream contracts)
 **Targets**: FastAPI 0.115.x / Starlette 0.38.x, Python 3.12 stdlib only (no new third-party deps)
 **Status**: Ready for Builder

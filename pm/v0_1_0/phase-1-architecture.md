@@ -2,7 +2,7 @@
 
 **Project**: RAG API Tier 1 Hardening (v0.1.0)
 **Phase**: 1 of 4
-**Source plan**: `docs/tier1_ingestion_plan.md` §9 Phase 1
+**Source plan**: `pm/v0_1_0/development_plan.md` §9 Phase 1
 **Targets**: FastAPI 0.115.0 / Starlette 0.38.x (per `docker/requirements.txt`)
 **Status**: Ready for Builder
 

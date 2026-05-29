@@ -2,7 +2,7 @@
 
 **Project**: RAG API Tier 1 Hardening (v0.1.0)
 **Phase**: 3 of 4
-**Source plan**: `docs/tier1_ingestion_plan.md` §9 Phase 3
+**Source plan**: `pm/v0_1_0/development_plan.md` §9 Phase 3
 **Phase 1 contract**: `docs/architecture/phase1_middleware.md` (§5 ordering, §8.2 wiring template)
 **Phase 2 contract**: `docs/architecture/phase2_async_ingestion.md` (`POST /ingest` is now async — rate limiter targets submission, not the runner)
 **Targets**: FastAPI 0.115.0 / Starlette 0.38.x, Python 3.12, **new dep `slowapi==0.1.9`**
