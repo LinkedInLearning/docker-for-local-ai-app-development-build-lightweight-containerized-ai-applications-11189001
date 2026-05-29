@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chapter 5 · Lesson 2 — Slimming Images with Multi-Stage Builds</title>
+  <style>
+    :root {
+      --bg:#fff; --bg-soft:#f7f9fc; --ink:#0f172a; --ink-soft:#475569;
+      --muted:#94a3b8; --line:#e2e8f0; --line-soft:#eef2f7;
+      --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-500:#3b82f6;
+      --blue-600:#2563eb; --blue-700:#1d4ed8;
+      --teal-500:#0ea5e9; --amber-500:#f59e0b; --amber-50:#fffbeb;
+      --green-500:#10b981; --green-50:#ecfdf5; --pink-500:#ec4899;
+      --violet-500:#8b5cf6; --violet-50:#f5f3ff;
+      --red-500:#ef4444; --red-50:#fef2f2;
+      --code-bg:#0f172a; --code-fg:#e2e8f0;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+      --shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.07);
+      --radius:16px; --maxw:1280px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
+      font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+    /* chrome — only the progress bar; the deck is otherwise unadorned */
+    .progress{position:fixed;top:0;left:0;height:4px;width:0%;
+      background:linear-gradient(90deg,var(--blue-600),var(--teal-500));z-index:50;transition:width .25s ease}
+
+    /* slides — fit the viewport, do not scroll
+       Content is top-anchored so the eyebrow + title appear at the
+       same Y position on every slide. The bottom area is allowed to
+       have empty space; the tallest slide sets the implicit floor.
+
+       Slides are stacked in the same position with absolute
+       positioning so navigation cross-fades both the outgoing and
+       incoming slide simultaneously — no display:none snap.
+    */
+    .deck{position:relative;width:100%;height:100vh}
+    .slide{
+      position:absolute;inset:0;
+      display:flex;align-items:flex-start;
+      height:100vh;max-height:100vh;overflow:hidden;
+      padding:40px 56px 56px;
+      opacity:0;pointer-events:none;
+      transition:opacity .55s cubic-bezier(.4,0,.2,1);
+    }
+    .slide.active{opacity:1;pointer-events:auto;z-index:1}
+    .slide .wrap{margin:0 auto;width:100%;max-width:var(--maxw)}
+
+    /* typography — presentation scale (~1.4× browser-doc scale) */
+    .eyebrow{font-size:17px;letter-spacing:.18em;text-transform:uppercase;
+      color:var(--blue-700);font-weight:700;margin:0 0 16px}
+    h1.title{font-size:92px;line-height:1.04;letter-spacing:-.028em;margin:0 0 18px;font-weight:700}
+    h1.title .accent{background:linear-gradient(90deg,var(--blue-600),var(--teal-500));
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+    h2.h{font-size:58px;line-height:1.1;letter-spacing:-.02em;margin:0 0 14px;font-weight:700}
+    h3.sub{font-size:26px;font-weight:500;color:var(--ink-soft);margin:0 0 22px;line-height:1.5;max-width:1000px}
+    p.lead{font-size:28px;line-height:1.5;color:var(--ink-soft);margin:0 0 18px;max-width:1000px}
+    .inline{background:var(--bg-soft);padding:2px 10px;border:1px solid var(--line);border-radius:6px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;color:var(--ink)}
+
+    /* title art */
+    .title-art{position:absolute;right:-40px;top:50%;transform:translateY(-50%);
+      width:780px;height:780px;opacity:.5;pointer-events:none;z-index:0}
+    .title-wrap{position:relative;z-index:1}
+
+    /* path / chapter timeline (3-stop) */
+    .path{margin-top:28px;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch}
+    .path .stop{padding:20px 22px;border:1px solid var(--line);border-radius:var(--radius);
+      background:var(--bg);box-shadow:var(--shadow-sm)}
+    .path .stop.now{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50));box-shadow:var(--shadow)}
+    .path .stop .lbl{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;font-weight:600}
+    .path .stop.now .lbl{color:var(--blue-700)}
+    .path .stop .ttl{font-size:23px;font-weight:600;color:var(--ink);margin-bottom:6px}
+    .path .stop .desc{font-size:18px;color:var(--ink-soft);line-height:1.45}
+    .path .connector{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 10px}
+    .path .connector svg{width:34px;height:34px}
+
+    /* generic code block */
+    pre.code{background:var(--code-bg);color:var(--code-fg);padding:18px 22px;
+      border-radius:14px;font:20px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+      overflow-x:auto;box-shadow:0 6px 18px rgba(15,23,42,.15);margin:0}
+    pre.code .k{color:#93c5fd;font-weight:600}
+    pre.code .s{color:#fcd34d}
+    pre.code .c{color:#64748b}
+    pre.code .v{color:#86efac}
+    pre.code .f{color:#fcd34d;font-weight:600}
+    .cap{font-size:15px;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--ink-soft);font-weight:700;margin-bottom:12px}
+
+    /* split layout (code + notes) */
+    .split{display:grid;grid-template-columns:1.05fr .95fr;gap:36px;align-items:start;margin-top:8px}
+    .keynote{margin-top:0;display:flex;flex-direction:column;gap:12px}
+    .keynote .row{display:flex;align-items:baseline;gap:14px;background:#fff;border:1px solid var(--line);
+      border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+    .keynote .row.hi{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50))}
+    .keynote .row code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;
+      color:var(--blue-700);font-size:17px;min-width:118px}
+    .keynote .row span{font-size:17px;color:var(--ink-soft);line-height:1.4}
+
+    /* two-stage flow (builder -> runtime) */
+    .stages{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:stretch;margin-top:18px}
+    .stagecol{border:1px solid var(--line);border-radius:var(--radius);padding:26px 28px;box-shadow:var(--shadow-sm)}
+    .stagecol.builder{border-color:var(--violet-500);background:linear-gradient(180deg,#fff,var(--violet-50))}
+    .stagecol.runtime{border-color:var(--green-500);background:linear-gradient(180deg,#fff,var(--green-50))}
+    .stagecol .lbl{font-size:15px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin-bottom:14px}
+    .stagecol.builder .lbl{color:var(--violet-500)}
+    .stagecol.runtime .lbl{color:var(--green-500)}
+    .stagecol .item{display:flex;align-items:center;gap:12px;font-size:20px;color:var(--ink);margin-bottom:12px}
+    .stagecol .item .dot{width:10px;height:10px;border-radius:50%;flex:none}
+    .stagecol.builder .item .dot{background:var(--violet-500)}
+    .stagecol.runtime .item .dot{background:var(--green-500)}
+    .stagecol .item code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;
+      background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:.85em}
+    .stagecol .note{margin-top:8px;font-size:18px;line-height:1.45;color:var(--ink-soft)}
+    .stagecol .note b{color:var(--ink)}
+    .stages .connector{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 18px}
+    .stages .connector svg{width:42px;height:42px}
+    .stages .connector .clbl{font-size:14px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+      color:var(--blue-700);margin-top:8px;text-align:center;line-height:1.3}
+
+    /* before/after columns */
+    .ba{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:14px}
+    .bacol{border:1px solid var(--line);border-radius:var(--radius);padding:24px 26px;box-shadow:var(--shadow-sm)}
+    .bacol.bad{border-color:var(--red-500);background:linear-gradient(180deg,#fff,var(--red-50))}
+    .bacol.good{border-color:var(--green-500);background:linear-gradient(180deg,#fff,var(--green-50))}
+    .bacol .lbl{font-size:15px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin-bottom:14px}
+    .bacol.bad .lbl{color:var(--red-500)}
+    .bacol.good .lbl{color:var(--green-500)}
+    .bacol .seq{display:flex;flex-direction:column;gap:10px}
+    .bacol .step{display:flex;align-items:center;gap:12px;font-size:19px;color:var(--ink)}
+    .bacol .step .dot{width:10px;height:10px;border-radius:50%;flex:none}
+    .bacol.bad .step .dot{background:var(--red-500)}
+    .bacol.good .step .dot{background:var(--green-500)}
+    .bacol .step code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;
+      background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:.9em}
+    .bacol .note{margin-top:16px;font-size:18px;line-height:1.45;color:var(--ink-soft)}
+    .bacol .note b{color:var(--ink)}
+
+    /* lever cards */
+    .levers{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:16px}
+    .lever{border:1px solid var(--line);border-radius:var(--radius);padding:24px 26px;box-shadow:var(--shadow-sm)}
+    .lever .lhd{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:var(--ink);margin-bottom:12px}
+    .lever .lhd .n{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+      font-size:18px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--blue-600),var(--teal-500));flex:none}
+    .lever p{margin:0;font-size:19px;line-height:1.5;color:var(--ink-soft)}
+    .lever code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;
+      background:var(--bg-soft);border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:.86em;color:var(--ink)}
+
+    /* terminal mock */
+    .term{background:var(--code-bg);color:#e2e8f0;border-radius:16px;padding:26px 30px;
+      font:20px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;
+      box-shadow:0 10px 30px rgba(15,23,42,.22);margin-top:8px}
+    .term .bar{display:flex;gap:9px;margin-bottom:18px}
+    .term .bar .b{width:14px;height:14px;border-radius:50%}
+    .term .bar .b1{background:#ef4444}.term .bar .b2{background:#f59e0b}.term .bar .b3{background:#10b981}
+    .term .prompt{color:#86efac;font-weight:700}
+    .term .cmd{color:#93c5fd;font-weight:700}
+    .term .flag{color:#fcd34d}
+    .term .hd{color:#94a3b8}
+    .term .out{color:#cbd5e1}
+    .term .ok{color:#86efac;font-weight:700}
+    .term .str{color:#fcd34d}
+    .term hr{border:none;border-top:1px solid #1e293b;margin:14px 0}
+
+    /* takeaway */
+    .takeaway-card{margin:18px auto 0;max-width:1100px;
+      background:linear-gradient(135deg,#fff,var(--bg-soft));border:1px solid var(--line);
+      border-radius:24px;padding:28px 36px;box-shadow:var(--shadow);text-align:center}
+    .takeaway-card .quote{font-size:30px;color:var(--ink);font-weight:600;
+      letter-spacing:-.01em;line-height:1.4;max-width:900px;margin:0 auto}
+    .takeaway-card .foot{margin-top:14px;font-size:20px;color:var(--ink-soft)}
+
+    /* responsive — smaller viewports get proportionally smaller type */
+    @media (max-width:1100px){
+      .slide{padding:32px 28px 60px}
+      h1.title{font-size:60px}h2.h{font-size:40px}
+      h3.sub{font-size:20px}p.lead{font-size:22px}
+      .title-art{display:none}
+      .path,.split,.ba,.levers,.stages{grid-template-columns:1fr}
+      .path .connector,.stages .connector{transform:rotate(90deg);padding:4px 0}
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <main class="deck" id="deck">
+
+    <!-- 1. TITLE -->
+    <section class="slide active" style="position:absolute;overflow:hidden;">
+      <svg class="title-art" viewBox="0 0 780 780" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="ga" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity=".22"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity=".08"/>
+          </linearGradient>
+        </defs>
+        <!-- a tall stack of layers being trimmed down to a short one -->
+        <g transform="translate(190 150)">
+          <rect x="0"   y="0"   width="240" height="46" rx="10" fill="url(#ga)" stroke="#8b5cf6" stroke-opacity=".4" stroke-width="2"/>
+          <rect x="0"   y="60"  width="240" height="46" rx="10" fill="url(#ga)" stroke="#8b5cf6" stroke-opacity=".4" stroke-width="2"/>
+          <rect x="0"   y="120" width="240" height="46" rx="10" fill="url(#ga)" stroke="#8b5cf6" stroke-opacity=".4" stroke-width="2"/>
+          <rect x="0"   y="180" width="240" height="46" rx="10" fill="url(#ga)" stroke="#8b5cf6" stroke-opacity=".4" stroke-width="2"/>
+          <path d="M270 113 H370 M340 95l30 18-30 18" stroke="#0ea5e9" stroke-width="3" opacity=".55" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="400" y="180" width="240" height="46" rx="10" fill="url(#ga)" stroke="#10b981" stroke-opacity=".5" stroke-width="2"/>
+          <circle cx="520" cy="120" r="12" fill="#10b981" opacity=".5"/>
+        </g>
+      </svg>
+      <div class="wrap title-wrap">
+        <p class="eyebrow">Chapter 5 &middot; Lesson 2</p>
+        <h1 class="title">Slimming Images with <span class="accent">Multi-Stage Builds</span></h1>
+        <h3 class="sub">Use one stage to build and a clean stage to run — ship only the runtime artifacts, throw the toolchain away.</h3>
+        <p style="margin-top:24px;color:var(--ink-soft);font-size:18px;letter-spacing:.04em;">
+          Docker for Local AI &middot; Building AI Applications with Containers
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. WHERE WE ARE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Where we are</p>
+        <h2 class="h">Size is the first column of the checklist.</h2>
+        <p class="lead">We defined the production bar and baselined our image sizes. The single biggest lever on
+          size is the multi-stage build — so that's where we start cutting.</p>
+
+        <div class="path">
+          <div class="stop">
+            <div class="lbl">Lesson 1 &middot; done</div>
+            <div class="ttl">Production-ready</div>
+            <div class="desc">Defined the bar; baselined sizes.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop now">
+            <div class="lbl">Lesson 2 &middot; here</div>
+            <div class="ttl">Multi-stage builds</div>
+            <div class="desc">Ship only runtime artifacts.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop">
+            <div class="lbl">Lesson 3 &middot; next</div>
+            <div class="ttl">Securing images</div>
+            <div class="desc">Non-root, pinned, scanned.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. THE SINGLE-STAGE PROBLEM -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The problem</p>
+        <h2 class="h">A single-stage image ships its build tools.</h2>
+        <h3 class="sub">A normal image keeps everything the build needed. None of it runs in production — it's
+          dead weight, and every extra package is more attack surface.</h3>
+        <div class="ba">
+          <div class="bacol bad">
+            <div class="lbl">&times; single-stage image</div>
+            <div class="seq">
+              <div class="step"><span class="dot"></span>compilers &amp; <code>build-essential</code></div>
+              <div class="step"><span class="dot"></span>development headers</div>
+              <div class="step"><span class="dot"></span>package &amp; <code>pip</code> caches</div>
+              <div class="step"><span class="dot"></span>the finished app on top</div>
+            </div>
+            <div class="note">Everything the build touched is <b>baked into the layers</b> you ship.</div>
+          </div>
+          <div class="bacol good">
+            <div class="lbl">&check; what actually runs</div>
+            <div class="seq">
+              <div class="step"><span class="dot"></span>the installed dependencies</div>
+              <div class="step"><span class="dot"></span>your application code</div>
+            </div>
+            <div class="note">The runtime needs <b>only the artifacts</b> — not the machinery that produced them.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. THE MULTI-STAGE IDEA -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The idea</p>
+        <h2 class="h">One stage to build, one stage to run.</h2>
+        <h3 class="sub">The builder installs and compiles. The final, clean stage copies only the finished
+          artifacts across — and ships those.</h3>
+        <div class="stages">
+          <div class="stagecol builder">
+            <div class="lbl">Builder stage</div>
+            <div class="item"><span class="dot"></span>install <code>build-essential</code></div>
+            <div class="item"><span class="dot"></span>create a venv, <code>pip install</code></div>
+            <div class="item"><span class="dot"></span>compile native wheels</div>
+            <div class="note">Holds the toolchain and the pip cache — then is <b>thrown away</b>.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h15M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div class="clbl">COPY<br/>--from=builder</div>
+          </div>
+          <div class="stagecol runtime">
+            <div class="lbl">Runtime stage</div>
+            <div class="item"><span class="dot"></span>clean <code>python:3.11-slim</code></div>
+            <div class="item"><span class="dot"></span>copy the finished venv</div>
+            <div class="item"><span class="dot"></span>copy the app code</div>
+            <div class="note">No compilers, no caches — <b>only what runs</b> ends up in the image.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. THE TWO-STAGE DOCKERFILE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">In practice</p>
+        <h2 class="h">The two-stage Dockerfile.</h2>
+        <div class="split">
+          <div>
+            <div class="cap">Dockerfile_Ingestion</div>
+            <pre class="code"><span class="k">FROM</span> python:3.11-slim <span class="k">AS</span> builder
+<span class="k">RUN</span> apt-get update &amp;&amp; apt-get install <span class="f">-y</span> --no-install-recommends build-essential
+<span class="k">RUN</span> python -m venv /opt/venv
+<span class="k">ENV</span> PATH=<span class="s">"/opt/venv/bin:$PATH"</span>
+<span class="k">COPY</span> requirements-ingestion.txt .
+<span class="k">RUN</span> pip install -r requirements-ingestion.txt
+
+<span class="k">FROM</span> python:3.11-slim          <span class="c"># clean runtime — no compilers</span>
+<span class="k">COPY</span> --from=builder /opt/venv /opt/venv
+<span class="k">ENV</span> PATH=<span class="s">"/opt/venv/bin:$PATH"</span>
+<span class="k">COPY</span> rag/ /app/rag/</pre>
+          </div>
+          <div>
+            <div class="cap">What to notice</div>
+            <div class="keynote">
+              <div class="row hi"><code>AS builder</code><span>Names the first stage so the runtime stage can reach back into it.</span></div>
+              <div class="row"><code>venv</code><span>Dependencies install into an isolated <code class="inline" style="font-size:.82em">/opt/venv</code> — one tidy directory to move.</span></div>
+              <div class="row hi"><code>--from=builder</code><span>Copies just the finished venv into the clean image.</span></div>
+              <div class="row"><code>thrown away</code><span>The compiler toolchain and pip cache live only in the builder.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. SUPPORTING LEVERS -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Supporting levers</p>
+        <h2 class="h">Three levers that multiply the win.</h2>
+        <h3 class="sub">Multi-stage is the big cut. These compound it.</h3>
+        <div class="levers">
+          <div class="lever">
+            <div class="lhd"><span class="n">1</span>Smaller base</div>
+            <p>Start from <code>slim</code> instead of the full image — or a <code>distroless</code> base that
+              ships no shell or package manager at all.</p>
+          </div>
+          <div class="lever">
+            <div class="lhd"><span class="n">2</span>Layer order</div>
+            <p>Put what changes least at the bottom — the cache idea from Chapter 3 — so rebuilds reuse
+              the heavy dependency layers.</p>
+          </div>
+          <div class="lever" style="grid-column:1 / -1;">
+            <div class="lhd"><span class="n">3</span><code>.dockerignore</code></div>
+            <p>Keep junk out of the build context entirely — <code>.venv</code>, <code>chroma_data/</code>,
+              and tests should never enter the build. Our repo had none until this chapter.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. DEMO -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Terminal &middot; build it both ways</p>
+        <h2 class="h">Same dependencies, smaller image.</h2>
+        <div class="term">
+          <div class="bar"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div>
+          <div><span class="prompt">$</span> <span class="cmd">docker</span> build <span class="flag">-f</span> chapter_5/l2/Dockerfile_Ingestion.singlestage <span class="flag">-t</span> rag-ingestion:single .</div>
+          <div><span class="prompt">$</span> <span class="cmd">docker</span> build <span class="flag">-f</span> chapter_5/l2/Dockerfile_Ingestion            <span class="flag">-t</span> rag-ingestion:multi  .</div>
+          <hr/>
+          <div><span class="prompt">$</span> <span class="cmd">docker</span> images rag-ingestion</div>
+          <div class="hd">REPOSITORY      TAG       IMAGE ID       SIZE</div>
+          <div class="out">rag-ingestion   single    a1b2c3d4e5f6   <span class="str">2.91GB</span></div>
+          <div class="out">rag-ingestion   multi     f6e5d4c3b2a1   <span class="ok">1.84GB</span></div>
+        </div>
+        <h3 class="sub" style="margin-top:20px;">Same dependencies, smaller image — and it still does real work.</h3>
+      </div>
+    </section>
+
+    <!-- 8. AI NOTE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">AI-specific note</p>
+        <h2 class="h">Weights are <span class="accent">data</span>, not build output.</h2>
+        <h3 class="sub">For our images the torch and Docling layers are the dramatic win. But be careful with
+          model weights.</h3>
+        <div class="ba">
+          <div class="bacol bad">
+            <div class="lbl">&times; baking weights into a layer</div>
+            <div class="seq">
+              <div class="step"><span class="dot"></span>gigabytes frozen into the image</div>
+              <div class="step"><span class="dot"></span>rebuild on every model swap</div>
+              <div class="step"><span class="dot"></span>bloated, slow-to-pull layers</div>
+            </div>
+            <div class="note">Weights aren't a build artifact — treating them like one <b>defeats the slimming</b>.</div>
+          </div>
+          <div class="bacol good">
+            <div class="lbl">&check; handle weights at runtime</div>
+            <div class="seq">
+              <div class="step"><span class="dot"></span>mount or fetch them at start</div>
+              <div class="step"><span class="dot"></span>image stays lean and stable</div>
+              <div class="step"><span class="dot"></span>swap models without rebuilding</div>
+            </div>
+            <div class="note">Treat weights as <b>data</b> — we'll touch on this next lesson.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. TAKEAWAY -->
+    <section class="slide">
+      <div class="wrap" style="text-align:center;">
+        <p class="eyebrow">Takeaway</p>
+        <h2 class="h" style="margin-bottom:6px;">Build it, then throw the toolchain away.</h2>
+        <h3 class="sub" style="margin:0 auto 18px;">Same dependencies, a smaller and safer image — because only the
+          runtime artifacts make it into the final stage.</h3>
+        <div class="takeaway-card">
+          <div class="quote">
+            <code class="inline" style="font-size:.85em">builder</code> &rarr;
+            <code class="inline" style="font-size:.85em">COPY --from</code> &rarr;
+            <code class="inline" style="font-size:.85em">clean runtime</code>
+          </div>
+          <div class="foot">
+            Next lesson &rarr; Securing images: non-root, pinned, scanned.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (function(){
+      const slides=Array.from(document.querySelectorAll('.slide'));
+      const total=slides.length;
+      const prog=document.getElementById('progress');
+      let i=0;
+      function show(n){
+        i=Math.max(0,Math.min(total-1,n));
+        slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+        prog.style.width=(((i+1)/total)*100)+'%';
+        history.replaceState(null,'','#'+(i+1));
+      }
+      function next(){show(i+1)}function prev(){show(i-1)}
+      document.addEventListener('keydown',e=>{
+        if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+        else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev();}
+        else if(e.key==='Home'){e.preventDefault();show(0);}
+        else if(e.key==='End'){e.preventDefault();show(total-1);}
+      });
+      document.addEventListener('click',e=>{if(e.target.closest('a,pre,code'))return;next();});
+      const start=parseInt((location.hash||'#1').slice(1),10);
+      show(isFinite(start)?start-1:0);
+    })();
+  </script>
+</body>
+</html>

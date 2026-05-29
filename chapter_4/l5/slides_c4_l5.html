@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chapter 4 · Lesson 5 — Testing Best Practices for Multi-Container Apps</title>
+  <style>
+    :root {
+      --bg:#fff; --bg-soft:#f7f9fc; --ink:#0f172a; --ink-soft:#475569;
+      --muted:#94a3b8; --line:#e2e8f0; --line-soft:#eef2f7;
+      --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-500:#3b82f6;
+      --blue-600:#2563eb; --blue-700:#1d4ed8;
+      --teal-500:#0ea5e9; --amber-500:#f59e0b; --amber-50:#fffbeb;
+      --green-500:#10b981; --green-50:#ecfdf5; --pink-500:#ec4899;
+      --violet-500:#8b5cf6; --violet-50:#f5f3ff;
+      --red-500:#ef4444; --red-50:#fef2f2;
+      --code-bg:#0f172a; --code-fg:#e2e8f0;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+      --shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.07);
+      --radius:16px; --maxw:1280px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
+      font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+    /* chrome — only the progress bar; the deck is otherwise unadorned */
+    .progress{position:fixed;top:0;left:0;height:4px;width:0%;
+      background:linear-gradient(90deg,var(--blue-600),var(--teal-500));z-index:50;transition:width .25s ease}
+
+    /* slides — viewport-locked, top-anchored, cross-fade */
+    .deck{position:relative;width:100%;height:100vh}
+    .slide{
+      position:absolute;inset:0;
+      display:flex;align-items:flex-start;
+      height:100vh;max-height:100vh;overflow:hidden;
+      padding:40px 56px 56px;
+      opacity:0;pointer-events:none;
+      transition:opacity .55s cubic-bezier(.4,0,.2,1);
+    }
+    .slide.active{opacity:1;pointer-events:auto;z-index:1}
+    .slide .wrap{margin:0 auto;width:100%;max-width:var(--maxw)}
+
+    /* typography — presentation scale */
+    .eyebrow{font-size:17px;letter-spacing:.18em;text-transform:uppercase;
+      color:var(--blue-700);font-weight:700;margin:0 0 16px}
+    h1.title{font-size:92px;line-height:1.04;letter-spacing:-.028em;margin:0 0 18px;font-weight:700}
+    h1.title .accent{background:linear-gradient(90deg,var(--blue-600),var(--teal-500));
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+    h2.h{font-size:58px;line-height:1.1;letter-spacing:-.02em;margin:0 0 14px;font-weight:700}
+    h3.sub{font-size:26px;font-weight:500;color:var(--ink-soft);margin:0 0 22px;line-height:1.5;max-width:1000px}
+    p.lead{font-size:28px;line-height:1.5;color:var(--ink-soft);margin:0 0 18px;max-width:1000px}
+    .inline{background:var(--bg-soft);padding:2px 10px;border:1px solid var(--line);border-radius:6px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;color:var(--ink)}
+
+    /* title art */
+    .title-art{position:absolute;right:-40px;top:50%;transform:translateY(-50%);
+      width:780px;height:780px;opacity:.5;pointer-events:none;z-index:0}
+    .title-wrap{position:relative;z-index:1}
+
+    /* path / chapter timeline (3-stop) */
+    .path{margin-top:28px;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch}
+    .path .stop{padding:20px 22px;border:1px solid var(--line);border-radius:var(--radius);
+      background:var(--bg);box-shadow:var(--shadow-sm)}
+    .path .stop.now{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50));box-shadow:var(--shadow)}
+    .path .stop .lbl{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;font-weight:600}
+    .path .stop.now .lbl{color:var(--blue-700)}
+    .path .stop .ttl{font-size:23px;font-weight:600;color:var(--ink);margin-bottom:6px}
+    .path .stop .desc{font-size:18px;color:var(--ink-soft);line-height:1.45}
+    .path .connector{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 10px}
+    .path .connector svg{width:34px;height:34px}
+
+    /* generic code block */
+    pre.code{background:var(--code-bg);color:var(--code-fg);padding:18px 22px;
+      border-radius:14px;font:20px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+      overflow-x:auto;box-shadow:0 6px 18px rgba(15,23,42,.15);margin:0}
+    pre.code .k{color:#93c5fd;font-weight:600}
+    pre.code .s{color:#fcd34d}
+    pre.code .c{color:#64748b}
+    pre.code .v{color:#86efac}
+    pre.code .f{color:#fcd34d;font-weight:600}
+    pre.code .hl{background:rgba(14,165,233,.22);padding:0 4px;border-radius:4px}
+
+    /* practice slide header (numbered) */
+    .ph{display:flex;align-items:center;gap:22px;margin-bottom:8px}
+    .ph .pnum{display:inline-flex;align-items:center;justify-content:center;
+      width:84px;height:84px;border-radius:20px;
+      background:linear-gradient(135deg,var(--blue-600),var(--teal-500));
+      color:#fff;font-size:34px;font-weight:700;
+      box-shadow:0 8px 22px rgba(37,99,235,.28);flex-shrink:0}
+    .ph .ptxt h2{margin:0;font-size:46px;line-height:1.12;letter-spacing:-.02em}
+    .ph .ptxt .ptag{font-size:16px;letter-spacing:.16em;text-transform:uppercase;
+      color:var(--blue-700);font-weight:700;margin-bottom:6px}
+    .pwhy{font-size:23px;color:var(--ink-soft);line-height:1.5;margin:18px 0 24px;max-width:1080px}
+
+    /* testing pyramid */
+    .pyramid{display:grid;grid-template-columns:1fr 1.05fr;gap:34px;align-items:center;margin-top:10px}
+    .ptiers{display:flex;flex-direction:column;gap:12px;align-items:center}
+    .tier{border-radius:14px;padding:14px 20px;color:#fff;text-align:center;box-shadow:var(--shadow-sm)}
+    .tier b{display:block;font-size:22px;font-weight:700;letter-spacing:-.01em}
+    .tier span{font-size:15px;opacity:.92}
+    .tier.smoke{width:46%;background:linear-gradient(135deg,var(--pink-500),#f472b6)}
+    .tier.integ{width:62%;background:linear-gradient(135deg,var(--violet-500),#a78bfa)}
+    .tier.service{width:80%;background:linear-gradient(135deg,var(--blue-600),var(--blue-500))}
+    .tier.unit{width:100%;background:linear-gradient(135deg,var(--green-500),#34d399)}
+    .pdesc{display:flex;flex-direction:column;gap:12px}
+    .prow{border:1px solid var(--line);border-radius:14px;padding:14px 18px;background:#fff;box-shadow:var(--shadow-sm);border-left:5px solid var(--line)}
+    .prow.smoke{border-left-color:var(--pink-500)}
+    .prow.integ{border-left-color:var(--violet-500)}
+    .prow.service{border-left-color:var(--blue-500)}
+    .prow.unit{border-left-color:var(--green-500)}
+    .prow b{font-size:20px;color:var(--ink)}
+    .prow .cnt{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);float:right}
+    .prow p{margin:4px 0 0;font-size:16px;color:var(--ink-soft);line-height:1.45}
+    .prule{margin-top:18px;font-size:21px;color:var(--ink);text-align:center;line-height:1.5}
+    .prule b{color:var(--blue-700)}
+
+    /* health-check explainer cards */
+    .hc{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+    .hcc{border:1px solid var(--line);border-radius:14px;padding:20px;background:#fff;box-shadow:var(--shadow-sm)}
+    .hcc .ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+      background:var(--blue-50);color:var(--blue-700);margin-bottom:12px}
+    .hcc .ic svg{width:24px;height:24px}
+    .hcc b{display:block;font-size:19px;color:var(--ink);margin-bottom:5px}
+    .hcc span{font-size:16px;color:var(--ink-soft);line-height:1.5}
+
+    /* data-management cards */
+    .data{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px}
+    .dcard{border:1px solid var(--line);border-radius:16px;padding:24px;background:#fff;box-shadow:var(--shadow-sm);border-top:4px solid var(--teal-500)}
+    .dcard .n{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;
+      border-radius:50%;background:linear-gradient(135deg,var(--blue-600),var(--teal-500));color:#fff;font-size:17px;font-weight:700;margin-bottom:12px}
+    .dcard b{display:block;font-size:21px;color:var(--ink);margin-bottom:8px}
+    .dcard p{margin:0;font-size:17px;color:var(--ink-soft);line-height:1.5}
+    .dcard code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg-soft);
+      padding:2px 7px;border-radius:5px;border:1px solid var(--line-soft);font-size:.92em}
+    .dgoal{margin-top:18px;background:linear-gradient(135deg,var(--green-50),#fff);
+      border:1px solid var(--green-500);border-radius:14px;padding:16px 24px;font-size:21px;color:var(--ink);line-height:1.5}
+    .dgoal b{color:#065f46}
+
+    /* CI flow */
+    .ci{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;margin:10px 0 22px;gap:0}
+    .cistep{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:#fff;box-shadow:var(--shadow-sm);text-align:center}
+    .cistep .cl{font-size:14px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--blue-700);margin-bottom:8px}
+    .cistep b{font-size:19px;color:var(--ink)}
+    .ciarrow{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 12px}
+    .ciarrow svg{width:30px;height:30px}
+
+    /* "not production" gaps */
+    .gaps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px}
+    .gap{border:1px solid var(--line);border-radius:16px;padding:24px;background:#fff;box-shadow:var(--shadow-sm);border-top:4px solid var(--amber-500)}
+    .gap .ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+      background:var(--amber-50);color:#b45309;margin-bottom:12px}
+    .gap .ic svg{width:24px;height:24px}
+    .gap b{display:block;font-size:20px;color:var(--ink);margin-bottom:6px}
+    .gap span{font-size:17px;color:var(--ink-soft);line-height:1.5}
+    .gapnext{margin-top:20px;text-align:center;font-size:23px;color:var(--ink);line-height:1.5}
+    .gapnext b{color:var(--blue-700)}
+
+    /* recap table */
+    .recap{margin-top:18px;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)}
+    .recap .row{display:grid;grid-template-columns:1.1fr 1.6fr;align-items:center}
+    .recap .row + .row{border-top:1px solid var(--line-soft)}
+    .recap .row.head{background:var(--bg-soft)}
+    .recap .row.head>div{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+    .recap .row>div{padding:18px 24px}
+    .recap .row .p{font-size:22px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:14px}
+    .recap .row .p .n{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+      border-radius:50%;background:linear-gradient(135deg,var(--blue-600),var(--teal-500));color:#fff;font-size:16px;font-weight:700;flex-shrink:0}
+    .recap .row .w{font-size:20px;color:var(--ink-soft);line-height:1.45}
+
+    /* takeaway */
+    .takeaway-card{margin:18px auto 0;max-width:1100px;
+      background:linear-gradient(135deg,#fff,var(--bg-soft));border:1px solid var(--line);
+      border-radius:24px;padding:28px 36px;box-shadow:var(--shadow);text-align:center}
+    .takeaway-card .quote{font-size:30px;color:var(--ink);font-weight:600;
+      letter-spacing:-.01em;line-height:1.4;max-width:900px;margin:0 auto}
+    .takeaway-card .foot{margin-top:14px;font-size:20px;color:var(--ink-soft)}
+
+    /* responsive */
+    @media (max-width:1100px){
+      .slide{padding:32px 28px 60px}
+      h1.title{font-size:60px}h2.h{font-size:40px}
+      h3.sub{font-size:20px}p.lead{font-size:22px}
+      .title-art{display:none}
+      .path,.pyramid,.hc,.data,.gaps{grid-template-columns:1fr}
+      .ci{grid-template-columns:1fr}
+      .path .connector,.ciarrow{transform:rotate(90deg);padding:4px 0}
+      .ph{flex-direction:column;align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <main class="deck" id="deck">
+
+    <!-- 1. TITLE -->
+    <section class="slide active" style="position:absolute;overflow:hidden;">
+      <svg class="title-art" viewBox="0 0 780 780" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="ga" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#10b981" stop-opacity=".22"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity=".08"/>
+          </linearGradient>
+          <linearGradient id="gb" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity=".24"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity=".06"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(150 180)">
+          <!-- layered pyramid motif -->
+          <polygon points="240,0 360,120 120,120" fill="url(#gb)"/>
+          <polygon points="120,140 360,140 410,260 70,260" fill="url(#ga)"/>
+          <polygon points="70,280 410,280 460,400 20,400" fill="url(#gb)"/>
+          <g stroke="#3b82f6" stroke-width="2.4" opacity=".5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M200 70 L230 100 L290 40"/>
+          </g>
+        </g>
+      </svg>
+      <div class="wrap title-wrap">
+        <p class="eyebrow">Chapter 4 &middot; Lesson 5</p>
+        <h1 class="title">Testing <span class="accent">Best Practices</span></h1>
+        <h3 class="sub">The practices that keep a multi-container application reliable and reproducible &mdash; from the shape of your tests to running the whole stack in CI.</h3>
+        <p style="margin-top:24px;color:var(--ink-soft);font-size:18px;letter-spacing:.04em;">
+          Docker for Local AI &middot; Building AI Applications with Containers
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. WHERE WE ARE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Where we are</p>
+        <h2 class="h">From testing the flow to testing it well.</h2>
+        <p class="lead">
+          We split the prototype into services, orchestrated them, and tested the
+          end-to-end flow. This final lesson of the chapter steps back to the practices
+          that keep a multi-container app reliable and reproducible.
+        </p>
+
+        <div class="path">
+          <div class="stop">
+            <div class="lbl">Lesson 4 &middot; done</div>
+            <div class="ttl">Networking &amp; integration testing</div>
+            <div class="desc">The whole stack exercised over the network, ingest to query.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop now">
+            <div class="lbl">Lesson 5 &middot; here</div>
+            <div class="ttl">Testing best practices</div>
+            <div class="desc">Four habits that keep the test suite trustworthy.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop">
+            <div class="lbl">Chapter 5 &middot; next</div>
+            <div class="ttl">Preparing for production</div>
+            <div class="desc">Optimize the containers, deploy, and validate in the target environment.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. THE TESTING PYRAMID -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="ph">
+          <div class="pnum">1</div>
+          <div class="ptxt"><div class="ptag">Best practice &middot; 1 of 4</div><h2>Shape your tests like a pyramid.</h2></div>
+        </div>
+        <div class="pyramid">
+          <div class="ptiers">
+            <div class="tier smoke"><b>Smoke</b><span>post-deploy sanity</span></div>
+            <div class="tier integ"><b>Integration &middot; e2e</b><span>whole stack &middot; Lesson 4</span></div>
+            <div class="tier service"><b>Service</b><span>one container in isolation</span></div>
+            <div class="tier unit"><b>Unit</b><span>per module &middot; no containers</span></div>
+          </div>
+          <div class="pdesc">
+            <div class="prow unit"><span class="cnt">many &middot; fast</span><b>Unit</b><p>Each module alone &mdash; chunker, retriever &mdash; no containers.</p></div>
+            <div class="prow service"><span class="cnt">some</span><b>Service</b><p>One container; its routes and contracts behave.</p></div>
+            <div class="prow integ"><span class="cnt">few &middot; slow</span><b>Integration</b><p>The whole stack together, the ingest-to-query flow.</p></div>
+            <div class="prow smoke"><span class="cnt">a handful</span><b>Smoke</b><p>Sanity calls after a deploy: is each service answering?</p></div>
+          </div>
+        </div>
+        <p class="prule">The rule: <b>many fast unit tests</b> at the bottom, <b>a few expensive integration tests</b> at the top.</p>
+      </div>
+    </section>
+
+    <!-- 4. HEALTH CHECKS EVERYWHERE -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="ph">
+          <div class="pnum">2</div>
+          <div class="ptxt"><div class="ptag">Best practice &middot; 2 of 4</div><h2>Health checks, everywhere.</h2></div>
+        </div>
+        <p class="pwhy">
+          We added a healthcheck to the database in Lesson 3. The same idea belongs on
+          <b>every service</b> &mdash; a <code class="inline">HEALTHCHECK</code> hitting <code class="inline">/health</code>.
+        </p>
+        <pre class="code"><span class="k">HEALTHCHECK</span> --interval=<span class="v">30s</span> --timeout=<span class="v">3s</span> \
+  CMD curl -f http://localhost:8080/health || exit 1</pre>
+        <div class="hc">
+          <div class="hcc">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+            <b>Gates startup</b><span>Compose waits until a dependency is healthy before starting what needs it.</span>
+          </div>
+          <div class="hcc">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <b>Signals readiness</b><span>An orchestrator uses it to decide a container is ready for traffic.</span>
+          </div>
+          <div class="hcc">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+            <b>Pinpoints failures</b><span>Tells you <i>which</i> service is down when something breaks.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. MANAGE TEST DATA -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="ph">
+          <div class="pnum">3</div>
+          <div class="ptxt"><div class="ptag">Best practice &middot; 3 of 4</div><h2>Manage your test data.</h2></div>
+        </div>
+        <p class="pwhy">
+          Integration tests need data, and that data must be predictable.
+        </p>
+        <div class="data">
+          <div class="dcard">
+            <div class="n">1</div>
+            <b>Small fixed sample</b>
+            <p>Reuse one tiny <code>pdf/</code> document &mdash; not a 500-page report that makes every run slow.</p>
+          </div>
+          <div class="dcard">
+            <div class="n">2</div>
+            <b>Ephemeral per run</b>
+            <p>A fresh database collection each run, so runs never contaminate each other.</p>
+          </div>
+          <div class="dcard">
+            <div class="n">3</div>
+            <b>Tear it down</b>
+            <p><code>docker compose down -v</code> removes the volumes &mdash; the next run starts clean.</p>
+          </div>
+        </div>
+        <div class="dgoal"><b>Goal &mdash; reproducibility:</b> the same test, run twice, gives the same result.</div>
+      </div>
+    </section>
+
+    <!-- 6. RUN THE STACK IN CI -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="ph">
+          <div class="pnum">4</div>
+          <div class="ptxt"><div class="ptag">Best practice &middot; 4 of 4</div><h2>Run the whole stack in CI.</h2></div>
+        </div>
+        <div class="ci">
+          <div class="cistep"><div class="cl">Up</div><b>bring the stack up</b></div>
+          <div class="ciarrow"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="cistep"><div class="cl">Test</div><b>run tests against it</b></div>
+          <div class="ciarrow"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="cistep"><div class="cl">Down</div><b>tear it down</b></div>
+        </div>
+        <pre class="code"><span class="c"># .github/workflows/test.yaml</span>
+- run: <span class="k">docker compose</span> -f chapter_4/l3/docker-compose.test.yaml up -d --build
+- run: <span class="k">pytest</span> chapter_4/l4/test_integration.py
+- run: <span class="k">docker compose</span> -f chapter_4/l3/docker-compose.test.yaml down -v</pre>
+        <p class="pwhy" style="margin-top:22px;">
+          The stack is a Compose file and the images are pinned &mdash; so the environment
+          in CI is the <b>same one you ran locally</b>, and close to production. Every change
+          gets tested against the real multi-container topology, automatically.
+        </p>
+      </div>
+    </section>
+
+    <!-- 7. RECAP -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Recap</p>
+        <h2 class="h">Four practices, one trustworthy suite.</h2>
+        <div class="recap">
+          <div class="row head"><div>Practice</div><div>Why it matters</div></div>
+          <div class="row"><div class="p"><span class="n">1</span>Testing pyramid</div><div class="w">Many fast unit tests, a few slow integration tests &mdash; fast feedback, full coverage.</div></div>
+          <div class="row"><div class="p"><span class="n">2</span>Health checks</div><div class="w">Gate startup, signal readiness, and pinpoint which service is down.</div></div>
+          <div class="row"><div class="p"><span class="n">3</span>Ephemeral test data</div><div class="w">Small fixed sample, fresh collection, torn down &mdash; reproducible every run.</div></div>
+          <div class="row"><div class="p"><span class="n">4</span>Stack in CI</div><div class="w">Up, test, down &mdash; every change exercised against the real topology, automatically.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. WHAT'S STILL NOT PRODUCTION -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The gap</p>
+        <h2 class="h">&ldquo;Close to production&rdquo; is not production.</h2>
+        <h3 class="sub">We have a tested, cooperating multi-container app &mdash; but three things still stand between it and a real deployment.</h3>
+        <div class="gaps">
+          <div class="gap">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+            <b>Images not optimized</b><span>Built for development, not for size or security.</span>
+          </div>
+          <div class="gap">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 17l6-6-6-6M12 19h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <b>Nothing deployed</b><span>Everything still runs on your laptop &mdash; not a server or the cloud.</span>
+          </div>
+          <div class="gap">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h4l3 8 4-16 3 8h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <b>No scaling or observability</b><span>No replicas, no metrics, no real production monitoring.</span>
+          </div>
+        </div>
+        <p class="gapnext">That&rsquo;s <b>Chapter 5 &mdash; preparing the application for production.</b></p>
+      </div>
+    </section>
+
+    <!-- 9. TAKEAWAY (END OF CHAPTER) -->
+    <section class="slide">
+      <div class="wrap" style="text-align:center;">
+        <p class="eyebrow">Takeaway &middot; end of Chapter 4</p>
+        <h2 class="h" style="margin-bottom:6px;">Test that the containers work together &mdash; automatically.</h2>
+        <h3 class="sub" style="margin:0 auto 18px;">
+          A prototype became dedicated services, orchestrated with Compose and proven
+          to cooperate over the network &mdash; with a test suite you can trust.
+        </h3>
+        <div class="takeaway-card">
+          <div class="quote">
+            <code class="inline" style="font-size:.85em">pyramid</code> &middot;
+            <code class="inline" style="font-size:.85em">health</code> &middot;
+            <code class="inline" style="font-size:.85em">ephemeral data</code> &middot;
+            <code class="inline" style="font-size:.85em">CI</code>
+          </div>
+          <div class="foot">
+            Next &rarr; Chapter 5 &middot; Preparing for Production.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (function(){
+      const slides=Array.from(document.querySelectorAll('.slide'));
+      const total=slides.length;
+      const prog=document.getElementById('progress');
+      let i=0;
+      function show(n){
+        i=Math.max(0,Math.min(total-1,n));
+        slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+        prog.style.width=(((i+1)/total)*100)+'%';
+        history.replaceState(null,'','#'+(i+1));
+      }
+      function next(){show(i+1)}function prev(){show(i-1)}
+      document.addEventListener('keydown',e=>{
+        if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+        else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev();}
+        else if(e.key==='Home'){e.preventDefault();show(0);}
+        else if(e.key==='End'){e.preventDefault();show(total-1);}
+      });
+      document.addEventListener('click',e=>{if(e.target.closest('a,pre,code'))return;next();});
+      const start=parseInt((location.hash||'#1').slice(1),10);
+      show(isFinite(start)?start-1:0);
+    })();
+  </script>
+</body>
+</html>

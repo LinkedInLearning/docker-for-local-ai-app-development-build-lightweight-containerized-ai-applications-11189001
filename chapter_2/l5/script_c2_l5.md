@@ -1,104 +1,120 @@
-# Chapter 2 — Lesson 5: Dockerfile best practices
+# Chapter 2 — Lesson 5: `docker run`
 
-In the previous lessons, we built and ran our first containers. Now we will look at how to write Dockerfiles that are smaller, faster to build, and easier to maintain.
+In the previous lesson, we built an image using `docker build`. Now we will use that image to launch an actual container.
 
-[CLICK]
-
-The first best practice is to **pin versions**.
-
-A Dockerfile that starts with `FROM python` may build today but break tomorrow when `python:latest` moves to a new version. We always pin a specific tag, such as `python:3.11-slim`, or, better, a digest for full reproducibility.
-
-The same applies to packages installed inside the image. Pin them in a requirements file or with explicit versions in `apt-get`.
+A container is a running instance of an image. We can launch many containers from the same image, just like we can launch many processes from a single executable.
 
 [CLICK]
 
-The second best practice is to **order instructions for cache efficiency**.
+The basic command is:
 
-Docker caches each layer. As soon as one instruction changes, every instruction after it is rebuilt.
-
-Put the things that change rarely at the top of the Dockerfile, and the things that change often at the bottom. A common pattern is:
-
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
+```bash
+docker run my-image:0.1
 ```
 
-The application code is copied last because it changes most often. The dependency install layer stays cached as long as `requirements.txt` is unchanged.
+Docker takes the image, creates a writable layer on top of it, and starts the process defined by the `CMD` or `ENTRYPOINT` instruction.
+
+That is the minimum, but in practice we almost always pass a few flags. Let's go through the most useful ones.
 
 [CLICK]
 
-The third best practice is to **use `ARG` and `ENV` deliberately**.
+`-d` for **detached mode**.
 
-`ARG` values are available only during the build, and are perfect for tool versions or feature flags. Combine `ARG` with `--build-arg` to override them from the command line.
+By default, `docker run` attaches our terminal to the container. The container stops when we close the terminal. Adding `-d` runs it in the background and returns control to the shell.
 
-`ENV` values persist into the running container, which is what we want for runtime configuration such as paths or feature toggles.
+We use this when running long-lived services such as APIs or databases.
 
-In our RAG project, the development Dockerfile uses both:
+[CLICK]
 
-```dockerfile
-ARG PYTHON_VER="3.11"
-ENV PYTHON_VER=$PYTHON_VER
+`-p` for **port publishing**.
+
+Inside the container, the application may listen on port 8080. That port is not reachable from the host until we publish it.
+
+```bash
+docker run -p 8080:8080 my-image:0.1
 ```
 
-The `ARG` lets us pass the Python version at build time. The `ENV` makes that value visible to scripts inside the container.
+The first number is the port on the host. The second is the port inside the container. They do not have to match.
+
+`EXPOSE` in the Dockerfile is documentation. `-p` is what actually opens the port.
 
 [CLICK]
 
-The fourth best practice is to **combine related commands into a single `RUN`**.
+`-v` for **volumes**.
 
-Every `RUN` creates a new layer. Splitting an install into many `RUN`s bloats the image. Combine them with `&&` and clean up in the same layer:
+Containers are ephemeral by default. When the container is removed, anything written inside it disappears.
 
-```dockerfile
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
+Volumes solve this. We can mount a host directory or a named volume into the container, and files persist across container restarts.
+
+```bash
+docker run -v $(pwd)/data:/data my-image:0.1
 ```
 
-This installs `curl`, then cleans up the apt cache, all in one layer. If we cleaned up in a separate `RUN`, the cache would still live inside the previous layer and inflate the image.
+This is also how we mount source code into a development container, so changes on our laptop appear instantly inside the container.
 
 [CLICK]
 
-The fifth best practice is to **move complex setup into shell scripts**.
+`-e` for **environment variables**.
 
-When a `RUN` instruction grows beyond a few lines, it becomes hard to read. Move it into a script, copy the script into the image, and call it from a single `RUN`:
+Most applications need configuration such as API keys or database URLs. We pass them at run time with `-e`:
 
-```dockerfile
-COPY install_dependencies.sh settings/
-RUN bash ./settings/install_dependencies.sh
+```bash
+docker run -e OPENAI_API_KEY=$OPENAI_API_KEY my-image:0.1
 ```
 
-This is exactly what we do in our RAG project for installing system dependencies, Quarto, and `uv`. The Dockerfile stays clean and the script is easy to test in isolation.
+This keeps secrets out of the image.
 
 [CLICK]
 
-The sixth best practice is to **use a `.dockerignore` file**.
+`--name` for a **friendly container name**.
 
-Files like `.git`, `node_modules`, virtual environments, and caches do not belong in the image. Excluding them from the build context shrinks the image and speeds up the build.
+By default, Docker assigns a random name like `amazing_einstein`. We can give the container a name we will recognize:
+
+```bash
+docker run --name rag-api my-image:0.1
+```
+
+This makes it easier to run `docker logs rag-api` or `docker stop rag-api` later.
 
 [CLICK]
 
-The seventh best practice is to **run as a non-root user when possible**.
+`--rm` to **clean up automatically**.
 
-Production containers should not run as root. Create a dedicated user and switch to it:
+When the container exits, it is not deleted by default. It stays around in the stopped state. `--rm` tells Docker to remove the container as soon as it stops — very useful for one-off commands.
 
-```dockerfile
-RUN useradd -m -u 1000 appuser
-USER appuser
+[CLICK]
+
+`-it` for an **interactive session**.
+
+These two flags combined give us an interactive terminal inside the container. We use this to drop into a shell and explore:
+
+```bash
+docker run -it --rm my-image:0.1 bash
 ```
 
 [CLICK]
 
-A few more habits worth adopting:
+Putting it together, a realistic run command looks like this:
 
-* Prefer `COPY` over `ADD` unless we need URL fetching or tar extraction.
-* Use the exec form of `CMD` and `ENTRYPOINT` so signals are forwarded correctly.
-* Add a `HEALTHCHECK` so Docker knows when the container is actually ready.
-* Add `LABEL` metadata to make images easier to inspect.
+```bash
+docker run -d --name rag-api \
+  -p 8080:8080 \
+  -v $(pwd)/data:/data \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  rag-api:0.1
+```
+
+Detached, named, with a published port, a mounted volume, and a passed environment variable.
 
 [CLICK]
 
-The Dockerfiles we built in this chapter are intentionally simple. As our application grows, these practices keep our images small, our builds fast, and our containers safe to run in production.
+Once the container is running, a few commands help us manage it:
 
-This concludes Chapter 2. In the next chapter, we will return to our RAG project and start applying everything we learned here to build the development environment.
+* `docker ps` shows running containers.
+* `docker logs` prints the container output.
+* `docker exec` lets us run another command inside a running container.
+* `docker stop` and `docker rm` stop and remove the container.
+
+These flags and commands cover the vast majority of day-to-day Docker usage.
+
+In the next lesson, we will look at best practices for writing Dockerfiles so that our images are smaller, faster to build, and easier to maintain.

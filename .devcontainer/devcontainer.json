@@ -60,6 +60,7 @@
         "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY:key_is_missing}",
         "GEMINI_API_KEY": "${localEnv:GEMINI_API_KEY:key_is_missing}",
         "LANGSMITH_API_KEY": "${localEnv:LANGSMITH_API_KEY:key_is_missing}",
-        "CHROMA_DATA_PATH": "${localEnv:CHROMA_DATA_PATH:./chroma_data}"
+        "CHROMA_DATA_PATH": "${localEnv:CHROMA_DATA_PATH:./chroma_data}",
+        "RAG_API_KEYS": "${localEnv:RAG_API_KEYS:key_is_missing}"
     }
 }

@@ -86,15 +86,15 @@ class TestHealthEndpoint:
 
 
 class TestIngestEndpoint:
-    def test_ingest_success(self, client, tmp_path):
-        pdf_file = tmp_path / "test.pdf"
-        pdf_file.write_bytes(b"%PDF-1.4 fake")
-
-        with patch("rag.api.main.Path.cwd", return_value=tmp_path.parent):
-            response = client.post("/ingest", json={
-                "source_dir": str(tmp_path),
-                "chunking_method": "recursive",
-            })
+    def test_ingest_success(self, client, runner_stub):
+        # Phase 3 resolve_under enforces that source_dir resolves under
+        # the allowed upload dir (pdf/ by default). Use the real pdf/
+        # directory which contains PDFs. The Path.cwd patch is obsolete
+        # after Phase 3 and has been removed.
+        response = client.post("/ingest", json={
+            "source_dir": "pdf/",
+            "chunking_method": "recursive",
+        })
         assert response.status_code == 202
         data = response.json()
         assert "job_id" in data
@@ -105,29 +105,38 @@ class TestIngestEndpoint:
         assert "request_id" in data and data["request_id"]
         assert response.headers["X-Request-ID"] == data["request_id"]
 
-    def test_ingest_missing_directory(self, client, tmp_path):
-        missing = tmp_path / "does_not_exist"
-        with patch("rag.api.main.Path.cwd",
-                   return_value=tmp_path):
-            response = client.post("/ingest", json={
-                "source_dir": str(missing),
-            })
+    def test_ingest_missing_directory(self, client):
+        # Under the allowed root (pdf/) but does not exist -> 404.
+        response = client.post("/ingest", json={
+            "source_dir": "pdf/does_not_exist",
+        })
         assert response.status_code == 404
 
     def test_ingest_path_traversal_rejected(self, client):
+        # /etc exists on Linux/macOS and is outside pdf/ -> 403.
         response = client.post("/ingest", json={
-            "source_dir": "../../etc",
+            "source_dir": "/etc",
         })
         assert response.status_code == 403
 
-    def test_ingest_no_pdfs(self, client, tmp_path):
-        with patch("rag.api.main.Path.cwd",
-                   return_value=tmp_path.parent):
-            response = client.post("/ingest", json={
-                "source_dir": str(tmp_path),
-            })
-        assert response.status_code == 404
-        assert "No PDF files" in response.json()["error"]
+    def test_ingest_no_pdfs(self, client):
+        # pdf/nonexistent_for_no_pdfs_test doesn't exist -> 404 (candidate_missing).
+        # To get the "No PDF files" 404 we need a dir that exists but is empty.
+        # Use a temp subdir inside pdf/ (mirrors the dedicated fixture in test_security.py).
+        from pathlib import Path
+        from rag.api.dependencies import get_upload_settings
+        root = Path(get_upload_settings().allowed_upload_dir)
+        d = root / "_pytest_api_empty"
+        d.mkdir(exist_ok=True)
+        try:
+            response = client.post("/ingest", json={"source_dir": str(d)})
+            assert response.status_code == 404
+            assert "No PDF files" in response.json()["error"]
+        finally:
+            try:
+                d.rmdir()
+            except OSError:
+                pass
 
 
 class TestQueryEndpoint:

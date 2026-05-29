@@ -1,0 +1,67 @@
+# Chapter 5 · Lesson 2 — the MULTI-STAGE ingestion image (the "after").
+#
+# Same dependencies, much smaller and safer final image. The build toolchain
+# and pip cache live ONLY in the throwaway builder stage; the runtime stage
+# gets just the finished virtualenv plus the system libs Docling needs to run.
+#
+# It also folds in the best practices this chapter is about:
+#   - slim base image (Ch2 best practices)
+#   - .dockerignore beside this file keeps the context lean
+#   - runs as a non-root user (least privilege — Ch5 L3)
+#   - no secrets baked in; embedding keys are passed at runtime
+#
+# Build from the REPO ROOT (the context must contain rag/):
+#   docker build -f chapter_5/l2/Dockerfile_Ingestion -t rag-ingestion:multi .
+#   docker run --rm rag-ingestion:multi                 # --check (default)
+#   docker run --rm -v "$PWD/pdf:/app/pdf" rag-ingestion:multi --pdf pdf/<file>
+
+# ---------- Stage 1: builder ----------
+# Pinning the base by digest (best practice, Ch5 L3) would look like:
+#   FROM python:3.11-slim@sha256:<digest> AS builder
+FROM python:3.11-slim AS builder
+
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Compiler toolchain for any dependency that builds a native wheel from source.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install into an isolated virtualenv we can copy out wholesale.
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY chapter_5/l2/requirements-ingestion.txt requirements.txt
+RUN pip install -r requirements.txt
+
+# ---------- Stage 2: runtime ----------
+FROM python:3.11-slim AS runtime
+
+# ONLY the system libraries Docling needs at run time — no compilers.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Bring over the ready-built environment from the builder. No pip, no cache,
+# no build-essential — that weight never enters this image.
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Application code last — the most-likely-to-change layer sits on top.
+COPY rag/ /app/rag/
+COPY chapter_5/l2/ingest_cli.py /app/ingest_cli.py
+
+# Least privilege: create an unprivileged user and own the app dir.
+RUN useradd --create-home --uid 10001 appuser \
+    && chown -R appuser /app
+USER appuser
+
+# No secrets in the image. Embedding/vector-DB credentials (if you run the full
+# pipeline) are supplied at runtime via env, never baked into a layer.
+ENTRYPOINT ["python", "ingest_cli.py"]
+CMD ["--check"]

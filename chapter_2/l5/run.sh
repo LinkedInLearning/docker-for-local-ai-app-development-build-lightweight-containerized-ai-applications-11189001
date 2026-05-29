@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
-# Chapter 2 / Lesson 4 — example run script.
+# Chapter 2 / Lesson 5 — example run script.
 #
 # Starts the image built in Lesson 3 as a detached container with a
 # published port, a friendly name, and an auto-restart policy.
 #
 # Usage (from the repository root):
 #
-#   bash chapter_2/l4/run.sh           # start the container
-#   bash chapter_2/l4/run.sh stop      # stop & remove the container
+#   bash chapter_2/l5/run.sh           # start the container
+#   bash chapter_2/l5/run.sh stop      # stop & remove the container
 #
 set -euo pipefail
 

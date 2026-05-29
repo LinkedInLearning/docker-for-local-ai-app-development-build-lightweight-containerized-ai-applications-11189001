@@ -74,4 +74,4 @@ Once the build finishes, the image lives in our local Docker registry. We can li
 
 The image is now ready to run.
 
-In the next lesson, we will use `docker run` to launch a container from the image we just built.
+In the next lesson, we will look at how to share that image beyond our own machine — pulling and pushing images to a registry like Docker Hub.

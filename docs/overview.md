@@ -15,6 +15,8 @@ This document covers **what it is** and **how to run it**. For deeper design rat
 │   ▼                                                            │
 │  Streamlit UI  ──────────────────► chat with PDFs              │
 │   │                                                            │
+│  HTTP client ──► FastAPI (uvicorn) ──► rag/ engine             │
+│   │              (X-API-Key, /ingest 202 + poll, /query)       │
 │   ▼                                                            │
 │  rag/ Python package                                           │
 │   ├── ingestion/   parse → chunk → embed                       │
@@ -25,11 +27,17 @@ This document covers **what it is** and **how to run it**. For deeper design rat
 │  ┌──────────────────┐         ┌──────────────────┐             │
 │  │ python container │ ──────► │ chromadb         │             │
 │  │ (dev shell +     │  HTTP   │ container        │             │
-│  │  Streamlit)      │ ◄────── │ (vector store)   │             │
-│  └──────────────────┘         └──────────────────┘             │
+│  │  Streamlit +     │ ◄────── │ (vector store)   │             │
+│  │  FastAPI API)    │         └──────────────────┘             │
+│  └──────────────────┘                                          │
 │   network: rag-docker                                          │
 └────────────────────────────────────────────────────────────────┘
 ```
+
+The HTTP API (Tier 1 hardened: API-key auth, async ingestion with job polling,
+rate limits, upload size caps) is described in
+`pm/v0_1_0/development_plan.md`; see the README "Running the API" section to
+start it.
 
 Key capabilities:
 

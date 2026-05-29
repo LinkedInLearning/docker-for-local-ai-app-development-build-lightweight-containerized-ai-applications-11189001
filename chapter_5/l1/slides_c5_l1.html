@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chapter 5 · Lesson 1 — What "Production-Ready" Means</title>
+  <style>
+    :root {
+      --bg:#fff; --bg-soft:#f7f9fc; --ink:#0f172a; --ink-soft:#475569;
+      --muted:#94a3b8; --line:#e2e8f0; --line-soft:#eef2f7;
+      --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-500:#3b82f6;
+      --blue-600:#2563eb; --blue-700:#1d4ed8;
+      --teal-500:#0ea5e9; --amber-500:#f59e0b; --amber-50:#fffbeb;
+      --green-500:#10b981; --green-50:#ecfdf5; --pink-500:#ec4899;
+      --violet-500:#8b5cf6; --violet-50:#f5f3ff;
+      --red-500:#ef4444; --red-50:#fef2f2;
+      --code-bg:#0f172a; --code-fg:#e2e8f0;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+      --shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.07);
+      --radius:16px; --maxw:1280px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
+      font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+    /* chrome — only the progress bar; the deck is otherwise unadorned */
+    .progress{position:fixed;top:0;left:0;height:4px;width:0%;
+      background:linear-gradient(90deg,var(--blue-600),var(--teal-500));z-index:50;transition:width .25s ease}
+
+    /* slides — fit the viewport, do not scroll
+       Content is top-anchored so the eyebrow + title appear at the
+       same Y position on every slide. The bottom area is allowed to
+       have empty space; the tallest slide sets the implicit floor.
+
+       Slides are stacked in the same position with absolute
+       positioning so navigation cross-fades both the outgoing and
+       incoming slide simultaneously — no display:none snap.
+    */
+    .deck{position:relative;width:100%;height:100vh}
+    .slide{
+      position:absolute;inset:0;
+      display:flex;align-items:flex-start;
+      height:100vh;max-height:100vh;overflow:hidden;
+      padding:40px 56px 56px;
+      opacity:0;pointer-events:none;
+      transition:opacity .55s cubic-bezier(.4,0,.2,1);
+    }
+    .slide.active{opacity:1;pointer-events:auto;z-index:1}
+    .slide .wrap{margin:0 auto;width:100%;max-width:var(--maxw)}
+
+    /* typography — presentation scale (~1.4× browser-doc scale) */
+    .eyebrow{font-size:17px;letter-spacing:.18em;text-transform:uppercase;
+      color:var(--blue-700);font-weight:700;margin:0 0 16px}
+    h1.title{font-size:92px;line-height:1.04;letter-spacing:-.028em;margin:0 0 18px;font-weight:700}
+    h1.title .accent{background:linear-gradient(90deg,var(--blue-600),var(--teal-500));
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+    h2.h{font-size:58px;line-height:1.1;letter-spacing:-.02em;margin:0 0 14px;font-weight:700}
+    h3.sub{font-size:26px;font-weight:500;color:var(--ink-soft);margin:0 0 22px;line-height:1.5;max-width:1000px}
+    p.lead{font-size:28px;line-height:1.5;color:var(--ink-soft);margin:0 0 18px;max-width:1000px}
+    .inline{background:var(--bg-soft);padding:2px 10px;border:1px solid var(--line);border-radius:6px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;color:var(--ink)}
+
+    /* title art */
+    .title-art{position:absolute;right:-40px;top:50%;transform:translateY(-50%);
+      width:780px;height:780px;opacity:.5;pointer-events:none;z-index:0}
+    .title-wrap{position:relative;z-index:1}
+
+    /* path / chapter timeline (3-stop) */
+    .path{margin-top:28px;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch}
+    .path .stop{padding:20px 22px;border:1px solid var(--line);border-radius:var(--radius);
+      background:var(--bg);box-shadow:var(--shadow-sm)}
+    .path .stop.now{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50));box-shadow:var(--shadow)}
+    .path .stop .lbl{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;font-weight:600}
+    .path .stop.now .lbl{color:var(--blue-700)}
+    .path .stop .ttl{font-size:23px;font-weight:600;color:var(--ink);margin-bottom:6px}
+    .path .stop .desc{font-size:18px;color:var(--ink-soft);line-height:1.45}
+    .path .connector{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 10px}
+    .path .connector svg{width:34px;height:34px}
+
+    /* generic code block */
+    pre.code{background:var(--code-bg);color:var(--code-fg);padding:18px 22px;
+      border-radius:14px;font:20px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+      overflow-x:auto;box-shadow:0 6px 18px rgba(15,23,42,.15);margin:0}
+    pre.code .k{color:#93c5fd;font-weight:600}
+    pre.code .s{color:#fcd34d}
+    pre.code .c{color:#64748b}
+    pre.code .v{color:#86efac}
+    pre.code .f{color:#fcd34d;font-weight:600}
+
+    /* working vs production (slide 3) */
+    .wp{display:grid;grid-template-columns:1fr auto 1fr;gap:24px;margin-top:18px;align-items:stretch}
+    .wp .card{border:1px solid var(--line);border-radius:var(--radius);padding:26px 30px;background:#fff;box-shadow:var(--shadow-sm)}
+    .wp .card.work{border-color:var(--muted)}
+    .wp .card.prod{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50))}
+    .wp .card .tag{font-size:16px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin-bottom:12px;color:var(--ink-soft)}
+    .wp .card.prod .tag{color:var(--blue-700)}
+    .wp .card .big{font-size:30px;font-weight:700;letter-spacing:-.01em;margin:0 0 10px;color:var(--ink)}
+    .wp .card p{font-size:20px;color:var(--ink-soft);line-height:1.5;margin:0}
+    .wp .gap{display:flex;align-items:center;justify-content:center;color:var(--muted)}
+    .wp .gap svg{width:42px;height:42px}
+
+    /* five-column checklist (slide 4) */
+    .cols5{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:20px}
+    .colc{border:1px solid var(--line);border-radius:var(--radius);padding:22px 18px;background:#fff;
+      box-shadow:var(--shadow-sm);text-align:center;display:flex;flex-direction:column;align-items:center}
+    .colc .num{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:12px}
+    .colc .ic{width:40px;height:40px;color:var(--blue-600);margin-bottom:14px}
+    .colc h4{font-size:24px;font-weight:700;margin:0 0 8px;letter-spacing:-.01em}
+    .colc p{font-size:16px;color:var(--ink-soft);line-height:1.4;margin:0}
+    .colc:nth-child(1) .ic{color:var(--amber-500)}
+    .colc:nth-child(2) .ic{color:var(--red-500)}
+    .colc:nth-child(3) .ic{color:var(--teal-500)}
+    .colc:nth-child(4) .ic{color:var(--violet-500)}
+    .colc:nth-child(5) .ic{color:var(--green-500)}
+
+    /* per-column "why" detail (slides 5–9) */
+    .detail{display:grid;grid-template-columns:auto 1fr;gap:36px;margin-top:18px;align-items:start}
+    .detail .badge{width:150px;height:150px;border-radius:28px;display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(180deg,#fff,var(--bg-soft));border:1px solid var(--line);box-shadow:var(--shadow-sm)}
+    .detail .badge svg{width:78px;height:78px;color:var(--blue-600)}
+    .detail.size .badge svg{color:var(--amber-500)}
+    .detail.sec .badge svg{color:var(--red-500)}
+    .detail.port .badge svg{color:var(--teal-500)}
+    .detail.dist .badge svg{color:var(--violet-500)}
+    .detail.ops .badge svg{color:var(--green-500)}
+    .detail .why{display:flex;flex-direction:column;gap:14px}
+    .detail .why .row{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--line);
+      border-radius:14px;padding:18px 22px;background:#fff;box-shadow:var(--shadow-sm)}
+    .detail .why .row .dot{flex:none;width:12px;height:12px;border-radius:50%;background:var(--blue-500);margin-top:9px}
+    .detail.size .why .row .dot{background:var(--amber-500)}
+    .detail.sec .why .row .dot{background:var(--red-500)}
+    .detail.port .why .row .dot{background:var(--teal-500)}
+    .detail.dist .why .row .dot{background:var(--violet-500)}
+    .detail.ops .why .row .dot{background:var(--green-500)}
+    .detail .why .row .txt{font-size:23px;color:var(--ink);line-height:1.45}
+    .detail .why .row .txt b{font-weight:700}
+    .detail .why .row .txt span{color:var(--ink-soft)}
+
+    /* baseline terminal (slide 10) */
+    .term{margin-top:18px;background:var(--code-bg);border-radius:14px;overflow:hidden;
+      box-shadow:0 12px 32px rgba(15,23,42,.22)}
+    .term .bar{display:flex;align-items:center;gap:8px;padding:14px 18px;background:#1e293b;border-bottom:1px solid #334155}
+    .term .bar .dot{width:13px;height:13px;border-radius:50%}
+    .term .bar .r{background:#ef4444}.term .bar .y{background:#f59e0b}.term .bar .g{background:#22c55e}
+    .term .bar .ttl{margin-left:10px;color:#94a3b8;font:14px ui-monospace,SFMono-Regular,Menlo,monospace}
+    .term pre{margin:0;padding:24px 26px;color:var(--code-fg);
+      font:21px/1.85 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto}
+    .term .p{color:#22c55e;font-weight:700}
+    .term .cmd{color:#e2e8f0}
+    .term .cm{color:#64748b}
+
+    /* chapter map (slide 11) */
+    .cmap{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+    .cmrow{display:grid;grid-template-columns:170px 1fr auto;align-items:center;gap:20px;
+      border:1px solid var(--line);border-radius:14px;padding:16px 22px;background:#fff;box-shadow:var(--shadow-sm)}
+    .cmrow.next{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50));box-shadow:var(--shadow)}
+    .cmrow .les{font-weight:700;font-size:22px;color:var(--ink)}
+    .cmrow.next .les{color:var(--blue-700)}
+    .cmrow .desc{font-size:21px;color:var(--ink-soft);line-height:1.4}
+    .cmrow .pill{justify-self:end;font-size:15px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+      padding:6px 14px;border-radius:999px;background:var(--bg-soft);border:1px solid var(--line);color:var(--ink-soft);white-space:nowrap}
+    .cmrow.next .pill{background:var(--blue-100);border-color:var(--blue-500);color:var(--blue-700)}
+
+    /* takeaway */
+    .takeaway-card{margin:18px auto 0;max-width:1100px;
+      background:linear-gradient(135deg,#fff,var(--bg-soft));border:1px solid var(--line);
+      border-radius:24px;padding:28px 36px;box-shadow:var(--shadow);text-align:center}
+    .takeaway-card .quote{font-size:30px;color:var(--ink);font-weight:600;
+      letter-spacing:-.01em;line-height:1.4;max-width:900px;margin:0 auto}
+    .takeaway-card .foot{margin-top:14px;font-size:20px;color:var(--ink-soft)}
+
+    /* responsive — smaller viewports get proportionally smaller type */
+    @media (max-width:1100px){
+      .slide{padding:32px 28px 60px}
+      h1.title{font-size:60px}h2.h{font-size:40px}
+      h3.sub{font-size:20px}p.lead{font-size:22px}
+      .title-art{display:none}
+      .path{grid-template-columns:1fr}
+      .path .connector{transform:rotate(90deg);padding:4px 0}
+      .cols5{grid-template-columns:1fr 1fr}
+      .wp{grid-template-columns:1fr}
+      .wp .gap{transform:rotate(90deg)}
+      .detail{grid-template-columns:1fr}
+      .cmrow{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <main class="deck" id="deck">
+
+    <!-- 1. TITLE -->
+    <section class="slide active" style="position:absolute;overflow:hidden;">
+      <svg class="title-art" viewBox="0 0 780 780" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="ga" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity=".22"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity=".08"/>
+          </linearGradient>
+        </defs>
+        <!-- a checklist: a stack of bars with check marks -->
+        <g transform="translate(160 200)">
+          <rect x="0" y="0"   width="430" height="64" rx="14" fill="url(#ga)"/>
+          <rect x="0" y="84"  width="430" height="64" rx="14" fill="url(#ga)" opacity=".85"/>
+          <rect x="0" y="168" width="430" height="64" rx="14" fill="url(#ga)" opacity=".7"/>
+          <rect x="0" y="252" width="430" height="64" rx="14" fill="url(#ga)" opacity=".55"/>
+          <rect x="0" y="336" width="430" height="64" rx="14" fill="#3b82f6" opacity=".16"/>
+          <g stroke="#0ea5e9" stroke-opacity=".5" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M28 30 l14 14 l26 -28"/>
+            <path d="M28 114 l14 14 l26 -28"/>
+            <path d="M28 198 l14 14 l26 -28"/>
+            <path d="M28 282 l14 14 l26 -28"/>
+            <path d="M28 366 l14 14 l26 -28"/>
+          </g>
+        </g>
+      </svg>
+      <div class="wrap title-wrap">
+        <p class="eyebrow">Chapter 5 &middot; Lesson 1</p>
+        <h1 class="title">What "Production-Ready" <span class="accent">Means</span></h1>
+        <h3 class="sub">A working, tested image is a milestone — not a production image. Here's the bar, and where our images stand against it.</h3>
+        <p style="margin-top:24px;color:var(--ink-soft);font-size:18px;letter-spacing:.04em;">
+          Docker for Local AI &middot; Building AI Applications with Containers
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. WHERE WE ARE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Where we are</p>
+        <h2 class="h">From "it runs" to "it ships."</h2>
+        <p class="lead">
+          Chapter 4 left us with a multi-container application that runs and passes its tests.
+          That's a real milestone — but "runs on my machine and in CI" is not the same as
+          "ready for production." This lesson defines the bar and baselines our images.
+        </p>
+
+        <div class="path">
+          <div class="stop">
+            <div class="lbl">Chapter 4 &middot; done</div>
+            <div class="ttl">Testing containerized apps</div>
+            <div class="desc">A working, tested multi-container app.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop now">
+            <div class="lbl">Lesson 1 &middot; here</div>
+            <div class="ttl">Production-ready</div>
+            <div class="desc">Define the bar; baseline the images.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop">
+            <div class="lbl">Lesson 2 &middot; next</div>
+            <div class="ttl">Multi-stage builds</div>
+            <div class="desc">Slim the image down.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. WORKING != PRODUCTION -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The gap</p>
+        <h2 class="h">Working is not production.</h2>
+        <h3 class="sub">The difference is a checklist — five things a production image gets right that a prototype usually doesn't.</h3>
+
+        <div class="wp">
+          <div class="card work">
+            <div class="tag">A working image</div>
+            <div class="big">Runs &amp; passes tests</div>
+            <p>Boots on your laptop and in CI. Big, broad, unversioned — good enough to prove the idea.</p>
+          </div>
+          <div class="gap">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="card prod">
+            <div class="tag">A production image</div>
+            <div class="big">Gets five things right</div>
+            <p>Small, secure, portable, versioned and distributed, and operable once it's running.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. THE FIVE-COLUMN CHECKLIST -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The checklist</p>
+        <h2 class="h">Five columns to clear.</h2>
+
+        <div class="cols5">
+          <div class="colc">
+            <div class="num">01</div>
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <h4>Size</h4>
+            <p>Pull faster, store cheaper, expose less.</p>
+          </div>
+          <div class="colc">
+            <div class="num">02</div>
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v5c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7l8-4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            <h4>Security</h4>
+            <p>Minimal surface, no secrets, least privilege.</p>
+          </div>
+          <div class="colc">
+            <div class="num">03</div>
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" stroke="currentColor" stroke-width="1.7"/></svg>
+            <h4>Portability</h4>
+            <p>Runs on the architecture you deploy to.</p>
+          </div>
+          <div class="colc">
+            <div class="num">04</div>
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M12 3v12M7 10l5 5 5-5M4 21h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <h4>Distribution</h4>
+            <p>Versioned and published to a registry.</p>
+          </div>
+          <div class="colc">
+            <div class="num">05</div>
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M12 8a4 4 0 100 8 4 4 0 000-8z" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            <h4>Operability</h4>
+            <p>Limits, health checks, graceful exit, observable.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. SIZE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Column 1 of 5 &middot; Size</p>
+        <h2 class="h">Smaller is faster and safer.</h2>
+
+        <div class="detail size">
+          <div class="badge">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="why">
+            <div class="row"><div class="dot"></div><div class="txt"><b>Pull faster.</b> <span>Small images deploy in seconds, not minutes.</span></div></div>
+            <div class="row"><div class="dot"></div><div class="txt"><b>Cost less to store.</b> <span>Less registry storage and bandwidth across every node.</span></div></div>
+            <div class="row"><div class="dot"></div><div class="txt"><b>Expose less.</b> <span>A multi-gigabyte image is full of things an attacker could use.</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. SECURITY -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Column 2 of 5 &middot; Security</p>
+        <h2 class="h">Minimal surface, least privilege.</h2>
+
+        <div class="detail sec">
+          <div class="badge">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v5c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7l8-4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="why">
+            <div class="row"><div class="dot"></div><div class="txt"><b>No secrets in layers.</b> <span>Credentials baked into the image leak with the image.</span></div></div>
+            <div class="row"><div class="dot"></div><div class="txt"><b>No known vulnerabilities.</b> <span>Patch the base and the dependencies that ship inside.</span></div></div>
+            <div class="row"><div class="dot"></div><div class="txt"><b>Least privilege.</b> <span>Don't run as root — drop down to an unprivileged user.</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. PORTABILITY -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Column 3 of 5 &middot; Portability</p>
+        <h2 class="h">Built for where it runs.</h2>
+
+        <div class="detail port">
+          <div class="badge">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" stroke="currentColor" stroke-width="1.6"/></svg>
+          </div>
+          <div class="why">
+            <div class="row"><div class="dot"></div><div class="txt"><b>Match the CPU architecture.</b> <span>The image has to run on the architecture you deploy to.</span></div></div>
+            <div class="row"><div class="dot"></div><div class="txt"><b>Laptop &ne; server.</b> <span>An image built only for your laptop's arch may not run on the server.</span></div></div>
+            <div class="row"><div class="dot"></div><div class="txt"><b>Build for the target.</b> <span>Produce the architectures your deploy environment actually uses.</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. DISTRIBUTION -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Column 4 of 5 &middot; Distribution</p>
+        <h2 class="h">Versioned and published.</h2>
+
+        <div class="detail dist">
+          <div class="badge">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12M7 10l5 5 5-5M4 21h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="why">
+            <div class="row"><div class="dot"></div><div class="txt"><b>Versioned.</b> <span>Every build carries an explicit tag — not a moving <code class="inline" style="font-size:.85em">:latest</code>.</span></div></div>
+            <div class="row"><div class="dot"></div><div class="txt"><b>Published to a registry.</b> <span>So a deploy target can pull it from a known place.</span></div></div>
+            <div class="row"><div class="dot"></div><div class="txt"><b>Exactly the build you intend.</b> <span>The target runs the bits you tested — no surprises.</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. OPERABILITY -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Column 5 of 5 &middot; Operability</p>
+        <h2 class="h">Behaves once it's running.</h2>
+
+        <div class="detail ops">
+          <div class="badge">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 8a4 4 0 100 8 4 4 0 000-8z" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="why">
+            <div class="row"><div class="dot"></div><div class="txt"><b>Resource limits.</b> <span>Cap CPU and memory so one container can't starve the host.</span></div></div>
+            <div class="row"><div class="dot"></div><div class="txt"><b>Health checks &amp; graceful shutdown.</b> <span>Report readiness; drain cleanly on stop.</span></div></div>
+            <div class="row"><div class="dot"></div><div class="txt"><b>Observable.</b> <span>A way to see what it's doing while it's live.</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. BASELINE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Baseline first</p>
+        <h2 class="h">You can't improve what you don't measure.</h2>
+        <h3 class="sub">Before we fix anything, measure where the images stand today.</h3>
+
+        <div class="term">
+          <div class="bar">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span class="ttl">baseline the images</span>
+          </div>
+          <pre><span class="p">$</span> <span class="cmd">docker images rag-ingestion rag-query</span>     <span class="cm"># how big are we starting?</span>
+<span class="p">$</span> <span class="cmd">docker history rag-ingestion:0.1.0</span>        <span class="cm"># which layers dominate?</span>
+<span class="p">$</span> <span class="cmd">dive rag-ingestion:0.1.0</span>                   <span class="cm"># wasted space, layer by layer</span>
+<span class="p">$</span> <span class="cmd">docker scout quickview rag-ingestion:0.1.0</span> <span class="cm"># CVE count at a glance</span></pre>
+        </div>
+        <p class="lead" style="margin-top:18px;font-size:24px;">
+          The heavy <b style="color:var(--ink)">ingestion</b> image is large and has a wide surface. That's our starting point.
+        </p>
+      </div>
+    </section>
+
+    <!-- 11. CHAPTER MAP / TAKEAWAY -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The chapter map</p>
+        <h2 class="h" style="margin-bottom:6px;">One lesson per column.</h2>
+        <h3 class="sub" style="margin-bottom:14px;">Each remaining lesson attacks one column of the checklist — then we re-measure to prove the gain.</h3>
+
+        <div class="cmap">
+          <div class="cmrow next">
+            <div class="les">Lesson 2</div>
+            <div class="desc">Multi-stage builds — the single biggest lever on <b>size</b>.</div>
+            <div class="pill">Next</div>
+          </div>
+          <div class="cmrow">
+            <div class="les">Lesson 3</div>
+            <div class="desc">Harden the image — minimal surface, least privilege: <b>security</b>.</div>
+            <div class="pill">Security</div>
+          </div>
+          <div class="cmrow">
+            <div class="les">Lesson 4</div>
+            <div class="desc">Build for the architectures you deploy to: <b>portability</b>.</div>
+            <div class="pill">Portability</div>
+          </div>
+          <div class="cmrow">
+            <div class="les">Lesson 5</div>
+            <div class="desc">Tag and publish to a registry: <b>distribution</b>.</div>
+            <div class="pill">Distribution</div>
+          </div>
+          <div class="cmrow">
+            <div class="les">Lesson 6</div>
+            <div class="desc">Limits, health checks, graceful shutdown: <b>operability</b>.</div>
+            <div class="pill">Operability</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (function(){
+      const slides=Array.from(document.querySelectorAll('.slide'));
+      const total=slides.length;
+      const prog=document.getElementById('progress');
+      let i=0;
+      function show(n){
+        i=Math.max(0,Math.min(total-1,n));
+        slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+        prog.style.width=(((i+1)/total)*100)+'%';
+        history.replaceState(null,'','#'+(i+1));
+      }
+      function next(){show(i+1)}function prev(){show(i-1)}
+      document.addEventListener('keydown',e=>{
+        if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+        else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev();}
+        else if(e.key==='Home'){e.preventDefault();show(0);}
+        else if(e.key==='End'){e.preventDefault();show(total-1);}
+      });
+      document.addEventListener('click',e=>{if(e.target.closest('a,pre,code'))return;next();});
+      const start=parseInt((location.hash||'#1').slice(1),10);
+      show(isFinite(start)?start-1:0);
+    })();
+  </script>
+</body>
+</html>

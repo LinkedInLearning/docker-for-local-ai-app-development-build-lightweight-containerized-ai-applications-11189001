@@ -243,5 +243,5 @@ You should see roughly 4 sized layers (base image, `requirements.txt`,
 `pip install`, and the rest of the source), plus several zero-byte
 metadata layers for `WORKDIR`, `EXPOSE`, and `CMD`.
 
-In the next lesson we will take this image and start a container
-from it with `docker run`.
+In the next lesson we will look at how to share this image beyond our
+own machine — pulling and pushing images to a registry like Docker Hub.

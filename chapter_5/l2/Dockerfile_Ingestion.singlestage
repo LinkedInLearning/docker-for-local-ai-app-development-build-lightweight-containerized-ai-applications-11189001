@@ -1,0 +1,29 @@
+# Chapter 5 · Lesson 2 — the SINGLE-STAGE ingestion image (the "before").
+#
+# This builds correctly but ships everything the build needed: the compiler
+# toolchain (build-essential) and pip's download cache all stay in the final
+# image. We keep it here only to contrast its size with the multi-stage build.
+#
+# Build from the REPO ROOT (the context must contain rag/):
+#   docker build -f chapter_5/l2/Dockerfile_Ingestion.singlestage \
+#       -t rag-ingestion:single .
+#   docker images rag-ingestion        # compare against :multi
+
+FROM python:3.11-slim
+
+# Build toolchain + Docling's runtime system libs, all in one image.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Dependencies first, code last (stable layers on top — Chapter 3, Lesson 1).
+COPY chapter_5/l2/requirements-ingestion.txt requirements.txt
+RUN pip install -r requirements.txt          # pip cache is left behind in the layer
+
+COPY rag/ /app/rag/
+COPY chapter_5/l2/ingest_cli.py /app/ingest_cli.py
+
+ENTRYPOINT ["python", "ingest_cli.py"]
+CMD ["--check"]

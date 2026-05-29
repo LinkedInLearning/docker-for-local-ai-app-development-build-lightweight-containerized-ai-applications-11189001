@@ -1,0 +1,47 @@
+# Chapter 5 · Lesson 2 — build context excludes for the ingestion image.
+#
+# A .dockerignore keeps junk out of the build context: smaller/faster builds,
+# no accidental secrets baked into a layer, reproducible images. The repo had
+# none before this chapter — adding one is itself a best practice.
+
+# Version control / project metadata
+.git
+.gitignore
+*.md
+
+# Python caches & build artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Local virtualenvs — never ship the host's venv into the image
+.venv/
+venv/
+
+# Local data / runtime state — must not leak into the image
+chroma_data/
+*.log
+
+# Secrets — belt-and-suspenders; these must never enter the build context
+.env
+.env.*
+*.pem
+*.key
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+
+# Notebooks, tests, and course material are not needed at runtime
+notebooks/
+tests/
+chapter_*/
+clients/
+pm/
