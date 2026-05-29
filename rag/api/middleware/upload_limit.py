@@ -113,6 +113,13 @@ class MaxUploadSizeMiddleware(BaseHTTPMiddleware):
             )
 
         if declared < 0:
+            logger.warning(
+                "upload_limit.invalid_content_length",
+                extra={
+                    "stage": "upload_limit.invalid_content_length",
+                    "extra_data": {"path": path, "raw": raw_len},
+                },
+            )
             return build_error_response(
                 status_code=400,
                 error_message="Invalid Content-Length header.",

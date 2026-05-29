@@ -171,7 +171,7 @@ class TestQueryEndpoint:
             "question": "test",
         })
         assert response.status_code == 400
-        assert "Invalid provider" in response.json()["error"]
+        assert response.json()["error"] == "Invalid query parameters."
 
     def test_query_missing_question(self, client):
         response = client.post("/query", json={})

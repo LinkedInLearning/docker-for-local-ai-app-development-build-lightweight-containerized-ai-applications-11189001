@@ -14,7 +14,6 @@ from rag.api.dependencies import (
 from rag.api.jobs import (
     IngestJobResponse,
     JobRecord,
-    JobStatus,
     run_ingestion_job,
 )
 from rag.api.middleware import (
@@ -312,7 +311,14 @@ def query_documents(request: Request, body: QueryRequest):
             chat_provider=body.chat_provider,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        get_logger().warning(
+            "query.invalid_input",
+            extra={
+                "stage": "query.invalid_input",
+                "extra_data": {"error_type": type(e).__name__},
+            },
+        )
+        raise HTTPException(status_code=400, detail="Invalid query parameters.")
     except Exception:
         # Sanitized via Phase 1 catch-all; preserves request_id.
         raise

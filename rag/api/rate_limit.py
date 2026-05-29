@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 from functools import lru_cache
 
 from fastapi import FastAPI, Request
@@ -82,10 +83,24 @@ async def rate_limit_exceeded_handler(
     )
     # slowapi attaches a Retry-After header on its default response; we
     # need to mirror that ourselves since we're replacing the response.
-    # slowapi >= 0.1.9 sets request.state.view_rate_limit with the limit.
-    retry_after = getattr(exc, "retry_after", None)
-    if retry_after is not None:
-        response.headers["Retry-After"] = str(retry_after)
+    # slowapi 0.1.9 sets request.state.view_rate_limit before raising;
+    # it may be a dict ({"limit": ..., "reset": <epoch>}) or an object.
+    view_rate_limit = getattr(request.state, "view_rate_limit", None)
+    if view_rate_limit is not None:
+        reset = None
+        if isinstance(view_rate_limit, dict):
+            reset = view_rate_limit.get("reset")
+        else:
+            reset = getattr(view_rate_limit, "reset", None)
+        if reset is not None:
+            try:
+                seconds_remaining = max(0, int(reset) - int(time.time()))
+                response.headers["Retry-After"] = str(seconds_remaining)
+            except (TypeError, ValueError):
+                pass
+        else:
+            # Fallback: use a coarse window derived from the limit string (e.g. "5/minute" -> 60)
+            response.headers["Retry-After"] = "60"
     return response
 
 
