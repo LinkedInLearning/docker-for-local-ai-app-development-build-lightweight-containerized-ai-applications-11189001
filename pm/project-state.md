@@ -53,7 +53,9 @@ updated: 2026-05-29
 ## Current Phase
 
 **Phase 4 — Tests, documentation, acceptance checklist verification** (in progress —
-build + QA + fix cycle complete; awaiting pre-merge validation).
+build + QA + fix cycle complete; **PAUSED awaiting merge approval** — user is running the
+live pytest suite in the dev container before merge; re-invoke `/pm` to resume at pre-merge
+validation / merge).
 
 Phase 4 work is on branch `rag-api-tier1-hardening/phase-4-tests-docs` (the pm-agent
 default `dev/<project>/phase-N` scheme was not used — see backfill note).
