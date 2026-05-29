@@ -35,6 +35,7 @@ after each test, so GET /ingest/jobs listings never see jobs from other tests.
 
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import MagicMock
 
 
 class TestIngestSubmission:
@@ -112,10 +113,9 @@ class TestJobPolling:
         """When parse_pdf raises, the job reaches 'failed' status."""
         monkeypatch.setattr(
             "rag.api.jobs.runner.parse_pdf",
-            lambda path: (_ for _ in ()).throw(ValueError("boom")),
+            MagicMock(side_effect=ValueError("boom")),
         )
         # Stub the other heavy deps so the runner can at least start.
-        from unittest.mock import MagicMock
         monkeypatch.setattr("rag.api.jobs.runner.chunk_elements",
                             lambda *a, **k: ["chunk"])
         monkeypatch.setattr("rag.api.jobs.runner.get_store",
@@ -138,9 +138,8 @@ class TestJobPolling:
         the exception class name and the PDF filename."""
         monkeypatch.setattr(
             "rag.api.jobs.runner.parse_pdf",
-            lambda path: (_ for _ in ()).throw(ValueError("boom")),
+            MagicMock(side_effect=ValueError("boom")),
         )
-        from unittest.mock import MagicMock
         monkeypatch.setattr("rag.api.jobs.runner.chunk_elements",
                             lambda *a, **k: ["chunk"])
         monkeypatch.setattr("rag.api.jobs.runner.get_store",

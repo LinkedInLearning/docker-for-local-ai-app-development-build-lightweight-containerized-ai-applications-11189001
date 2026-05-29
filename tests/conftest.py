@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 # Set before any module-level import of rag.api.main so _require_auth()
 # returns False when the test process loads the app. Tests that exercise
 # auth behaviour directly should use the autouse fixture below to restore
-# a specific key set and use the `client` / `unauth_client` fixtures.
+# a specific key set and use the `auth_app` / `auth_client` / `auth_unauth_client` fixtures.
 os.environ.setdefault("RAG_API_REQUIRE_AUTH", "false")
 
 # Compiled-in rate limits for the test process. Small and known so

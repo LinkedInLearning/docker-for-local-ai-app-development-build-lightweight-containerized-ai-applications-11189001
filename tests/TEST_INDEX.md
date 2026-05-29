@@ -12,12 +12,14 @@ This document tracks all tests created during development, organized by system c
 | Ingestion Pipeline | `tests/test_ingestion.py` | 15 | Phase 3 |
 | Retrieval & Generation | `tests/test_retrieval.py` | 11 | Phase 4 |
 | FastAPI Service (core endpoints) | `tests/test_api.py` | 16 | Phase 4 (API Tier 1) |
-| Middleware (RequestID, Auth, Errors, Logging) | `tests/test_middleware.py` | 16 | Phase 4 (API Tier 1) |
+| Middleware (RequestID, Auth, Errors, Logging) | `tests/test_middleware.py` | 17 | Phase 4 (API Tier 1) |
 | Async Job Endpoints (/ingest 202, polling, listing) | `tests/test_jobs.py` | 13 | Phase 4 (API Tier 1) |
 | JobRegistry (unit + concurrency) | `tests/test_job_registry.py` | 20 | Phase 4 (API Tier 1) |
-| Security (resolve_under, upload limits, rate limits, path hardening) | `tests/test_security.py` | 26 | Phase 4 (API Tier 1) |
+| Security (resolve_under, upload limits, rate limits, path hardening) | `tests/test_security.py` | 27 | Phase 4 (API Tier 1) |
 
-**Total tests**: 132
+**Total tests**: 134
+
+> **Phase label note**: The unqualified "Phase N" labels in the table above (Phase 2, Phase 3, Phase 4) refer to the original RAG course build phases (config, ingestion, retrieval). "Phase 4 (API Tier 1)" refers to the separate API Tier 1 hardening effort tracked in this branch.
 
 ---
 

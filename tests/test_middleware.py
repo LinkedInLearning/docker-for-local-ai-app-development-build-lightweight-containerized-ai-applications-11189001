@@ -182,7 +182,10 @@ class TestLogCapture:
             # propagate=False can still defeat caplog in some pytest builds.
             # Fall back: verify the HTTP-level 401 was already confirmed in
             # TestAuthAllowlist; here we accept the log may not be captured.
-            pass  # best-effort log capture documented in spec §11.6
+            pytest.skip(
+                "log record not captured under this pytest build (propagate=False); "
+                "HTTP-level 401 verified in TestAuthAllowlist — spec §11.6"
+            )
 
     def test_request_id_present_on_log_record(self, auth_app):
         """Log records emitted during a request carry a 'request_id' attribute
@@ -213,7 +216,10 @@ class TestLogCapture:
         if not captured:
             # No records captured: filter not attached or logger silent.
             # Acceptable as best-effort; spec §11.6 acknowledges this.
-            return
+            pytest.skip(
+                "no log records captured (propagate=False or logger silent); "
+                "request_id filter behavior is best-effort — spec §11.6"
+            )
 
         # At least one record should have request_id set by the filter.
         records_with_rid = [
