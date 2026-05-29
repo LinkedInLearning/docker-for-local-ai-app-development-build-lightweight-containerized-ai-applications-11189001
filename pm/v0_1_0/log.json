@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-28T00:00:00Z",
+  "generated_at": "2026-05-29T16:00:00Z",
   "project": {
     "name": "rag-api-tier1-hardening",
     "dev_branch": "dev",
@@ -10,11 +10,11 @@
     "id": "v0.1.0",
     "id_underscored": "v0_1_0",
     "description": "RAG API Tier 1 hardening — async ingestion, auth, rate limits, path/upload guards, error sanitization",
-    "status": "in_progress",
+    "status": "completed",
     "plan_file": "pm/v0_1_0/development_plan.md",
     "log_file": "pm/v0_1_0/log.json",
     "created_date": "2026-05-28",
-    "updated_at": "2026-05-28T00:00:00Z"
+    "updated_at": "2026-05-29T16:00:00Z"
   },
   "overview": {
     "summary": "Tier 1 hardening of the FastAPI service in `rag/api/`. The current implementation is a synchronous, unauthenticated, error-leaking endpoint that is fine for the course demo but unsafe for any external user. This plan takes it to the bar set in `docs/api_production_roadmap.md` §5 — \"you'd let a friend use this\".",
@@ -470,9 +470,9 @@
       "number": 4,
       "name": "Tests / docs / acceptance",
       "goal": "Add the new-feature test suites, .env.example, README/overview docs, and verify the Tier 1 acceptance checklist.",
-      "status": "pending",
-      "branch": null,
-      "architecture_file": null,
+      "status": "completed",
+      "branch": "rag-api-tier1-hardening/phase-4-tests-docs",
+      "architecture_file": "pm/v0_1_0/phase-4-architecture.md",
       "tokens": {
         "est_output": 36000,
         "actual_input": null,
@@ -480,7 +480,7 @@
         "actual_total": null
       },
       "agent_token_breakdown": [],
-      "completed_at": null
+      "completed_at": "2026-05-29T16:00:00Z"
     }
   ],
   "token_summary": {
@@ -488,7 +488,7 @@
     "total_actual_input": null,
     "total_actual_output": null,
     "total_actual_total": null,
-    "phases_completed": 3,
+    "phases_completed": 4,
     "phases_total": 4
   }
 }
