@@ -294,11 +294,18 @@ def list_ingest_jobs(limit: int = 50) -> list[JobRecord]:
     },
 )
 @limiter.limit(get_rate_limit_query())
-def query_documents(request: Request, body: QueryRequest):
+def query_documents(request: Request, body: QueryRequest, response: Response):
     """Synchronous query. Rate-limited per-IP via slowapi.
 
     `request: Request` MUST be the first non-self arg — slowapi's
     decorator introspects the function signature for it.
+
+    `response: Response` is required when slowapi's
+    `headers_enabled=True`: slowapi injects `X-RateLimit-Limit`,
+    `X-RateLimit-Remaining`, `X-RateLimit-Reset` into it after a
+    successful call. Without this parameter, slowapi raises
+    "parameter `response` must be an instance of
+    starlette.responses.Response".
     """
     config = get_config()
 
