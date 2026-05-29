@@ -77,9 +77,17 @@ def resolve_under(
         )
 
     if common != root_real:
+        # Distinguish a symlink escape from a plainly-outside path. The
+        # candidate's *named* location (lexical abspath, symlinks NOT
+        # followed) being inside root while its realpath lands outside
+        # means an in-root symlink pointed elsewhere -> symlink_escapes_root.
+        # Compare both sides lexically so this holds even when the root is
+        # itself reached through a symlink.
         reason = "outside_allowed_root"
+        candidate_abs = os.path.abspath(candidate)
+        root_abs = os.path.abspath(allowed_root)
         try:
-            Path(candidate_resolved).relative_to(root_resolved)
+            Path(candidate_abs).relative_to(root_abs)
         except ValueError:
             pass
         else:
