@@ -11,8 +11,13 @@ This document tracks all tests created during development, organized by system c
 | Configuration System | `tests/test_config.py` | 15 | Phase 2 |
 | Ingestion Pipeline | `tests/test_ingestion.py` | 15 | Phase 3 |
 | Retrieval & Generation | `tests/test_retrieval.py` | 11 | Phase 4 |
+| FastAPI Service (core endpoints) | `tests/test_api.py` | 16 | Phase 4 (API Tier 1) |
+| Middleware (RequestID, Auth, Errors, Logging) | `tests/test_middleware.py` | 16 | Phase 4 (API Tier 1) |
+| Async Job Endpoints (/ingest 202, polling, listing) | `tests/test_jobs.py` | 13 | Phase 4 (API Tier 1) |
+| JobRegistry (unit + concurrency) | `tests/test_job_registry.py` | 20 | Phase 4 (API Tier 1) |
+| Security (resolve_under, upload limits, rate limits, path hardening) | `tests/test_security.py` | 26 | Phase 4 (API Tier 1) |
 
-**Total tests**: 41
+**Total tests**: 132
 
 ---
 
@@ -99,11 +104,185 @@ pytest tests/test_retrieval.py -v
 
 ---
 
-## FastAPI Service
+## FastAPI Service (core endpoints)
 
-**File**: `tests/test_api.py` (Phase 5 — pending)
+**File**: `tests/test_api.py` — Phase 4 (API Tier 1)
 
-_To be added when Phase 5 is implemented._
+Tests the main FastAPI app endpoints using a TestClient without auth
+(RAG_API_REQUIRE_AUTH=false at import time). Updated in Phase 4 to fix
+ingest tests that previously used source_dir outside the allowed root
+(now use `pdf/` with runner_stub, or a temp subdir inside pdf/).
+
+| Test | Description | Validates |
+|------|-------------|-----------|
+| `TestHealthEndpoint::test_health_healthy` | Mocks store, checks status/chromadb/documents | /health happy path |
+| `TestHealthEndpoint::test_health_disconnected` | Store raises, checks degraded status | /health error path |
+| `TestIngestEndpoint::test_ingest_success` | POSTs to pdf/ with runner_stub -> 202 | 202 job envelope |
+| `TestIngestEndpoint::test_ingest_missing_directory` | pdf/does_not_exist -> 404 | candidate_missing |
+| `TestIngestEndpoint::test_ingest_path_traversal_rejected` | /etc -> 403 | outside_allowed_root |
+| `TestIngestEndpoint::test_ingest_no_pdfs` | Empty subdir under pdf/ -> 404 | No PDF files detection |
+| `TestQueryEndpoint::test_query_success` | Mocks query_rag, checks answer/sources/metadata | /query happy path |
+| `TestQueryEndpoint::test_query_value_error` | query_rag raises ValueError -> 400 sanitized | /query error path |
+| `TestQueryEndpoint::test_query_missing_question` | Missing question field -> 422 | Pydantic validation |
+| `TestDocumentsEndpoint::test_list_documents` | Mocks list_documents, checks list | GET /documents |
+| `TestDocumentsEndpoint::test_delete_document` | Mocks collection.get + delete_by_source | DELETE /documents/{file} |
+| `TestDocumentsEndpoint::test_delete_document_not_found` | Empty ids -> 404 | Document not found |
+| `TestConfigEndpoint::test_get_config` | Mocks config, checks all fields | GET /config |
+| `TestJobsEndpoint::test_get_job_unknown_id_404` | Unknown job_id -> 404 with envelope | Job not found |
+| `TestJobsEndpoint::test_get_jobs_list_default` | GET /ingest/jobs -> 200 list | Job listing |
+| `TestJobsEndpoint::test_get_jobs_list_invalid_limit_400_or_422` | limit=0 or 501 -> 400/422 | Limit validation |
+
+**Run command**:
+```bash
+pytest tests/test_api.py -v
+```
+
+---
+
+## Middleware (RequestID, Auth, Error Sanitization, Logging)
+
+**File**: `tests/test_middleware.py` — Phase 4 (API Tier 1)
+
+Auth tests use a fresh `auth_app` fixture (auth ENABLED, independent of the
+default app's import-time auth=off). Error sanitization uses
+`raise_server_exceptions=False` for the 500 path.
+
+| Test | Description | Validates |
+|------|-------------|-----------|
+| `TestRequestID::test_request_id_generated_when_absent` | No header -> 12-char hex generated | RequestIDMiddleware generation |
+| `TestRequestID::test_request_id_echoed_when_present` | Supplied ID echoed back | RequestIDMiddleware echo |
+| `TestRequestID::test_request_id_stripped` | Whitespace stripped before echo | strip() behavior |
+| `TestRequestID::test_request_id_differs_across_requests` | Two requests get different IDs | UUID uniqueness |
+| `TestAuthAllowlist::test_health_open_without_key` | /health -> 200 with no key | Allowlist pass-through |
+| `TestAuthAllowlist::test_openapi_open_without_key` | /openapi.json -> 200 with no key | Allowlist pass-through |
+| `TestAuthAllowlist::test_protected_route_401_without_key` | /config with no key -> 401 | Auth enforcement |
+| `TestAuthAllowlist::test_protected_route_200_with_valid_key` | /config with valid key -> 200 | Auth success |
+| `TestAuthAllowlist::test_invalid_key_401` | Wrong key -> 401 | Invalid key rejection |
+| `TestAuthAllowlist::test_401_body_is_sanitized_envelope` | Body has {request_id, error} only | Error envelope shape |
+| `TestAuthAllowlist::test_401_has_request_id_header` | X-Request-ID == body.request_id | Header/body consistency |
+| `TestErrorSanitization::test_http_4xx_detail_preserved_as_error` | 404 detail passes through as error | 4xx detail preservation |
+| `TestErrorSanitization::test_500_strips_internal_detail` | RuntimeError message absent from 500 body | 500 sanitization |
+| `TestErrorSanitization::test_500_returns_generic_message` | 500 error == GENERIC_500_MESSAGE | Generic 500 message |
+| `TestErrorSanitization::test_error_response_has_request_id_header_and_body_match` | Header/body request_id match on 404 | Consistent IDs |
+| `TestLogCapture::test_auth_failure_logged` | Auth failure logs WARNING with stage=auth.missing_header | Structured logging |
+| `TestLogCapture::test_request_id_present_on_log_record` | Log records carry request_id attribute | RequestIDLogFilter |
+
+**Run command**:
+```bash
+pytest tests/test_middleware.py -v
+```
+
+---
+
+## Async Job Endpoints
+
+**File**: `tests/test_jobs.py` — Phase 4 (API Tier 1)
+
+Background tasks run synchronously in TestClient, so terminal state is
+immediately visible after POST /ingest. Runner's heavy deps are patched
+via the `runner_stub` conftest fixture.
+
+| Test | Description | Validates |
+|------|-------------|-----------|
+| `TestIngestSubmission::test_post_ingest_returns_202` | POST pdf/ -> 202 with envelope | 202 job contract |
+| `TestIngestSubmission::test_post_ingest_location_header` | Location == poll_url | Location header |
+| `TestIngestSubmission::test_post_ingest_echoes_request_id` | X-Request-ID == body.request_id | ID consistency |
+| `TestIngestSubmission::test_post_ingest_request_id_honored` | Client-supplied ID reflected | Custom request ID |
+| `TestJobPolling::test_job_reaches_completed` | GET job immediately after POST -> completed | Background task runs |
+| `TestJobPolling::test_completed_job_has_result` | Result block has documents_ingested >= 1 | JobResult shape |
+| `TestJobPolling::test_job_failed_path` | parse_pdf raises -> status==failed | Failure path |
+| `TestJobPolling::test_failed_error_message_sanitized` | error_message has class name not raw text | Error sanitization |
+| `TestJobPolling::test_unknown_job_404` | Unknown job_id -> 404 | Job not found |
+| `TestJobPolling::test_unknown_job_404_envelope` | 404 body has restart hint | Error envelope |
+| `TestJobListing::test_list_newest_first` | 3 jobs -> newest first in list | FIFO order |
+| `TestJobListing::test_list_respects_limit` | ?limit=1 returns 1 even with 3 jobs | Limit honored |
+| `TestJobListing::test_list_invalid_limit_400` | limit=0 or 501 -> 400 | Limit validation |
+
+**Run command**:
+```bash
+pytest tests/test_jobs.py -v
+```
+
+---
+
+## JobRegistry (unit + concurrency)
+
+**File**: `tests/test_job_registry.py` — Phase 4 (API Tier 1)
+
+Pure unit tests; no app or HTTP. Tests construct local JobRegistry instances.
+
+| Test | Description | Validates |
+|------|-------------|-----------|
+| `TestJobRegistryUnit::test_create_returns_pending` | New record has status=PENDING | Create lifecycle |
+| `TestJobRegistryUnit::test_create_stamps_created_at` | created_at is a tz-aware datetime | Timestamp stamping |
+| `TestJobRegistryUnit::test_get_unknown_returns_none` | Unknown ID -> None | get() miss |
+| `TestJobRegistryUnit::test_update_running_stamps_started_at` | RUNNING transition sets started_at | Transition stamping |
+| `TestJobRegistryUnit::test_second_running_does_not_restamp_started_at` | Second RUNNING preserves started_at | Guard condition |
+| `TestJobRegistryUnit::test_completed_stamps_finished_at` | COMPLETED sets finished_at | Terminal stamping |
+| `TestJobRegistryUnit::test_failed_stamps_finished_at` | FAILED sets finished_at | Terminal stamping |
+| `TestJobRegistryUnit::test_update_unknown_raises` | update on missing ID -> JobNotFoundError | Error on unknown |
+| `TestJobRegistryUnit::test_explicit_started_at_wins` | Caller-supplied started_at preserved | Explicit override |
+| `TestJobRegistryUnit::test_evicts_oldest_when_full` | 4th create evicts 1st (max_size=3) | FIFO eviction |
+| `TestJobRegistryUnit::test_list_newest_first` | list() -> [C, B, A] order | Reversed insertion |
+| `TestJobRegistryUnit::test_list_respects_limit` | list(limit=2) returns 2 newest | Limit honored |
+| `TestJobRegistryUnit::test_list_limit_zero_empty` | list(limit=0) == [] | Zero limit |
+| `TestJobRegistryUnit::test_from_env_default` | No env var -> DEFAULT_REGISTRY_SIZE | from_env default |
+| `TestJobRegistryUnit::test_from_env_parses_int` | RAG_API_JOB_REGISTRY_SIZE=42 -> max_size 42 | from_env parsing |
+| `TestJobRegistryUnit::test_from_env_rejects_non_int` | Non-integer env -> RuntimeError | Validation |
+| `TestJobRegistryUnit::test_init_rejects_zero_max_size` | max_size=0 -> ValueError | Constructor guard |
+| `TestJobRegistryConcurrency::test_concurrent_creates_no_lost_records` | 50x20 creates = 1000 unique IDs | RLock correctness |
+| `TestJobRegistryConcurrency::test_concurrent_create_and_evict_consistent_len` | 500 creates, cap=50 -> len==50 | Eviction under load |
+| `TestJobRegistryConcurrency::test_concurrent_update_reads_never_torn` | Writer + reader race -> no torn fields | model_copy atomicity |
+
+**Run command**:
+```bash
+pytest tests/test_job_registry.py -v
+```
+
+---
+
+## Security (resolve_under, upload limits, rate limits, path hardening)
+
+**File**: `tests/test_security.py` — Phase 4 (API Tier 1)
+
+Four sections: pure resolve_under unit tests, isolated MaxUploadSizeMiddleware
+tests (100-byte cap fixture), integration 413 acceptance test, rate-limit
+integration tests, and /ingest path-hardening integration tests.
+
+| Test | Description | Validates |
+|------|-------------|-----------|
+| `TestResolveUnder::test_accepts_root_itself` | Root resolves to itself | Base case |
+| `TestResolveUnder::test_accepts_descendant` | Sub-dir accepted | Happy path |
+| `TestResolveUnder::test_rejects_absolute_outside` | /etc -> outside_allowed_root | Outside root |
+| `TestResolveUnder::test_rejects_dotdot_escape` | ../outside -> outside_allowed_root | Dotdot normalization |
+| `TestResolveUnder::test_rejects_symlink_escape` | Symlink pointing outside root -> symlink_escapes_root | Symlink safety |
+| `TestResolveUnder::test_accepts_symlink_within` | Symlink within root -> accepted | Internal symlink |
+| `TestResolveUnder::test_missing_candidate_reason` | Non-existent path -> candidate_missing | Missing path |
+| `TestResolveUnder::test_missing_root_reason` | Non-existent root -> allowed_root_missing | Missing root |
+| `TestResolveUnder::test_returns_realpath` | Returned path is realpath (symlink resolved) | Return value |
+| `TestUploadLimitMiddleware::test_413_on_oversize_content_length` | >100-byte body -> 413 | Middleware enforcement |
+| `TestUploadLimitMiddleware::test_413_envelope_and_request_id` | 413 body + header consistency | Error envelope |
+| `TestUploadLimitMiddleware::test_411_when_content_length_missing` | Chunked body -> 411 | Missing Content-Length |
+| `TestUploadLimitMiddleware::test_400_on_invalid_content_length` | Non-numeric CL -> 400 | Invalid header |
+| `TestUploadLimitMiddleware::test_within_limit_passes_through` | Small body -> 200 | Pass-through |
+| `TestUploadLimitMiddleware::test_query_route_not_guarded` | /query large body -> 200 | Path exclusion |
+| `TestUploadLimitIntegration::test_ingest_413_before_disk_write` | Spoofed 60MB CL on real app -> 413 | Acceptance criterion |
+| `TestRateLimit::test_ingest_429_at_threshold` | 5 ok, 6th -> 429 | Rate threshold |
+| `TestRateLimit::test_429_envelope_shape` | 429 body {request_id, error} | Error envelope |
+| `TestRateLimit::test_429_has_retry_after_header` | Retry-After is non-negative integer | RFC compliance |
+| `TestRateLimit::test_429_has_request_id_header` | X-Request-ID == body.request_id | Header consistency |
+| `TestRateLimit::test_health_not_rate_limited` | 20 GETs to /health -> all 200 | No limit on health |
+| `TestIngestPathHardening::test_path_outside_allowed_403` | /etc -> 403 | Outside root |
+| `TestIngestPathHardening::test_path_dotdot_escape_to_existing_outside_403` | pdf/../docs -> 403 | Dotdot to existing |
+| `TestIngestPathHardening::test_path_dotdot_to_missing_404` | pdf/../nonexistent -> 404 | Dotdot to missing |
+| `TestIngestPathHardening::test_path_missing_404` | pdf/nonexistent -> 404 | Missing path |
+| `TestIngestPathHardening::test_empty_dir_no_pdfs_404` | Empty dir under pdf/ -> 404 | No PDFs |
+| `TestIngestPathHardening::test_valid_pdf_dir_202` | pdf/ with runner_stub -> 202 | Happy path |
+
+**Run command**:
+```bash
+pytest tests/test_security.py -v
+```
 
 ---
 
@@ -111,4 +290,10 @@ _To be added when Phase 5 is implemented._
 
 ```bash
 pytest tests/ -v
+```
+
+To run only the Phase 4 (API Tier 1) tests:
+
+```bash
+pytest tests/test_api.py tests/test_middleware.py tests/test_jobs.py tests/test_job_registry.py tests/test_security.py -v
 ```
