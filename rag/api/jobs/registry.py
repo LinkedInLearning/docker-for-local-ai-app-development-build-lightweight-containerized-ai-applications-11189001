@@ -7,7 +7,7 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 from typing import Any
 
-from rag.api.jobs.models import JobProgress, JobRecord, JobResult, JobStatus
+from rag.api.jobs.models import JobRecord, JobStatus
 
 
 DEFAULT_REGISTRY_SIZE: int = 500

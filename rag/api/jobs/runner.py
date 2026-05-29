@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from rag.api.dependencies import get_embedder_instance, get_store
-from rag.api.jobs.models import JobProgress, JobRecord, JobResult, JobStatus
+from rag.api.jobs.models import JobProgress, JobResult, JobStatus
 from rag.api.jobs.registry import JobNotFoundError, JobRegistry
 from rag.api.models import IngestRequest
 from rag.ingestion.chunker import chunk_elements
