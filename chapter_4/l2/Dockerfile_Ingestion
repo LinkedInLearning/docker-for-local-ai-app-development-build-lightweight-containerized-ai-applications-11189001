@@ -1,0 +1,26 @@
+# Chapter 4 · Lesson 2 — the HEAVY ingestion service image.
+#
+# In the project this would live at docker/Dockerfile_Ingestion. It serves
+# only the ingestion routes (rag/api/ingestion_app.py) and carries the full
+# Docling parsing stack.
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System libraries Docling's parsing / vision models need at runtime.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Dependencies first, code last (Ch3 L1: stable layers on top).
+COPY chapter_4/l2/requirements-ingestion.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY rag/ /app/rag/
+COPY config/ /app/config/
+
+EXPOSE 8081
+
+# Serves ONLY the ingestion routes.
+CMD ["uvicorn", "rag.api.ingestion_app:app", "--host", "0.0.0.0", "--port", "8081"]

@@ -1,0 +1,21 @@
+# Chapter 4 · Lesson 2 — the LEAN query service image.
+#
+# In the project this would live at docker/Dockerfile_Query. It serves only
+# the query routes (rag/api/query_app.py) and carries no PDF-parsing stack.
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Dependencies first, code last (Ch3 L1: stable layers on top).
+COPY chapter_4/l2/requirements-query.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Only the code this service needs.
+COPY rag/ /app/rag/
+COPY config/ /app/config/
+
+EXPOSE 8080
+
+# Serves ONLY the query routes — never imports the ingestion code path.
+CMD ["uvicorn", "rag.api.query_app:app", "--host", "0.0.0.0", "--port", "8080"]
