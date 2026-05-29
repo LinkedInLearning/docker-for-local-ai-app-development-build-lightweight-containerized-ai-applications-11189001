@@ -1,6 +1,10 @@
 # Chapter 5 — Scope: Preparing AI Applications for Production with Docker
 
-> **Status:** scope / plan. Short form: *Preparing for Production*.
+> **Status:** BUILT (2026-05-29). All six lessons have their
+> `README.md` + `script_c5_l{M}.md` + `slides_c5_l{M}.html`; demo assets exist
+> for L2 (multi-stage), L4 (buildx), and L5 (publish). Short form:
+> *Preparing for Production*. This document is the original scope; the open
+> decisions at the bottom are now resolved.
 > This document scopes the six lessons (≤500 words each, with code examples
 > where applicable). Each lesson will later be expanded into the standard
 > `README.md` + `script_c5_l{M}.md` + `slides_c5_l{M}.html` set (see
@@ -248,25 +252,18 @@ Close the chapter — and the course.
 
 ---
 
-## Open decisions
+## Resolved decisions
 
-1. **Hands-on depth for L4/L5 (multi-platform + registry).** These are the
-   hardest to make fully reproducible for a student: multi-arch builds need
-   QEMU/buildx set up, and pushing needs a real registry account. Options:
-   (a) **run for real** against GHCR with a throwaway tag; (b) **demonstrate the
-   commands and show captured output** (decks + transcript), student runs
-   locally where possible (e.g. `buildx build` without `--push`); (c) hybrid —
-   real local multi-arch build, push shown as a recorded walkthrough.
-   *Leaning (c).*
-2. **`.dockerignore` + two-stage refactor — teaching copies or repo changes?**
-   L2/L3 improve the Ch4 Dockerfiles. Mirror Ch4's pattern (self-contained
-   teaching files under `chapter_5/l{M}/`) vs editing the canonical `docker/`
-   Dockerfiles. *Leaning: teaching copies in the lesson folders, consistent with
-   Ch4, with a note that the repo's real `docker/` files can adopt them later
-   (a tracked open item).*
-3. **Scanner of record.** `docker scout` (bundled with Docker Desktop, low
-   setup) vs `trivy` (ubiquitous in CI). *Leaning: lead with `docker scout` for
-   the hands-on, mention `trivy` as the CI-friendly alternative.*
-4. **Does L6 actually push to GHCR, or show the CI YAML only?** Ties to
-   decision 1. *Leaning: show the workflow excerpt and run the build+scan steps;
-   the push step is demonstrated, not committed to the course repo's CI.*
+1. **Hands-on depth for L4/L5 → hybrid.** The L4/L5 demos use a tiny,
+   dependency-free image (`chapter_5/l4/`) that prints its CPU architecture, so
+   the multi-arch build and the registry push are fast and reliable to record.
+   Real local multi-arch builds run on screen; the push targets a real account.
+   The runbooks note the identical commands apply to the heavy `rag-ingestion`
+   image (with the torch/arm64 wheel caveat).
+2. **`.dockerignore` + two-stage refactor → teaching copies.** The improved
+   Dockerfiles live under `chapter_5/l{M}/` (consistent with Ch4); adopting them
+   into the repo's real `docker/` files is a tracked open item.
+3. **Scanner → `docker scout` leads**, `trivy` mentioned as the CI alternative.
+4. **Registry → Docker Hub** for the demos (GHCR noted as the GitHub-Actions
+   alternative). L6 shows the CI workflow excerpt and runs build+scan; the push
+   step is demonstrated, not wired into this repo's CI.
