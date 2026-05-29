@@ -64,7 +64,7 @@ touched. Exact files/lines are listed in `naming_convention.md`.
   "Docker 101" / "Apply to RAG" → official short forms.
 - [ ] `chapter_3/l5/slides_c3_l5.html` — "Testing" → "Testing Containerized Apps".
 - [ ] Optional prose alignment in `chapter_1/l4/README.md` and
-  `chapter_1/l4/script_c1_l4.md`.
+  `script/ch1/script_c1_l4.md`.
 
 ---
 

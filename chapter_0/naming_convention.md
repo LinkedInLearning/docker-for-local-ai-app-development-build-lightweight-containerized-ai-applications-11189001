@@ -38,16 +38,21 @@ course-level material. `chapter_4`–`chapter_5` are the remaining build-out.
 
 ```
 chapter_0/                     course-level material (no lessons)
-  script_opening.md
-  script_closing.md
   naming_convention.md         ← this file
+  learning_goals.md
+  open_items.md
 
 chapter_{N}/                   one folder per chapter, N = 1..5
   l{M}/                        one folder per lesson, M = 1..k
     README.md                  lesson notes / reference
-    script_c{N}_l{M}.md        narration / teleprompter script
     slides_c{N}_l{M}.html      slide deck
     <supporting files>         Dockerfile, *.py, *.sh, *.drawio, etc.
+
+script/                        all narration / teleprompter scripts (one tree)
+  ch{N}/                       one folder per chapter, N = 1..5
+    script_c{N}_l{M}.md        narration script for chapter N, lesson M
+  script_opening.md            course-level scripts (if any) live at the root
+  script_closing.md
 ```
 
 Rules:
@@ -56,6 +61,11 @@ Rules:
 - **Lessons** are `l{M}` — lowercase `l`, no padding (`l1`, `l2`, … `l10`).
 - Lesson folders are numbered in teaching order. Do not reuse a number; if a
   lesson is removed, renumber the rest so the sequence has no gaps.
+- **Scripts live in `script/ch{N}/`, not in the lesson folder.** Every
+  narration script for chapter N sits in `script/ch{N}/`; the lesson folder
+  keeps only its `README.md`, `slides_*.html`, and supporting assets. The
+  filename still encodes both numbers (`script_c{N}_l{M}.md`), so a script is
+  unambiguous on its own and pairs 1:1 with its lesson.
 
 ---
 
@@ -74,10 +84,14 @@ outside its folder.
 Where `{N}` = chapter number, `{M}` = lesson number.
 
 - Use `c{N}_l{M}` exactly — lowercase `c`/`l`, underscore separator.
-- The numbers in the file name **must match the folder** it lives in. A file
-  named `slides_c2_l1.html` inside `chapter_1/l1/` is a bug.
-- Course-level scripts in `chapter_0` use a descriptive name instead of
-  `c_l` numbering: `script_opening.md`, `script_closing.md`.
+- The numbers in the file name **must match the folder** it lives in. A slide
+  named `slides_c2_l1.html` inside `chapter_1/l1/` is a bug; a script named
+  `script_c2_l1.md` inside `script/ch1/` is likewise a bug (the `c{N}` must
+  match the `ch{N}` folder).
+- **Scripts live in `script/ch{N}/`** (see §2), kept out of the lesson folder;
+  READMEs and slides stay in `chapter_{N}/l{M}/`.
+- Course-level scripts use a descriptive name instead of `c_l` numbering and
+  live at the `script/` root: `script_opening.md`, `script_closing.md`.
 - **No bare `slides.html`.** Always include the `_c{N}_l{M}` suffix so files
   are greppable and never collide when copied.
 - Supporting assets (Dockerfiles, `main.py`, `build.sh`, `.drawio`, …) keep
@@ -177,7 +191,7 @@ Line numbers below are exact as of 2026-05-29.
 | `chapter_1/l4/slides_c1_l4.html` | 380, 419, 454 | "prototype stage" / "testing stage" / "Deployment to production" — focus of Ch 3/4/5 | optional: Containerized Dev Environment / Testing Containerized Apps / Preparing for Production |
 | `chapter_1/l4/slides_c1_l4.html` | 473, 480, 487, 494 | `chbadge` "Chapter 2/3/4/5" (bare numbers) | no change — numbers only, no title |
 | `chapter_1/l4/README.md` | 100, 127, 133 | "focus of Chapter 3/4/5" prose | optional: append short-form titles |
-| `chapter_1/l4/script_c1_l4.md` | 54, 72, 90 | "chapter 3/4/5" stage prose | optional: append short-form titles |
+| `script/ch1/script_c1_l4.md` | 54, 72, 90 | "chapter 3/4/5" stage prose | optional: append short-form titles |
 | `chapter_2/l1/slides_c2_l1.html` | 280, 288, 296 | ttls "Why containers" / "Docker 101" / "Apply to RAG" (Ch 1 done · Ch 2 here · Ch 3 next) | "Intro to Docker for AI" / "Docker Workflow & Best Practices" / "Containerized Dev Environment" |
 | `chapter_2/l7/slides_c2_l7.html` | 296 | "Apply to RAG" ttl (Chapter 3 · next stop) | "Containerized Dev Environment" |
 | `chapter_3/l1/slides_c3_l1.html` | 223 | "Docker workflow & best practices" ttl (Chapter 2 · done) | already aligned — at most Title-case to "Docker Workflow & Best Practices" |
@@ -207,9 +221,11 @@ The deviations below were found in the initial audit and have since been
 
 ## 8. Checklist for adding a lesson
 
-1. Create `chapter_{N}/l{M}/`.
-2. Add `README.md`, `script_c{N}_l{M}.md`, `slides_c{N}_l{M}.html`.
+1. Create `chapter_{N}/l{M}/` (and `script/ch{N}/` if it doesn't exist yet).
+2. Add `README.md` + `slides_c{N}_l{M}.html` in the lesson folder, and
+   `script_c{N}_l{M}.md` in `script/ch{N}/`.
 3. Use one canonical Title Case title in all three (see §4 formats).
-4. Verify the `c{N}_l{M}` in every file name matches the folder.
+4. Verify the `c{N}_l{M}` in every file name matches its folder (lesson folder
+   for README/slides, `script/ch{N}/` for the script).
 5. Keep supporting assets under their natural names.
 6. If this changes the lesson order, renumber so the sequence has no gaps.
