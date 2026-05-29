@@ -232,7 +232,36 @@ mounts simple). The trade-off should be a conscious one.
 
 ---
 
-## 9. Exec form for `CMD` and `ENTRYPOINT`
+## 9. Keep secrets and data out of the image
+
+**Rule.** Never bake secrets or data into the image.
+
+API keys, passwords, and credentials must never be hard-coded into a
+Dockerfile — not via `ENV OPENAI_API_KEY=...`, and not by `COPY`-ing a
+`.env` file. Image layers are cached, shared, and pushed to registries,
+and anyone who has the image can read them back:
+
+```dockerfile
+# Bad — the key is baked into a layer, visible via `docker history`
+ENV OPENAI_API_KEY=sk-...
+COPY .env /app/.env
+```
+
+```bash
+# Good — inject secrets at runtime; keep data in a mounted volume
+docker run -e OPENAI_API_KEY --env-file .env \
+    -v "$PWD/data:/app/data" my-image
+```
+
+The same logic applies to application data: an image is a static,
+shareable artifact, not a datastore. Combined with a `.dockerignore`
+that excludes `.env` (practice 7), a secret can't even reach the build
+context. Chapter 5 takes image security further — pinned bases and
+vulnerability scanning.
+
+---
+
+## 10. Exec form for `CMD` and `ENTRYPOINT`
 
 **Rule.** Always use the JSON array form.
 
@@ -250,7 +279,7 @@ your app gets killed ungracefully 10 seconds later.
 
 ---
 
-## 10. A few smaller habits
+## 11. A few smaller habits
 
 | Habit                                       | Reason                                                      |
 | ------------------------------------------- | ----------------------------------------------------------- |
@@ -286,7 +315,7 @@ production.
 
 ---
 
-## 11. Putting it all together
+## 12. Putting it all together
 
 The `Dockerfile.good` in this folder is the "after" version of a
 small Python API. The `Dockerfile.bad` is the same thing written
@@ -308,7 +337,7 @@ You will see in one place:
 
 ---
 
-## 12. Cheat sheet
+## 13. Cheat sheet
 
 | Rule                                | Why                                  |
 | ----------------------------------- | ------------------------------------ |

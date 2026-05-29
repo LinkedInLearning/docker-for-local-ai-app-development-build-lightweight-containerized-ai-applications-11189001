@@ -207,7 +207,7 @@
           about making it <b>smaller</b>, <b>faster to build</b>, and
           <b>easier to maintain</b>.
         </p>
-        <h3 class="sub" style="margin-bottom:0;">The seven rules we'll cover:</h3>
+        <h3 class="sub" style="margin-bottom:0;">The eight rules we'll cover:</h3>
         <div class="pidx">
           <div class="pix"><div class="n">1</div><b>Pin versions</b></div>
           <div class="pix"><div class="n">2</div><b>Order for cache</b></div>
@@ -216,7 +216,7 @@
           <div class="pix"><div class="n">5</div><b>Shell scripts</b></div>
           <div class="pix"><div class="n">6</div><b>.dockerignore</b></div>
           <div class="pix"><div class="n">7</div><b>Non-root</b></div>
-          <div class="pix" style="background:var(--bg-soft);border-style:dashed;"><div class="n" style="background:var(--muted);">+</div><b>More habits</b></div>
+          <div class="pix"><div class="n">8</div><b>No secrets/data</b></div>
         </div>
       </div>
     </section>
@@ -226,7 +226,7 @@
       <div class="wrap">
         <div class="ph">
           <div class="pnum">1</div>
-          <div class="ptxt"><div class="ptag">Best practice · 1 of 7</div><h2>Pin every version.</h2></div>
+          <div class="ptxt"><div class="ptag">Best practice · 1 of 8</div><h2>Pin every version.</h2></div>
         </div>
         <p class="pwhy">
           A Dockerfile that starts with <code class="inline">FROM python</code>
@@ -261,7 +261,7 @@
       <div class="wrap">
         <div class="ph">
           <div class="pnum">2</div>
-          <div class="ptxt"><div class="ptag">Best practice · 2 of 7</div><h2>Order instructions for cache efficiency.</h2></div>
+          <div class="ptxt"><div class="ptag">Best practice · 2 of 8</div><h2>Order instructions for cache efficiency.</h2></div>
         </div>
         <p class="pwhy">
           Docker caches each layer. The moment one instruction changes,
@@ -296,7 +296,7 @@
       <div class="wrap">
         <div class="ph">
           <div class="pnum">3</div>
-          <div class="ptxt"><div class="ptag">Best practice · 3 of 7</div><h2>Use ARG and ENV deliberately.</h2></div>
+          <div class="ptxt"><div class="ptag">Best practice · 3 of 8</div><h2>Use ARG and ENV deliberately.</h2></div>
         </div>
         <p class="pwhy">
           <code class="inline">ARG</code> for build-time knobs. <code class="inline">ENV</code>
@@ -344,7 +344,7 @@
       <div class="wrap">
         <div class="ph">
           <div class="pnum">4</div>
-          <div class="ptxt"><div class="ptag">Best practice · 4 of 7</div><h2>One RUN, not five.</h2></div>
+          <div class="ptxt"><div class="ptag">Best practice · 4 of 8</div><h2>One RUN, not five.</h2></div>
         </div>
         <p class="pwhy">
           Every <code class="inline">RUN</code> creates a layer. Split installs balloon
@@ -376,7 +376,7 @@
       <div class="wrap">
         <div class="ph">
           <div class="pnum">5</div>
-          <div class="ptxt"><div class="ptag">Best practice · 5 of 7</div><h2>Move complex setup into shell scripts.</h2></div>
+          <div class="ptxt"><div class="ptag">Best practice · 5 of 8</div><h2>Move complex setup into shell scripts.</h2></div>
         </div>
         <p class="pwhy">
           When a <code class="inline">RUN</code> grows past a few lines, extract it.
@@ -412,7 +412,7 @@
       <div class="wrap">
         <div class="ph">
           <div class="pnum">6</div>
-          <div class="ptxt"><div class="ptag">Best practice · 6 of 7</div><h2>Use a .dockerignore. Always.</h2></div>
+          <div class="ptxt"><div class="ptag">Best practice · 6 of 8</div><h2>Use a .dockerignore. Always.</h2></div>
         </div>
         <p class="pwhy">
           Caches, secrets, and version-control noise have no business in your
@@ -454,7 +454,7 @@ node_modules/
       <div class="wrap">
         <div class="ph">
           <div class="pnum">7</div>
-          <div class="ptxt"><div class="ptag">Best practice · 7 of 7</div><h2>Drop root.</h2></div>
+          <div class="ptxt"><div class="ptag">Best practice · 7 of 8</div><h2>Drop root.</h2></div>
         </div>
         <p class="pwhy">
           Production containers should not run as root. Create a dedicated
@@ -492,6 +492,39 @@ node_modules/
             </p>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- 9b. KEEP SECRETS & DATA OUT -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="ph">
+          <div class="pnum">8</div>
+          <div class="ptxt"><div class="ptag">Best practice · 8 of 8</div><h2>Keep secrets and data out.</h2></div>
+        </div>
+        <p class="pwhy">
+          API keys, passwords, and application data must never be baked into an
+          image. Layers are cached, shared, and pushed to registries — anyone
+          with the image can read a baked secret back with <code class="inline">docker history</code>.
+        </p>
+        <div class="ba" style="grid-template-columns:1fr 1.1fr;">
+          <div class="col bad">
+            <div class="lbl">✗ Baked into the image</div>
+            <pre class="code"><span class="k">ENV</span> OPENAI_API_KEY=sk-...
+<span class="k">COPY</span> .env /app/.env</pre>
+            <div class="note">Stored in a layer forever — visible via <code class="inline">docker history</code>, and shipped to everyone who pulls the image.</div>
+          </div>
+          <div class="col good">
+            <div class="lbl">✓ Injected at runtime, data in a volume</div>
+            <pre class="code"><span class="k">docker run</span> <span class="k">-e</span> OPENAI_API_KEY \
+    <span class="k">--env-file</span> .env \
+    <span class="k">-v</span> <span class="s">"$PWD/data:/app/data"</span> my-image</pre>
+            <div class="note">Secrets passed at run time; data lives in a mounted volume. The image stays a clean, shareable artifact.</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--muted);margin-top:14px;">
+          Pair with <code class="inline">.dockerignore</code> excluding <code class="inline">.env</code> (practice 6) so a secret can't even reach the build context. Chapter 5 goes deeper — pinned bases and vulnerability scanning.
+        </p>
       </div>
     </section>
 
@@ -541,7 +574,7 @@ node_modules/
         </h3>
         <div class="takeaway-card">
           <div class="quote">
-            Pin · Order for cache · ARG &amp; ENV · One RUN · Scripts · .dockerignore · Non-root
+            Pin · Order for cache · ARG &amp; ENV · One RUN · Scripts · .dockerignore · Non-root · No secrets
           </div>
           <div class="foot">
             This concludes the core of Chapter 2. Next lesson →

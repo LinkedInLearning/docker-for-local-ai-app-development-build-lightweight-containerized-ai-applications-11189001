@@ -90,6 +90,20 @@ USER appuser
 
 [CLICK]
 
+The eighth best practice is to **keep secrets and data out of the image**.
+
+Never bake API keys, passwords, or credentials into a Dockerfile — for example with `ENV OPENAI_API_KEY=...` or by `COPY`-ing a `.env` file. Image layers are cached, shared, and pushed to registries, and anyone who has the image can read them back with `docker history`. The same applies to application data: an image is a static, shareable artifact, not a place to store data.
+
+Instead, pass secrets at **runtime** and keep data in **mounted volumes**:
+
+```bash
+docker run -e OPENAI_API_KEY --env-file .env -v "$PWD/data:/app/data" my-image
+```
+
+And let `.dockerignore` exclude files like `.env`, so a secret can't slip into the build context in the first place.
+
+[CLICK]
+
 A few more habits worth adopting:
 
 * Prefer `COPY` over `ADD` unless we need URL fetching or tar extraction.
