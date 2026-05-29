@@ -9,6 +9,7 @@ from rag.api.dependencies import (
     get_config,
     get_job_registry,
     get_store,
+    get_upload_settings,
 )
 from rag.api.jobs import (
     IngestJobResponse,
@@ -18,6 +19,7 @@ from rag.api.jobs import (
 )
 from rag.api.middleware import (
     APIKeyAuthMiddleware,
+    MaxUploadSizeMiddleware,
     RequestIDMiddleware,
     register_exception_handlers,
 )
@@ -32,7 +34,17 @@ from rag.api.models import (
     SanitizedErrorResponse,
     SourceResponse,
 )
-from rag.observability.logging import setup_logging
+from rag.api.rate_limit import (
+    install_rate_limiter,
+    limiter,
+    get_rate_limit_ingest,
+    get_rate_limit_query,
+)
+from rag.api.security import (
+    PathNotAllowedError,
+    resolve_under,
+)
+from rag.observability.logging import get_logger, setup_logging
 from rag.observability.tracing import configure_tracing
 from rag.retrieval.chain import query_rag
 
@@ -60,6 +72,29 @@ async def lifespan(app: FastAPI):
     # parse errors fail at startup, not on the first ingest call.
     get_job_registry()
 
+    # Eagerly resolve upload settings so a bad env var fails at startup.
+    upload = get_upload_settings()
+    logger = get_logger()
+    if not Path(upload.allowed_upload_dir).exists():
+        logger.warning(
+            "startup.allowed_upload_dir_missing",
+            extra={
+                "stage": "startup.allowed_upload_dir_missing",
+                "extra_data": {"path": upload.allowed_upload_dir},
+            },
+        )
+    logger.info(
+        "startup.api_limits",
+        extra={
+            "stage": "startup.api_limits",
+            "extra_data": {
+                "max_upload_mb": upload.max_upload_mb,
+                "allowed_upload_dir": upload.allowed_upload_dir,
+                "rate_limit_ingest": get_rate_limit_ingest(),
+                "rate_limit_query": get_rate_limit_query(),
+            },
+        },
+    )
     yield
 
 
@@ -70,15 +105,28 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Middleware stack — registration order is INVERSE of runtime.
-# Last-added is OUTERMOST. RequestID must be outermost so all
-# responses (including 401 from auth) get a request_id header.
+# ─── Middleware stack ──────────────────────────────────────────────────────
+# Registration order is INVERSE of runtime. LAST-added = OUTERMOST.
+# Required runtime order (outer → inner):
+#   RequestID  → SlowAPI  → MaxUploadSize  → APIKeyAuth → router
+#
+# So we register in REVERSE of that. RequestID must always be last so its
+# request_id is on request.state by the time any inner middleware (or the
+# rate-limit / 413 handlers) tries to read it.
+
 if _require_auth():
     app.add_middleware(APIKeyAuthMiddleware, api_keys=get_api_keys())
+app.add_middleware(
+    MaxUploadSizeMiddleware,
+    max_bytes=get_upload_settings().max_upload_bytes,
+)
+install_rate_limiter(app)
 app.add_middleware(RequestIDMiddleware)
 
 register_exception_handlers(app)
 
+
+# ─── Routes ────────────────────────────────────────────────────────────────
 
 @app.get("/health", response_model=HealthResponse)
 def health_check():
@@ -103,16 +151,29 @@ def health_check():
     response_model=IngestJobResponse,
     status_code=status.HTTP_202_ACCEPTED,
     responses={
+        403: {
+            "model": SanitizedErrorResponse,
+            "description": "source_dir outside RAG_API_ALLOWED_UPLOAD_DIR",
+        },
         404: {
             "model": SanitizedErrorResponse,
             "description": "source_dir not found or contains no PDFs",
         },
-        403: {
+        411: {
             "model": SanitizedErrorResponse,
-            "description": "source_dir outside allowed root",
+            "description": "Content-Length header required",
+        },
+        413: {
+            "model": SanitizedErrorResponse,
+            "description": "Payload exceeds RAG_API_MAX_UPLOAD_MB",
+        },
+        429: {
+            "model": SanitizedErrorResponse,
+            "description": "Rate limit exceeded",
         },
     },
 )
+@limiter.limit(get_rate_limit_ingest())
 def ingest_documents(
     request: Request,
     body: IngestRequest,
@@ -123,22 +184,26 @@ def ingest_documents(
     parse/chunk/embed work runs in a BackgroundTasks worker. Poll
     GET /ingest/jobs/{job_id} for status."""
     request_id: str = request.state.request_id
+    upload = get_upload_settings()
 
-    source_dir = Path(body.source_dir).resolve()
-
-    allowed_base = Path.cwd().resolve()
     try:
-        source_dir.relative_to(allowed_base)
-    except ValueError:
+        source_dir = resolve_under(
+            body.source_dir,
+            upload.allowed_upload_dir,
+            must_exist=True,
+        )
+    except PathNotAllowedError as exc:
+        if exc.reason == "candidate_missing":
+            raise HTTPException(
+                status_code=404,
+                detail=f"Source directory not found: {body.source_dir}",
+            )
         raise HTTPException(
             status_code=403,
-            detail="Source directory must be within the project",
-        )
-
-    if not source_dir.exists():
-        raise HTTPException(
-            status_code=404,
-            detail=f"Source directory not found: {source_dir}",
+            detail=(
+                f"Source directory not allowed: {body.source_dir} "
+                f"(must resolve under {upload.allowed_upload_dir})"
+            ),
         )
 
     pdf_files = list(source_dir.glob("*.pdf"))
@@ -219,25 +284,38 @@ def list_ingest_jobs(limit: int = 50) -> list[JobRecord]:
     return registry.list(limit=limit)
 
 
-@app.post("/query", response_model=QueryResponse)
-def query_documents(request: QueryRequest):
+@app.post(
+    "/query",
+    response_model=QueryResponse,
+    responses={
+        429: {
+            "model": SanitizedErrorResponse,
+            "description": "Rate limit exceeded",
+        },
+    },
+)
+@limiter.limit(get_rate_limit_query())
+def query_documents(request: Request, body: QueryRequest):
+    """Synchronous query. Rate-limited per-IP via slowapi.
+
+    `request: Request` MUST be the first non-self arg — slowapi's
+    decorator introspects the function signature for it.
+    """
     config = get_config()
 
     try:
-        response = query_rag(
-            question=request.question,
+        response_obj = query_rag(
+            question=body.question,
             config=config,
-            top_k=request.top_k,
-            rerank_method=request.rerank_method,
-            chat_provider=request.chat_provider,
+            top_k=body.top_k,
+            rerank_method=body.rerank_method,
+            chat_provider=body.chat_provider,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Query failed: {str(e)}",
-        )
+    except Exception:
+        # Sanitized via Phase 1 catch-all; preserves request_id.
+        raise
 
     sources = [
         SourceResponse(
@@ -246,20 +324,20 @@ def query_documents(request: QueryRequest):
             section=s.section,
             excerpt=s.excerpt,
         )
-        for s in response.sources
+        for s in response_obj.sources
     ]
 
     metadata = None
-    if response.metadata:
+    if response_obj.metadata:
         metadata = QueryMetadataResponse(
-            provider=response.metadata.provider,
-            model=response.metadata.model,
-            retrieval_count=response.metadata.retrieval_count,
-            latency_ms=response.metadata.latency_ms,
+            provider=response_obj.metadata.provider,
+            model=response_obj.metadata.model,
+            retrieval_count=response_obj.metadata.retrieval_count,
+            latency_ms=response_obj.metadata.latency_ms,
         )
 
     return QueryResponse(
-        answer=response.answer,
+        answer=response_obj.answer,
         sources=sources,
         metadata=metadata,
     )
