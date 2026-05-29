@@ -1,250 +1,127 @@
-# Chapter 2 — Lesson 4: `docker run`
+# Chapter 2 — Lesson 4: Working with Registries
 
-> **Learning goal:** Run, manage, and inspect containers from an image using
-> the everyday `docker run` flags and lifecycle commands.
+> **Learning goal:** pull and push images to a registry, tag them for a
+> namespace, and share an image via Docker Hub.
 
-This lesson focuses on the runtime side of Docker: taking an image
-and turning it into one or more running **containers**.
-
-The goal is to leave you with a working mental model of the flags
-you will type the most and the lifecycle commands you need to manage
-containers day-to-day.
+In Lesson 3 we built an image and it landed in our **local** image store —
+invisible to teammates, servers, and CI. This lesson is about sharing images
+through a **registry**: pulling them down, tagging them for your namespace, and
+pushing them up to Docker Hub.
 
 ---
 
-## 1. Image vs. container, one more time
+## 1. What a registry is
 
-```mermaid
-flowchart LR
-    subgraph Build["Build time"]
-      D[Dockerfile] -- "docker build" --> I["Image (read-only)"]
-    end
+A **registry** is a service that stores and distributes container images. You
+have been using one all along: every `FROM python:3.11-slim` **pulls** that base
+image from a registry. Unless told otherwise, that registry is **Docker Hub**
+(`docker.io`) — Docker's default public registry.
 
-    subgraph Run["Runtime"]
-      I -- "docker run" --> C1[Container 1]
-      I -- "docker run" --> C2[Container 2]
-      I -- "docker run" --> C3[Container 3]
-    end
+You can pull explicitly, too:
 
-    classDef artifact fill:#f0f4ff,stroke:#5b6ee1;
-    classDef image    fill:#fff4e6,stroke:#d28b4f;
-    classDef runtime  fill:#e8f7ee,stroke:#3aa667;
-
-    class D artifact
-    class I image
-    class C1,C2,C3 runtime
+```bash
+docker pull python:3.11-slim
 ```
 
-* The image is a read-only template.
-* Each container gets its own writable layer, its own PID space,
-  its own filesystem view, and its own (virtual) network interface.
-* You can start, stop, and delete containers freely — the image is
-  unaffected.
+This downloads the image and its layers into your local store.
 
 ---
 
-## 2. The command, broken down
+## 2. How images are named
 
-```bash
-docker run [OPTIONS] IMAGE[:TAG] [COMMAND] [ARG...]
+Pushing requires understanding the full image reference:
+
+```text
+docker.io/library/python:3.11-slim
+└─ registry ┘└ namespace ┘└ repo ┘└ tag ┘
 ```
 
-* `OPTIONS` — runtime flags (ports, volumes, env vars, …).
-* `IMAGE[:TAG]` — which image to base the container on.
-* `COMMAND [ARG...]` — *optional*. Overrides the image's `CMD`.
+When you type `python:3.11-slim`, Docker fills in the defaults — the `docker.io`
+registry and the `library` namespace that holds **official** images. To push
+your own image, the namespace must be **your Docker Hub username**.
 
-Example:
-
-```bash
-docker run --rm python:3.11-slim python -c "print('hi')"
-```
-
-This pulls `python:3.11-slim` (if not already local), starts a
-container, runs `python -c "print('hi')"`, and removes the container
-when it exits — all in one line.
+| Part | Default | Example |
+| ---- | ------- | ------- |
+| registry | `docker.io` | `ghcr.io`, a private registry |
+| namespace | `library` (official) | your username, e.g. `myuser` |
+| repository | — | `demo` |
+| tag | `latest` | `0.1` |
 
 ---
 
-## 3. The flags you'll use 90% of the time
+## 3. Sharing an image: login → tag → push
 
-| Flag                | What it does                                                        |
-| ------------------- | ------------------------------------------------------------------- |
-| `-d`                | Detached mode — run in the background, return the container ID.     |
-| `--rm`              | Auto-remove the container when it exits.                            |
-| `-it`               | Interactive (`-i`) + TTY (`-t`) — needed for shells.                |
-| `--name NAME`       | Give the container a stable, human-readable name.                   |
-| `-p HOST:CTR`       | Publish a container port to the host.                               |
-| `-v SRC:DST`        | Mount a volume or bind a host path into the container.              |
-| `-e KEY=VALUE`      | Set an environment variable inside the container.                   |
-| `--env-file FILE`   | Load env vars from a `.env`-style file.                             |
-| `--network NAME`    | Attach the container to a specific Docker network.                  |
-| `--restart policy`  | Restart policy: `no` (default), `on-failure`, `always`, `unless-stopped`. |
-| `-w /path`          | Set the working directory (overrides `WORKDIR`).                    |
-| `-u UID[:GID]`      | Run the process as a specific user (overrides `USER`).              |
-
-### Ports — `-p`
+### Log in
 
 ```bash
-docker run -p 8080:8080 rag-api:0.1     # host 8080 -> container 8080
-docker run -p 9000:8080 rag-api:0.1     # host 9000 -> container 8080
-docker run -p 127.0.0.1:8080:8080 ...   # bind to loopback only
+docker login
 ```
 
-`EXPOSE` in the Dockerfile is documentation. `-p` is what actually
-opens the port. The container port must match what the app
-*actually* listens on, not what `EXPOSE` claims.
+Prompts for your Docker Hub username and a password or **access token**
+(tokens are preferred — you can revoke them). Credentials are stored locally.
 
-### Volumes — `-v`
+### Tag
 
-Three forms you'll see often:
+Tagging doesn't copy the image; it adds a second name pointing at the same image:
 
 ```bash
-# 1. Bind mount: host directory -> container path
-docker run -v "$(pwd)/data:/data" rag-api:0.1
-
-# 2. Named volume (Docker manages where the data lives)
-docker run -v rag-data:/data rag-api:0.1
-
-# 3. Anonymous volume (use sparingly)
-docker run -v /data rag-api:0.1
+docker tag demo:0.1 myuser/demo:0.1
 ```
 
-Bind mounts are perfect during development for live-editing source.
-Named volumes are better for persistent app state.
+`demo:0.1` and `myuser/demo:0.1` now refer to the same image — the second is a
+name a registry will accept.
 
-```mermaid
-flowchart LR
-    subgraph Host["Host machine"]
-      HP["./data"]
-    end
-    subgraph Container["Container"]
-      CP["/data"]
-    end
-    HP -- "-v ./data:/data" --> CP
-```
-
-### Environment variables — `-e` and `--env-file`
+### Push
 
 ```bash
-# Pass a specific variable
-docker run -e LOG_LEVEL=debug rag-api:0.1
-
-# Pass through a host env var
-docker run -e OPENAI_API_KEY rag-api:0.1
-
-# Load a whole .env file
-docker run --env-file .env rag-api:0.1
+docker push myuser/demo:0.1
 ```
 
-Never bake secrets into the image. Always inject them at run time.
-
-### Interactive — `-it`
-
-```bash
-docker run -it --rm python:3.11-slim bash
-```
-
-`-i` keeps stdin open; `-t` allocates a TTY. You almost always want
-both for an interactive shell.
+Docker uploads only the layers the registry doesn't already have; the rest are
+skipped — the same caching idea as builds, now over the network.
 
 ---
 
-## 4. The full "real-world" command
+## 4. Pulling it back
 
-This is what a production-ish run command looks like:
-
-```bash
-docker run -d \
-  --name rag-api \
-  --restart unless-stopped \
-  -p 8080:8080 \
-  -v "$(pwd)/data:/data" \
-  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
-  -e LOG_LEVEL=info \
-  rag-api:0.1
-```
-
-Detached, named, auto-restarts on failure, publishes one port,
-mounts persistent storage, and injects two env vars.
-
-A development equivalent might add `-it` and a bind mount of the
-source code:
+Once pushed, the image can be pulled by name from any machine — a colleague's
+laptop, a server, a CI runner:
 
 ```bash
-docker run -it --rm \
-  --name rag-dev \
-  -p 8080:8080 \
-  -v "$(pwd):/workspace" \
-  -w /workspace \
-  rag-dev:0.1 \
-  bash
+docker pull myuser/demo:0.1
+docker run --rm myuser/demo:0.1
 ```
+
+That round trip — push here, pull there — is how an image travels from your
+machine to where it actually runs.
 
 ---
 
-## 5. Lifecycle commands
+## 5. Public, private, and tags
 
-Once a container is running, these are the commands you'll use to
-manage it:
-
-| Command                        | What it does                                            |
-| ------------------------------ | ------------------------------------------------------- |
-| `docker ps`                    | List running containers.                                |
-| `docker ps -a`                 | List all containers (including stopped).                |
-| `docker logs <name>`           | Print the container's stdout/stderr.                    |
-| `docker logs -f <name>`        | Follow logs in real time.                               |
-| `docker exec -it <name> bash`  | Open a shell inside a running container.                |
-| `docker exec <name> <cmd>`     | Run a one-off command inside a running container.       |
-| `docker stop <name>`           | Send SIGTERM, then SIGKILL after a grace period.        |
-| `docker start <name>`          | Start a previously-stopped container.                   |
-| `docker restart <name>`        | Stop + start.                                           |
-| `docker rm <name>`             | Remove a stopped container.                             |
-| `docker rm -f <name>`          | Force-remove (stops first).                             |
-| `docker stats`                 | Live CPU/memory/io usage per container.                 |
-| `docker inspect <name>`        | Full JSON metadata about the container.                 |
-
-```mermaid
-stateDiagram-v2
-    [*] --> created : docker create
-    created --> running : docker start / docker run
-    running --> paused : docker pause
-    paused --> running : docker unpause
-    running --> stopped : docker stop / exit
-    stopped --> running : docker start
-    stopped --> [*] : docker rm
-    running --> [*] : docker rm -f
-```
+- **Public vs private** — a repository can be public (anyone can pull) or
+  private (authentication required). You set this per repository on Docker Hub.
+- **Tags matter** — push without a version (`myuser/demo`) and Docker assumes
+  `latest`, a *moving* tag that silently changes. Convenient for experiments,
+  unreliable for anything real. We return to tagging strategy when preparing
+  images for production (Chapter 5).
 
 ---
 
 ## 6. Try it yourself
 
-After building the image from Lesson 3:
+The demo script in this folder tags and pushes the `demo:0.1` image from
+Lesson 3. Set your Docker Hub username first:
 
 ```bash
-# Start it detached and publish the port
-docker run -d --name demo -p 8080:8080 demo:0.1
-
-# Check it's listed
-docker ps
-
-# Hit the app
-curl http://localhost:8080/
-
-# Look at the logs
-docker logs demo
-
-# Drop into a shell inside the running container
-docker exec -it demo bash
-
-# Stop and remove when done
-docker stop demo && docker rm demo
+docker login
+DOCKER_USER=myuser bash chapter_2/l4/registry.sh
 ```
 
-The script `run.sh` in this folder bundles a typical detached
-launch (`docker run -d ...`) so you can see the pattern in one
-place.
+It will `docker tag`, `docker push`, and print the `docker pull` command someone
+else would run to fetch your image.
 
-In the next lesson, we will look at Dockerfile **best practices** —
-how to make our images smaller, faster to build, and safer to run in
-production.
+---
+
+In the next lesson we go back to running images — the `docker run` command and
+the everyday flags you'll use most.

@@ -5,7 +5,7 @@
 
 ---
 
-## Chapter 4 — Testing Multi-Container AI Applications
+## Chapter 4 — Testing Containerized AI Applications
 
 The lesson content (5 × README + script + slides), the teaching artifacts
 (`l2/Dockerfile_*`, `l2/requirements-*.txt`, `l3/docker-compose.test.yaml`,
@@ -60,9 +60,9 @@ touched. Exact files/lines are listed in `naming_convention.md`.
 
 - [ ] `chapter_1/l3/slides_c1_l3.html`, `chapter_1/l4/slides_c1_l4.html` —
   "Docker 101" → "Docker Workflow & Best Practices".
-- [ ] `chapter_2/l1/slides_c2_l1.html`, `chapter_2/l6/slides_c2_l6.html` —
+- [ ] `chapter_2/l1/slides_c2_l1.html`, `chapter_2/l7/slides_c2_l7.html` —
   "Docker 101" / "Apply to RAG" → official short forms.
-- [ ] `chapter_3/l5/slides_c3_l5.html` — "Testing" → "Testing Multi-Container Apps".
+- [ ] `chapter_3/l5/slides_c3_l5.html` — "Testing" → "Testing Containerized Apps".
 - [ ] Optional prose alignment in `chapter_1/l4/README.md` and
   `chapter_1/l4/script_c1_l4.md`.
 

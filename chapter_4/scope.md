@@ -1,6 +1,6 @@
-# Chapter 4 — Scope: Testing Multi-Container AI Applications with Docker
+# Chapter 4 — Scope: Testing Containerized AI Applications
 
-> **Status:** scope / plan. Short form: *Testing Multi-Container Apps*.
+> **Status:** scope / plan. Short form: *Testing Containerized Apps*.
 > This document scopes the five lessons (≤500 words each, with code examples
 > where applicable). Each lesson will later be expanded into the standard
 > `README.md` + `script_c4_l{M}.md` + `slides_c4_l{M}.html` set (see

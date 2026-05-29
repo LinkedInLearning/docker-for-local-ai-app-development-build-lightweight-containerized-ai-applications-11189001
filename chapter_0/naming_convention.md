@@ -21,7 +21,7 @@ next" lines) where the full title is too long.
 | 1       | `chapter_1` | Introduction to Docker for AI Applications | Intro to Docker for AI | Why containers matter, especially for AI apps. |
 | 2       | `chapter_2` | Docker Workflow and Best Practices | Docker Workflow & Best Practices | End-to-end Docker workflow and best practices. |
 | 3       | `chapter_3` | Building a Containerized AI Development Environment | Containerized Dev Environment | Build a dev environment to prototype the AI application. |
-| 4       | `chapter_4` | Testing Multi-Container AI Applications with Docker | Testing Multi-Container Apps | Split the prototype into dedicated containers and test near-production. |
+| 4       | `chapter_4` | Testing Containerized AI Applications | Testing Containerized Apps | Split the prototype into dedicated containers and test near-production. |
 | 5       | `chapter_5` | Preparing AI Applications for Production with Docker | Preparing for Production | Optimize images, production readiness, and validation. |
 
 `chapter_1`, `chapter_2`, and `chapter_3` are complete. `chapter_0` holds
@@ -174,14 +174,14 @@ Line numbers below are exact as of 2026-05-29.
 | ---- | ------- | ------------ | ------------ |
 | `chapter_1/l3/slides_c1_l3.html` | 295 | "Docker 101" ttl (Chapter 2 · next stop) | "Docker Workflow & Best Practices" |
 | `chapter_1/l4/slides_c1_l4.html` | 258, 344, 517 | "Docker 101" for Chapter 2 (stop ttl, inline `<b>`, takeaway foot) | "Docker Workflow & Best Practices" |
-| `chapter_1/l4/slides_c1_l4.html` | 380, 419, 454 | "prototype stage" / "testing stage" / "Deployment to production" — focus of Ch 3/4/5 | optional: Containerized Dev Environment / Testing Multi-Container Apps / Preparing for Production |
+| `chapter_1/l4/slides_c1_l4.html` | 380, 419, 454 | "prototype stage" / "testing stage" / "Deployment to production" — focus of Ch 3/4/5 | optional: Containerized Dev Environment / Testing Containerized Apps / Preparing for Production |
 | `chapter_1/l4/slides_c1_l4.html` | 473, 480, 487, 494 | `chbadge` "Chapter 2/3/4/5" (bare numbers) | no change — numbers only, no title |
 | `chapter_1/l4/README.md` | 100, 127, 133 | "focus of Chapter 3/4/5" prose | optional: append short-form titles |
 | `chapter_1/l4/script_c1_l4.md` | 54, 72, 90 | "chapter 3/4/5" stage prose | optional: append short-form titles |
 | `chapter_2/l1/slides_c2_l1.html` | 280, 288, 296 | ttls "Why containers" / "Docker 101" / "Apply to RAG" (Ch 1 done · Ch 2 here · Ch 3 next) | "Intro to Docker for AI" / "Docker Workflow & Best Practices" / "Containerized Dev Environment" |
-| `chapter_2/l6/slides_c2_l6.html` | 296 | "Apply to RAG" ttl (Chapter 3 · next stop) | "Containerized Dev Environment" |
+| `chapter_2/l7/slides_c2_l7.html` | 296 | "Apply to RAG" ttl (Chapter 3 · next stop) | "Containerized Dev Environment" |
 | `chapter_3/l1/slides_c3_l1.html` | 223 | "Docker workflow & best practices" ttl (Chapter 2 · done) | already aligned — at most Title-case to "Docker Workflow & Best Practices" |
-| `chapter_3/l5/slides_c3_l5.html` | 251, 450 | "Testing" ttl + "Chapter 4 · Testing" foot | "Testing Multi-Container Apps" |
+| `chapter_3/l5/slides_c3_l5.html` | 251, 450 | "Testing" ttl + "Chapter 4 · Testing" foot | "Testing Containerized Apps" |
 
 > Everything else the impact search surfaced (e.g. "run in production",
 > "testing stage", "prototype") is ordinary prose, not a chapter reference, and

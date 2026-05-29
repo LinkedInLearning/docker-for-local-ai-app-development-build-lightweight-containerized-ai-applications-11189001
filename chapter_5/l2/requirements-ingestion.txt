@@ -1,0 +1,22 @@
+# Chapter 5 · Lesson 2 — dependencies for the ingestion pipeline image.
+#
+# This is the HEAVY half of the RAG app: parsing PDFs (Docling) and embedding
+# (sentence-transformers → torch) pull in a large native stack. That weight is
+# exactly why multi-stage builds and a slim runtime pay off here — see the two
+# Dockerfiles in this folder.
+#
+# Versions are pinned to match the project's docker/requirements.txt so the
+# demo image mirrors the real ingestion dependency set.
+
+# --- Parsing & chunking (the offline demo path: parse_pdf -> chunk_elements) ---
+docling==2.93.0
+langchain-text-splitters==1.1.2
+
+# --- Embedding & storage (imported by the rag.ingestion package) ---
+sentence-transformers==3.0.0
+langchain-openai==1.2.1
+chromadb>=1.3.5
+
+# --- Config (rag.config / rag.store import these at package import time) ---
+pydantic-settings>=2.10.1
+pyyaml==6.0.2

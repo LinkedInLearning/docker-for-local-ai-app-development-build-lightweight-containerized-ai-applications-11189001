@@ -1,120 +1,90 @@
-# Chapter 2 — Lesson 4: `docker run`
+# Chapter 2 — Lesson 4: Working with Registries
 
-In the previous lesson, we built an image using `docker build`. Now we will use that image to launch an actual container.
+In the previous lesson, we built an image and it landed in our **local** image store. That is fine for our own machine — but a teammate, a server, or a CI pipeline cannot see it there.
 
-A container is a running instance of an image. We can launch many containers from the same image, just like we can launch many processes from a single executable.
+This lesson is about sharing images through a **registry**.
 
 [CLICK]
 
-The basic command is:
+A registry is a service that stores and distributes container images. You have already been using one without thinking about it.
+
+Every time a build starts with `FROM python:3.11-slim`, Docker **pulls** that base image from a registry. By default, that registry is **Docker Hub** — the public registry Docker uses unless you tell it otherwise.
+
+[CLICK]
+
+We can also pull explicitly:
 
 ```bash
-docker run my-image:0.1
+docker pull python:3.11-slim
 ```
 
-Docker takes the image, creates a writable layer on top of it, and starts the process defined by the `CMD` or `ENTRYPOINT` instruction.
-
-That is the minimum, but in practice we almost always pass a few flags. Let's go through the most useful ones.
+This downloads the image and its layers into our local store, ready to use.
 
 [CLICK]
 
-`-d` for **detached mode**.
+To understand pushing, we first need to understand how images are **named**.
 
-By default, `docker run` attaches our terminal to the container. The container stops when we close the terminal. Adding `-d` runs it in the background and returns control to the shell.
+A full image reference looks like this:
 
-We use this when running long-lived services such as APIs or databases.
+```text
+docker.io/library/python:3.11-slim
+└─ registry ┘└ namespace ┘└ repo ┘└ tag ┘
+```
+
+When you type `python:3.11-slim`, Docker fills in the defaults: the `docker.io` registry and the `library` namespace that holds official images. To push your *own* image, the namespace must be **your Docker Hub username**.
 
 [CLICK]
 
-`-p` for **port publishing**.
+So sharing an image is three steps: **log in**, **tag**, **push**.
 
-Inside the container, the application may listen on port 8080. That port is not reachable from the host until we publish it.
+First, log in to Docker Hub:
 
 ```bash
-docker run -p 8080:8080 my-image:0.1
+docker login
 ```
 
-The first number is the port on the host. The second is the port inside the container. They do not have to match.
-
-`EXPOSE` in the Dockerfile is documentation. `-p` is what actually opens the port.
+This prompts for your Docker Hub username and a password or access token, and stores the credentials locally.
 
 [CLICK]
 
-`-v` for **volumes**.
-
-Containers are ephemeral by default. When the container is removed, anything written inside it disappears.
-
-Volumes solve this. We can mount a host directory or a named volume into the container, and files persist across container restarts.
+Second, **tag** the local image with your namespace. Tagging does not copy the image — it adds a second name that points at the same image:
 
 ```bash
-docker run -v $(pwd)/data:/data my-image:0.1
+docker tag demo:0.1 myuser/demo:0.1
 ```
 
-This is also how we mount source code into a development container, so changes on our laptop appear instantly inside the container.
+Now `demo:0.1` and `myuser/demo:0.1` are the same image; the second name is one a registry will accept.
 
 [CLICK]
 
-`-e` for **environment variables**.
-
-Most applications need configuration such as API keys or database URLs. We pass them at run time with `-e`:
+Third, **push** it:
 
 ```bash
-docker run -e OPENAI_API_KEY=$OPENAI_API_KEY my-image:0.1
+docker push myuser/demo:0.1
 ```
 
-This keeps secrets out of the image.
+Docker uploads each layer that the registry does not already have. Layers it already has are skipped — the same caching idea we saw with builds, now over the network.
 
 [CLICK]
 
-`--name` for a **friendly container name**.
-
-By default, Docker assigns a random name like `amazing_einstein`. We can give the container a name we will recognize:
+The image now lives on Docker Hub. On any other machine — a colleague's laptop, a server, a CI runner — it can be pulled by name:
 
 ```bash
-docker run --name rag-api my-image:0.1
+docker pull myuser/demo:0.1
 ```
 
-This makes it easier to run `docker logs rag-api` or `docker stop rag-api` later.
+That round trip, push here and pull there, is how an image travels from your machine to where it actually runs.
 
 [CLICK]
 
-`--rm` to **clean up automatically**.
+Two things worth knowing before we move on.
 
-When the container exits, it is not deleted by default. It stays around in the stopped state. `--rm` tells Docker to remove the container as soon as it stops — very useful for one-off commands.
+A repository can be **public** or **private**. Public images anyone can pull; private images require authentication. You choose this per repository on Docker Hub.
 
-[CLICK]
-
-`-it` for an **interactive session**.
-
-These two flags combined give us an interactive terminal inside the container. We use this to drop into a shell and explore:
-
-```bash
-docker run -it --rm my-image:0.1 bash
-```
+And the **tag** matters. If you push without a version — just `myuser/demo` — Docker assumes `latest`. That moving tag is convenient but unreliable for anything real, because it silently changes out from under you. We will come back to tagging strategy when we prepare images for production.
 
 [CLICK]
 
-Putting it together, a realistic run command looks like this:
+That is the whole everyday workflow: pull base images, tag your own with your namespace, push to share, pull to deploy.
 
-```bash
-docker run -d --name rag-api \
-  -p 8080:8080 \
-  -v $(pwd)/data:/data \
-  -e OPENAI_API_KEY=$OPENAI_API_KEY \
-  rag-api:0.1
-```
-
-Detached, named, with a published port, a mounted volume, and a passed environment variable.
-
-[CLICK]
-
-Once the container is running, a few commands help us manage it:
-
-* `docker ps` shows running containers.
-* `docker logs` prints the container output.
-* `docker exec` lets us run another command inside a running container.
-* `docker stop` and `docker rm` stop and remove the container.
-
-These flags and commands cover the vast majority of day-to-day Docker usage.
-
-In the next lesson, we will look at best practices for writing Dockerfiles so that our images are smaller, faster to build, and easier to maintain.
+In the next lesson, we go back to running images — the `docker run` command and the flags you will use every day.
