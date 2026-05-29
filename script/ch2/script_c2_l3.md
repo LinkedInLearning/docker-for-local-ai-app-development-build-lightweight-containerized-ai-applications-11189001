@@ -73,14 +73,14 @@ Other flags worth knowing:
 ---
 
 > **🎬 LIVE DEMO — pivot to VS Code.**
-> Leave the slides on this "Live demo" cue. Switch to VS Code with the
-> Dockerfile from `chapter_2/l2` open on the **left** and an integrated
-> terminal open on the **right**, with the terminal's working directory set to
-> `chapter_2/l2` (the folder that holds the Dockerfile).
+> Leave the slides on this "Live demo" cue. Switch to VS Code with this
+> lesson's `chapter_2/l3/Dockerfile` open on the **left** (copied from Lesson 2,
+> together with `main.py` and `requirements.txt`) and an integrated terminal
+> open on the **right**, with its working directory set to `chapter_2/l3`.
 
 Let's see this for real — I'll switch over to VS Code.
 
-On the left is the Dockerfile we wrote in Lesson 2: the same seven instructions. On the right is a terminal, opened in that same folder.
+On the left is the Dockerfile we wrote in Lesson 2 — the same seven instructions, copied into this lesson's folder. On the right is a terminal, opened in that same folder.
 
 I'll run the build command we just walked through:
 
