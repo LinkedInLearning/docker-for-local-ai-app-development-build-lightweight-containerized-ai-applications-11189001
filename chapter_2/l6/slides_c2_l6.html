@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chapter 2 · Lesson 6 — Managing Containers and Images</title>
+  <style>
+    :root {
+      --bg:#fff; --bg-soft:#f7f9fc; --ink:#0f172a; --ink-soft:#475569;
+      --muted:#94a3b8; --line:#e2e8f0; --line-soft:#eef2f7;
+      --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-500:#3b82f6;
+      --blue-600:#2563eb; --blue-700:#1d4ed8;
+      --teal-500:#0ea5e9; --amber-500:#f59e0b; --amber-50:#fffbeb;
+      --green-500:#10b981; --green-50:#ecfdf5; --pink-500:#ec4899;
+      --violet-500:#8b5cf6; --violet-50:#f5f3ff;
+      --red-500:#ef4444; --red-50:#fef2f2;
+      --code-bg:#0f172a; --code-fg:#e2e8f0;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+      --shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.07);
+      --radius:16px; --maxw:1280px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
+      font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+    /* chrome — only the progress bar */
+    .progress{position:fixed;top:0;left:0;height:4px;width:0%;
+      background:linear-gradient(90deg,var(--blue-600),var(--teal-500));z-index:50;transition:width .25s ease}
+
+    /* slides — viewport-locked, top-anchored, cross-fade */
+    .deck{position:relative;width:100%;height:100vh}
+    .slide{
+      position:absolute;inset:0;
+      display:flex;align-items:flex-start;
+      height:100vh;max-height:100vh;overflow:hidden;
+      padding:40px 56px 56px;
+      opacity:0;pointer-events:none;
+      transition:opacity .55s cubic-bezier(.4,0,.2,1);
+    }
+    .slide.active{opacity:1;pointer-events:auto;z-index:1}
+    .slide .wrap{margin:0 auto;width:100%;max-width:var(--maxw)}
+
+    /* typography */
+    .eyebrow{font-size:17px;letter-spacing:.18em;text-transform:uppercase;
+      color:var(--blue-700);font-weight:700;margin:0 0 16px}
+    h1.title{font-size:88px;line-height:1.04;letter-spacing:-.028em;margin:0 0 18px;font-weight:700}
+    h1.title .accent{background:linear-gradient(90deg,var(--blue-600),var(--teal-500));
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+    h2.h{font-size:56px;line-height:1.1;letter-spacing:-.02em;margin:0 0 14px;font-weight:700}
+    h3.sub{font-size:25px;font-weight:500;color:var(--ink-soft);margin:0 0 22px;line-height:1.5;max-width:1100px}
+    p.lead{font-size:28px;line-height:1.5;color:var(--ink-soft);margin:0 0 18px;max-width:1000px}
+    .inline{background:var(--bg-soft);padding:2px 10px;border:1px solid var(--line);border-radius:6px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;color:var(--ink)}
+
+    /* title art */
+    .title-art{position:absolute;right:-40px;top:50%;transform:translateY(-50%);
+      width:780px;height:780px;opacity:.5;pointer-events:none;z-index:0}
+    .title-wrap{position:relative;z-index:1}
+
+    /* path */
+    .path{margin-top:28px;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch}
+    .path .stop{padding:20px 22px;border:1px solid var(--line);border-radius:var(--radius);
+      background:var(--bg);box-shadow:var(--shadow-sm)}
+    .path .stop.now{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50));box-shadow:var(--shadow)}
+    .path .stop .lbl{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;font-weight:600}
+    .path .stop.now .lbl{color:var(--blue-700)}
+    .path .stop .ttl{font-size:23px;font-weight:600;color:var(--ink);margin-bottom:6px}
+    .path .stop .desc{font-size:18px;color:var(--ink-soft);line-height:1.45}
+    .path .connector{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 10px}
+    .path .connector svg{width:34px;height:34px}
+
+    /* four object types grid */
+    .objgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px}
+    .objcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px 20px;
+      box-shadow:var(--shadow-sm);position:relative;transition:transform .15s}
+    .objcard.focus{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50));box-shadow:var(--shadow)}
+    .objcard .ic{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+      margin-bottom:14px;color:#fff}
+    .objcard .ic svg{width:24px;height:24px}
+    .objcard.images .ic{background:linear-gradient(135deg,#3b82f6,#60a5fa)}
+    .objcard.containers .ic{background:linear-gradient(135deg,#10b981,#34d399)}
+    .objcard.volumes .ic{background:linear-gradient(135deg,#f59e0b,#fbbf24)}
+    .objcard.networks .ic{background:linear-gradient(135deg,#8b5cf6,#a78bfa)}
+    .objcard h4{margin:0 0 8px;font-size:22px;font-weight:700}
+    .objcard .what{margin:0 0 14px;font-size:17px;color:var(--ink-soft);line-height:1.5}
+    .objcard .verbs{font-family:ui-monospace,monospace;font-size:14px;color:var(--ink-soft);
+      letter-spacing:.02em;line-height:1.7;border-top:1px solid var(--line-soft);padding-top:12px}
+    .objcard .focuspill{position:absolute;top:14px;right:14px;font-size:13px;letter-spacing:.16em;
+      text-transform:uppercase;background:var(--blue-700);color:#fff;
+      padding:4px 10px;border-radius:999px;font-weight:700}
+
+    /* terminal mock */
+    .term{background:var(--code-bg);color:#e2e8f0;border-radius:14px;padding:24px 28px;
+      font:17px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;
+      box-shadow:0 8px 24px rgba(15,23,42,.18);max-width:1100px;margin:0 auto}
+    .term .prompt{color:#94a3b8}
+    .term .cmd{color:#93c5fd;font-weight:600}
+    .term .flag{color:#fcd34d}
+    .term .out{color:#cbd5e1}
+    .term .hd{color:#94a3b8;font-size:14px;letter-spacing:.04em}
+    .term .hl{color:#fcd34d}
+    .term .dim{color:#94a3b8}
+    .term .ok{color:#86efac}
+    .term .warn{color:#fca5a5}
+    .term hr{border:0;border-top:1px solid #334155;margin:14px 0}
+
+    /* generic detail layout (side + vis) */
+    .detail{display:grid;grid-template-columns:380px 1fr;gap:32px;align-items:start}
+    .side h2{font-size:42px;line-height:1.15;letter-spacing:-.018em;margin:0 0 14px}
+    .side .lead-small{font-size:20px;color:var(--ink-soft);line-height:1.5;margin:0 0 16px}
+    .side .quote{font-size:18px;color:var(--ink-soft);line-height:1.5;
+      padding:14px 18px;border-left:4px solid var(--blue-100);background:var(--bg-soft);border-radius:8px;margin-top:14px}
+    .vis{background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--radius);
+      padding:24px;box-shadow:var(--shadow-sm)}
+    .cap{font-size:15px;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--ink-soft);font-weight:700;margin-bottom:14px}
+
+    /* command cards (logs / exec / inspect) */
+    .cmdcards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:6px}
+    .cmdc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow-sm)}
+    .cmdc .head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    .cmdc .head .ic{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+      background:var(--blue-50);color:var(--blue-700);flex-shrink:0}
+    .cmdc .head .ic svg{width:22px;height:22px}
+    .cmdc .head b{font-family:ui-monospace,monospace;font-size:18px;color:var(--ink)}
+    .cmdc .why{font-size:17px;color:var(--ink-soft);line-height:1.5;margin:0 0 14px}
+    .cmdc pre{margin:0;background:var(--code-bg);color:var(--code-fg);
+      padding:14px 16px;border-radius:8px;font:15px/1.6 ui-monospace,monospace;overflow-x:auto}
+    .cmdc pre .k{color:#93c5fd;font-weight:600}
+    .cmdc pre .f{color:#fcd34d}
+    .cmdc pre .c{color:#94a3b8}
+
+    /* lifecycle state machine */
+    .lc{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+    .lcsvg{background:#fff;border:1px solid var(--line);border-radius:14px;
+      padding:22px;box-shadow:var(--shadow-sm)}
+    .lcsvg svg{width:100%;height:auto;display:block}
+    .lctable{background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px 0;
+      box-shadow:var(--shadow-sm);overflow:hidden}
+    .lctable .row{display:grid;grid-template-columns:200px 1fr;gap:0;
+      padding:14px 22px;border-bottom:1px solid var(--line-soft);font-size:17px}
+    .lctable .row:last-child{border-bottom:0}
+    .lctable .row code{font-family:ui-monospace,monospace;color:var(--blue-700);font-weight:700;font-size:16px}
+    .lctable .row span{color:var(--ink-soft);line-height:1.5}
+    .lctable .head{background:var(--bg-soft);font-size:14px;letter-spacing:.14em;
+      text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+    .lctable .head code{color:var(--ink-soft);font-weight:700}
+
+    /* prune cascade */
+    .prune{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:12px}
+    .prunecard{background:#fff;border:1px solid var(--line);border-radius:14px;
+      padding:22px;box-shadow:var(--shadow-sm);position:relative}
+    .prunecard.safe{border-top:4px solid var(--green-500)}
+    .prunecard.med{border-top:4px solid var(--amber-500)}
+    .prunecard.danger{border-top:4px solid var(--red-500)}
+    .prunecard .pl{font-size:15px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-bottom:10px}
+    .prunecard.safe .pl{color:var(--green-500)}
+    .prunecard.med .pl{color:var(--amber-500)}
+    .prunecard.danger .pl{color:var(--red-500)}
+    .prunecard pre{margin:0 0 10px;background:var(--code-bg);color:var(--code-fg);
+      padding:14px 16px;border-radius:8px;font:15px/1.55 ui-monospace,monospace;overflow-x:auto}
+    .prunecard pre .k{color:#93c5fd;font-weight:600}
+    .prunecard pre .f{color:#fcd34d}
+    .prunecard .note{font-size:16px;color:var(--ink-soft);line-height:1.5}
+
+    /* disk usage bar */
+    .diskbox{background:#fff;border:1px solid var(--line);border-radius:14px;
+      padding:22px;box-shadow:var(--shadow-sm);max-width:960px;margin:0 auto 18px}
+    .diskbox .row{display:grid;grid-template-columns:180px 1fr 130px;gap:18px;align-items:center;
+      padding:12px 0;border-bottom:1px solid var(--line-soft);font-size:17px}
+    .diskbox .row:last-child{border-bottom:0}
+    .diskbox .row b{font-size:17px}
+    .diskbox .bar{height:14px;background:var(--bg-soft);border-radius:7px;overflow:hidden;position:relative}
+    .diskbox .bar .fill{position:absolute;top:0;left:0;height:100%;border-radius:7px}
+    .diskbox .bar .fill.images{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+    .diskbox .bar .fill.containers{background:linear-gradient(90deg,#10b981,#34d399)}
+    .diskbox .bar .fill.volumes{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+    .diskbox .bar .fill.cache{background:linear-gradient(90deg,#ef4444,#fb7185)}
+    .diskbox .row .val{text-align:right;font-family:ui-monospace,monospace;
+      font-size:16px;color:var(--ink-soft)}
+    .diskbox .row .val b{color:var(--ink)}
+
+    /* cheat sheet */
+    .cheat{background:#fff;border:1px solid var(--line);border-radius:14px;
+      box-shadow:var(--shadow-sm);overflow:hidden;max-width:1120px;margin:0 auto}
+    .cheat .ch{display:grid;grid-template-columns:1.2fr 1fr;gap:0;
+      padding:14px 22px;border-bottom:1px solid var(--line-soft);font-size:17px;align-items:center}
+    .cheat .ch:last-child{border-bottom:0}
+    .cheat .ch.head{background:var(--bg-soft);font-size:14px;letter-spacing:.14em;
+      text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+    .cheat .ch span{color:var(--ink-soft)}
+    .cheat .ch code{font-family:ui-monospace,monospace;background:var(--bg-soft);
+      padding:5px 12px;border-radius:6px;border:1px solid var(--line-soft);
+      font-size:15px;color:var(--blue-700);font-weight:700;display:inline-block}
+
+    /* takeaway */
+    .takeaway-card{margin:18px auto 0;max-width:1100px;
+      background:linear-gradient(135deg,#fff,var(--bg-soft));border:1px solid var(--line);
+      border-radius:24px;padding:32px 40px;box-shadow:var(--shadow);text-align:center}
+    .takeaway-card .quote{font-size:30px;color:var(--ink);font-weight:600;
+      letter-spacing:-.01em;line-height:1.4;max-width:920px;margin:0 auto}
+    .takeaway-card .foot{margin-top:18px;font-size:20px;color:var(--ink-soft)}
+
+    /* responsive */
+    @media (max-width:1100px){
+      .slide{padding:32px 28px 60px}
+      h1.title{font-size:60px}h2.h{font-size:38px}
+      h3.sub{font-size:20px}p.lead{font-size:22px}
+      .title-art{display:none}
+      .path,.objgrid,.cmdcards,.detail,.lc,.prune{grid-template-columns:1fr}
+      .path .connector{transform:rotate(90deg);padding:4px 0}
+      .diskbox .row{grid-template-columns:140px 1fr 100px}
+      .cheat .ch{grid-template-columns:1fr}
+      .lctable .row{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <main class="deck" id="deck">
+
+    <!-- 1. TITLE -->
+    <section class="slide active" style="position:relative;overflow:hidden;">
+      <svg class="title-art" viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="ga" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity=".22"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity=".08"/>
+          </linearGradient>
+          <linearGradient id="gb" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#10b981" stop-opacity=".22"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity=".08"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(80 110)">
+          <!-- containers grid -->
+          <rect x="0"   y="0"   width="220" height="120" rx="14" fill="url(#ga)"/>
+          <rect x="240" y="0"   width="220" height="120" rx="14" fill="url(#gb)"/>
+          <rect x="0"   y="140" width="220" height="120" rx="14" fill="url(#gb)"/>
+          <rect x="240" y="140" width="220" height="120" rx="14" fill="url(#ga)"/>
+          <rect x="0"   y="280" width="220" height="120" rx="14" fill="url(#ga)" opacity=".7"/>
+          <rect x="240" y="280" width="220" height="120" rx="14" fill="url(#gb)" opacity=".7"/>
+          <!-- pulse dots -->
+          <circle cx="30" cy="30" r="6" fill="#10b981"/>
+          <circle cx="270" cy="30" r="6" fill="#10b981"/>
+          <circle cx="30" cy="170" r="6" fill="#94a3b8"/>
+          <circle cx="270" cy="170" r="6" fill="#10b981"/>
+          <circle cx="30" cy="310" r="6" fill="#94a3b8"/>
+          <circle cx="270" cy="310" r="6" fill="#94a3b8"/>
+        </g>
+      </svg>
+      <div class="wrap title-wrap">
+        <h1 class="title">Managing Containers <span class="accent">and Images</span></h1>
+        <h3 class="sub">
+          Listing, inspecting, debugging, and cleaning up &mdash; the day-to-day
+          commands you'll type dozens of times once Docker is part of your workflow.
+        </h3>
+      </div>
+    </section>
+
+    <!-- 2. WHERE WE ARE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Where we are</p>
+        <h2 class="h">From building to operating.</h2>
+        <p class="lead">
+          We can build images and run containers. After a few days of work
+          the machine fills up with both &mdash; some running, some stopped,
+          some long-forgotten.
+        </p>
+        <p class="lead" style="margin-top:0;">
+          This lesson is about the commands you use to <b>list, inspect,
+          debug, and clean up</b> all of that.
+        </p>
+        <div class="path">
+          <div class="stop">
+            <div class="lbl">Lesson 5 &middot; done</div>
+            <div class="ttl">Best practices</div>
+            <div class="desc">Smaller, faster, safer Dockerfiles.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop now">
+            <div class="lbl">Lesson 6 &middot; here</div>
+            <div class="ttl">Manage &amp; clean up</div>
+            <div class="desc">List, inspect, debug, and reclaim space.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop">
+            <div class="lbl">Chapter 3 &middot; next</div>
+            <div class="ttl">Apply to RAG</div>
+            <div class="desc">Dev container, multi-service, Compose.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. FOUR OBJECT TYPES -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The map</p>
+        <h2 class="h">Docker manages four kinds of objects.</h2>
+        <h3 class="sub">
+          Each one has the same little family of subcommands:
+          <code class="inline">ls</code>, <code class="inline">inspect</code>,
+          <code class="inline">rm</code>, <code class="inline">prune</code>.
+          This lesson focuses on the two you touch every day.
+        </h3>
+        <div class="objgrid">
+          <div class="objcard images focus">
+            <div class="focuspill">focus</div>
+            <div class="ic">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="14" width="18" height="6" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="5" y="8" width="14" height="6" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="7" y="2" width="10" height="6" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
+            </div>
+            <h4>Images</h4>
+            <p class="what">Read-only templates you built or pulled.</p>
+            <div class="verbs">docker images<br>docker image inspect<br>docker rmi / image prune</div>
+          </div>
+          <div class="objcard containers focus">
+            <div class="focuspill">focus</div>
+            <div class="ic">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="13" r="1.5" fill="currentColor"/><path d="M12 13h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <h4>Containers</h4>
+            <p class="what">Running or stopped instances of an image.</p>
+            <div class="verbs">docker ps / ps -a<br>docker logs / exec / inspect<br>docker rm / container prune</div>
+          </div>
+          <div class="objcard volumes">
+            <div class="ic">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="8" ry="3" stroke="currentColor" stroke-width="1.8"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" stroke="currentColor" stroke-width="1.8"/></svg>
+            </div>
+            <h4>Volumes</h4>
+            <p class="what">Persistent storage attached to containers.</p>
+            <div class="verbs">docker volume ls<br>docker volume inspect / rm<br>docker volume prune</div>
+          </div>
+          <div class="objcard networks">
+            <div class="ic">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="6" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="19" cy="18" r="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 8.5L5.8 15.6M12 8.5l6.2 7.1M7 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <h4>Networks</h4>
+            <p class="what">Virtual networks containers connect to.</p>
+            <div class="verbs">docker network ls<br>docker network inspect / rm<br>docker network prune</div>
+          </div>
+        </div>
+        <p style="margin-top:18px;font-size:13.5px;color:var(--muted);text-align:center;">
+          Volumes and networks come back in Chapter 3, when the RAG project gets multi-service.
+        </p>
+      </div>
+    </section>
+
+    <!-- 4. LISTING -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Step 1 &middot; what's on the box?</p>
+        <h2 class="h">Start with <code class="inline" style="font-size:.8em">docker ps</code> and <code class="inline" style="font-size:.8em">docker images</code>.</h2>
+        <h3 class="sub">
+          A snapshot of what's on your machine right now. By default,
+          <code class="inline">docker ps</code> hides stopped containers &mdash;
+          add <code class="inline">-a</code> to see them all.
+        </h3>
+        <div class="term">
+          <div><span class="prompt">$</span> <span class="cmd">docker</span> ps</div>
+          <div class="hd">CONTAINER ID   IMAGE          COMMAND               STATUS         PORTS                    NAMES</div>
+          <div class="out">3b9f1c2a4d5e   demo:0.1       <span class="dim">"python main.py"</span>      <span class="ok">Up 12 minutes</span>  0.0.0.0:8080-&gt;8080/tcp   <span class="hl">demo</span></div>
+          <div class="out">9a8b7c6d5e4f   chromadb:1.3   <span class="dim">"chroma run ..."</span>     <span class="ok">Up 12 minutes</span>  0.0.0.0:8000-&gt;8000/tcp   <span class="hl">chromadb</span></div>
+          <hr/>
+          <div><span class="prompt">$</span> <span class="cmd">docker</span> ps <span class="flag">-a</span>     <span class="dim"># includes stopped</span></div>
+          <div class="hd">CONTAINER ID   IMAGE          COMMAND               STATUS                     NAMES</div>
+          <div class="out">3b9f1c2a4d5e   demo:0.1       <span class="dim">"python main.py"</span>      <span class="ok">Up 12 minutes</span>              demo</div>
+          <div class="out">e5d4c3b2a1f0   demo:0.0.9     <span class="dim">"python main.py"</span>      <span class="warn">Exited (0) 2 hours ago</span>     <span class="hl">old-demo</span></div>
+          <hr/>
+          <div><span class="prompt">$</span> <span class="cmd">docker</span> images</div>
+          <div class="hd">REPOSITORY     TAG     IMAGE ID       CREATED         SIZE</div>
+          <div class="out">demo           0.1     7c4e8a1b9f23   3 minutes ago   145MB</div>
+          <div class="out">python         3.11    a1b2c3d4e5f6   2 weeks ago     1.02GB</div>
+          <div class="out"><span class="warn">&lt;none&gt;</span>         <span class="warn">&lt;none&gt;</span>  e5d4c3b2a1f0   1 hour ago      420MB   <span class="dim">&lt;-- dangling</span></div>
+        </div>
+        <p style="margin-top:14px;font-size:13px;color:var(--muted);text-align:center;">
+          A <code class="inline">&lt;none&gt;:&lt;none&gt;</code> entry is a <b>dangling image</b> &mdash; an old build replaced by a newer one. Safe to prune.
+        </p>
+      </div>
+    </section>
+
+    <!-- 5. LOOKING INSIDE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Step 2 &middot; what is it doing?</p>
+        <h2 class="h">Three commands cover 95% of debugging.</h2>
+        <h3 class="sub">
+          When something looks wrong, ask: what's it saying, what's inside, what's its config?
+        </h3>
+        <div class="cmdcards">
+          <div class="cmdc">
+            <div class="head">
+              <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 2v6h6M8 13h8M8 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+              <b>docker logs</b>
+            </div>
+            <p class="why">Print everything the container wrote to stdout/stderr. Add <code class="inline">-f</code> to follow live.</p>
+            <pre><span class="k">docker</span> logs <span class="f">-f</span> demo
+<span class="k">docker</span> logs <span class="f">--tail</span> 100 demo
+<span class="k">docker</span> logs <span class="f">--since</span> 10m demo</pre>
+          </div>
+          <div class="cmdc">
+            <div class="head">
+              <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 9l-5 3 5 3M16 9l5 3-5 3M14 4l-4 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <b>docker exec</b>
+            </div>
+            <p class="why">Run a command <i>inside</i> a running container. The single most useful debugging tool.</p>
+            <pre><span class="k">docker</span> exec <span class="f">-it</span> demo bash
+<span class="k">docker</span> exec demo ls /app
+<span class="k">docker</span> exec demo env</pre>
+          </div>
+          <div class="cmdc">
+            <div class="head">
+              <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+              <b>docker inspect</b>
+            </div>
+            <p class="why">Dump every detail Docker knows: mounts, env, network, command, restart policy.</p>
+            <pre><span class="k">docker</span> inspect demo
+<span class="k">docker</span> inspect demo \
+  | jq <span class="f">'.[0].Config.Env'</span></pre>
+          </div>
+        </div>
+        <p style="margin-top:18px;font-size:13.5px;color:var(--muted);text-align:center;">
+          Bonus: <code class="inline">docker stats</code> for live CPU/memory, <code class="inline">docker top</code> for processes inside.
+        </p>
+      </div>
+    </section>
+
+    <!-- 6. LIFECYCLE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Step 3 &middot; control its life</p>
+        <h2 class="h">The container lifecycle.</h2>
+        <h3 class="sub">
+          Containers move through a small set of states. A handful of commands take you from one to the next.
+        </h3>
+        <div class="lc">
+          <div class="lcsvg">
+            <div class="cap">State machine</div>
+            <svg viewBox="0 0 360 320" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="arr6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8"/>
+                </marker>
+              </defs>
+              <!-- created -->
+              <rect x="20"  y="20"  width="120" height="56" rx="12" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/>
+              <text x="80" y="44" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#0f172a">created</text>
+              <text x="80" y="62" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#94a3b8">docker create</text>
+              <!-- running -->
+              <rect x="220" y="20"  width="120" height="56" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5"/>
+              <text x="280" y="44" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#065f46">running</text>
+              <text x="280" y="62" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#10b981">docker run / start</text>
+              <!-- stopped -->
+              <rect x="220" y="140" width="120" height="56" rx="12" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.5"/>
+              <text x="280" y="164" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#92400e">stopped</text>
+              <text x="280" y="182" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#f59e0b">docker stop / exit</text>
+              <!-- removed -->
+              <rect x="20"  y="240" width="120" height="56" rx="12" fill="#fef2f2" stroke="#ef4444" stroke-width="1.5"/>
+              <text x="80" y="264" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#991b1b">removed</text>
+              <text x="80" y="282" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#ef4444">docker rm</text>
+              <!-- arrows -->
+              <path d="M140 48 L218 48" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr6)"/>
+              <path d="M280 76 L280 138" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr6)"/>
+              <path d="M260 138 C 230 110, 230 90, 260 76" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arr6)" fill="none"/>
+              <path d="M218 168 L142 264" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr6)"/>
+              <text x="200" y="38" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#475569">start</text>
+              <text x="296" y="112" font-family="Inter,sans-serif" font-size="10" fill="#475569">stop</text>
+              <text x="240" y="108" text-anchor="end" font-family="Inter,sans-serif" font-size="10" fill="#475569">start</text>
+              <text x="195" y="218" font-family="Inter,sans-serif" font-size="10" fill="#475569">rm</text>
+            </svg>
+          </div>
+          <div class="lctable">
+            <div class="row head"><code>command</code><span>what it does</span></div>
+            <div class="row"><code>docker stop</code><span>SIGTERM, then SIGKILL after a grace period.</span></div>
+            <div class="row"><code>docker start</code><span>Restart a stopped container with its original config.</span></div>
+            <div class="row"><code>docker restart</code><span>Stop + start in one step.</span></div>
+            <div class="row"><code>docker kill</code><span>Immediate SIGKILL &mdash; no grace.</span></div>
+            <div class="row"><code>docker rm</code><span>Remove a stopped container. Add <code style="background:transparent;padding:0">-f</code> to force.</span></div>
+            <div class="row"><code>docker rmi</code><span>Remove an image. Refuses if any container uses it.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. DISK USAGE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Step 4 &middot; disk usage</p>
+        <h2 class="h">Builds and runs add up. Fast.</h2>
+        <h3 class="sub">
+          After a few weeks of active development, 50+ GB of unused
+          Docker data on disk is normal. The first command to know is
+          <code class="inline">docker system df</code>.
+        </h3>
+        <div class="diskbox">
+          <div class="cap" style="margin:0 0 12px;">$ docker system df</div>
+          <div class="row"><b>Images</b><div class="bar"><div class="fill images" style="width:77%"></div></div><div class="val"><b>18.2 GB</b> &middot; 77%</div></div>
+          <div class="row"><b>Containers</b><div class="bar"><div class="fill containers" style="width:90%"></div></div><div class="val"><b>142 MB</b> &middot; 90%</div></div>
+          <div class="row"><b>Volumes</b><div class="bar"><div class="fill volumes" style="width:61%"></div></div><div class="val"><b>3.4 GB</b> &middot; 61%</div></div>
+          <div class="row"><b>Build cache</b><div class="bar"><div class="fill cache" style="width:100%"></div></div><div class="val"><b>9.7 GB</b> &middot; 100%</div></div>
+          <div style="margin-top:8px;font-size:11.5px;color:var(--muted);letter-spacing:.04em;text-align:right;">
+            bars show <i>reclaimable</i> portion
+          </div>
+        </div>
+        <p style="font-size:13.5px;color:var(--ink-soft);text-align:center;max-width:720px;margin:0 auto;">
+          The percentages tell you how much can be cleaned up. The next slide is the prune cascade &mdash; from safe to nuclear.
+        </p>
+      </div>
+    </section>
+
+    <!-- 8. PRUNE CASCADE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Cleaning up</p>
+        <h2 class="h">From safe to nuclear.</h2>
+        <h3 class="sub">
+          Targeted prunes first. <code class="inline">docker system prune -a --volumes</code> last
+          &mdash; powerful, but irreversible.
+        </h3>
+        <div class="prune">
+          <div class="prunecard safe">
+            <div class="pl">&#x2713; Safe &middot; targeted</div>
+            <pre><span class="k">docker</span> container prune
+<span class="k">docker</span> image prune
+<span class="k">docker</span> volume prune
+<span class="k">docker</span> network prune</pre>
+            <div class="note">Each removes only one object family. Prompts for confirmation; add <code class="inline">-f</code> to skip.</div>
+          </div>
+          <div class="prunecard med">
+            <div class="pl">! Aggressive</div>
+            <pre><span class="k">docker</span> image prune <span class="f">-a</span>
+<span class="k">docker</span> system prune
+<span class="k">docker</span> builder prune</pre>
+            <div class="note"><code class="inline">image prune -a</code> removes every image not used by a container. <code class="inline">system prune</code> sweeps containers, networks, and dangling images.</div>
+          </div>
+          <div class="prunecard danger">
+            <div class="pl">&#x26A0; Nuclear</div>
+            <pre><span class="k">docker</span> system prune <span class="f">-a</span>
+<span class="k">docker</span> system prune <span class="f">-a --volumes</span></pre>
+            <div class="note"><code class="inline">--volumes</code> deletes named volumes too &mdash; including <code class="inline">chroma_data</code> if its container is down. Use with care.</div>
+          </div>
+        </div>
+        <p style="margin-top:18px;font-size:13px;color:var(--muted);text-align:center;">
+          Rule of thumb: re-run <code class="inline">docker system df</code> before <i>and</i> after to see what was reclaimed.
+        </p>
+      </div>
+    </section>
+
+    <!-- 9. CHEAT SHEET -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">For your back pocket</p>
+        <h2 class="h">The commands worth memorizing.</h2>
+        <h3 class="sub">
+          The ones you'll reach for every day. Full reference and sample output is in the lesson README.
+        </h3>
+        <div class="cheat">
+          <div class="ch head"><span>Question</span><span>Command</span></div>
+          <div class="ch"><span>What containers are running?</span><code>docker ps</code></div>
+          <div class="ch"><span>What containers exist at all?</span><code>docker ps -a</code></div>
+          <div class="ch"><span>What images do I have?</span><code>docker images</code></div>
+          <div class="ch"><span>What is this container doing?</span><code>docker logs -f &lt;name&gt;</code></div>
+          <div class="ch"><span>Let me into the container.</span><code>docker exec -it &lt;name&gt; bash</code></div>
+          <div class="ch"><span>What is this container's config?</span><code>docker inspect &lt;name&gt;</code></div>
+          <div class="ch"><span>Stop / start / restart it.</span><code>docker stop|start|restart &lt;name&gt;</code></div>
+          <div class="ch"><span>Remove a container.</span><code>docker rm &lt;name&gt;</code></div>
+          <div class="ch"><span>How much disk am I using?</span><code>docker system df</code></div>
+          <div class="ch"><span>Reclaim space safely.</span><code>docker container prune &amp;&amp; docker image prune</code></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. TAKEAWAY -->
+    <section class="slide">
+      <div class="wrap" style="text-align:center;">
+        <p class="eyebrow">Takeaway &middot; end of Chapter 2</p>
+        <h2 class="h" style="margin-bottom:6px;">A handful of commands. The whole operational loop.</h2>
+        <h3 class="sub" style="margin:0 auto 18px;">
+          Build, run, observe, clean up &mdash; the daily rhythm of working with containers.
+        </h3>
+        <div class="takeaway-card">
+          <div class="quote">
+            <code class="inline" style="font-size:.85em">ps</code> &middot;
+            <code class="inline" style="font-size:.85em">logs</code> &middot;
+            <code class="inline" style="font-size:.85em">exec</code> &middot;
+            <code class="inline" style="font-size:.85em">inspect</code> &middot;
+            <code class="inline" style="font-size:.85em">stop</code> &middot;
+            <code class="inline" style="font-size:.85em">rm</code> &middot;
+            <code class="inline" style="font-size:.85em">system prune</code>
+          </div>
+          <div class="foot">
+            That's it for Chapter 2. Next &rarr; Chapter 3, where we apply
+            everything to the RAG project: dev container, multi-service setup, Compose.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (function(){
+      const slides=Array.from(document.querySelectorAll('.slide'));
+      const total=slides.length;
+      const prog=document.getElementById('progress');
+      let i=0;
+      function show(n){
+        i=Math.max(0,Math.min(total-1,n));
+        slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+        prog.style.width=(((i+1)/total)*100)+'%';
+        history.replaceState(null,'','#'+(i+1));
+      }
+      function next(){show(i+1)}function prev(){show(i-1)}
+      document.addEventListener('keydown',e=>{
+        if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+        else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev();}
+        else if(e.key==='Home'){e.preventDefault();show(0);}
+        else if(e.key==='End'){e.preventDefault();show(total-1);}
+      });
+      document.addEventListener('click',e=>{if(e.target.closest('a,pre,code'))return;next();});
+      const start=parseInt((location.hash||'#1').slice(1),10);
+      show(isFinite(start)?start-1:0);
+    })();
+  </script>
+</body>
+</html>

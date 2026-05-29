@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chapter 1 · Lesson 3 — Container Strategy</title>
+  <style>
+    :root {
+      --bg:#fff; --bg-soft:#f7f9fc; --ink:#0f172a; --ink-soft:#475569;
+      --muted:#94a3b8; --line:#e2e8f0; --line-soft:#eef2f7;
+      --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-500:#3b82f6;
+      --blue-600:#2563eb; --blue-700:#1d4ed8;
+      --teal-500:#0ea5e9; --amber-500:#f59e0b; --amber-50:#fffbeb;
+      --green-500:#10b981; --green-50:#ecfdf5; --pink-500:#ec4899;
+      --violet-500:#8b5cf6; --violet-50:#f5f3ff;
+      --red-500:#ef4444; --red-50:#fef2f2;
+
+      --rag-green-bg:#E8F5E9;  --rag-green-stroke:#2E7D32;
+      --rag-blue-bg:#E3F2FD;   --rag-blue-stroke:#1565C0;
+      --rag-cyl-bg:#DCEDC8;    --rag-cyl-stroke:#33691E;
+
+      --code-bg:#0f172a; --code-fg:#e2e8f0;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+      --shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.07);
+      --radius:16px; --maxw:1280px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
+      font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+    /* chrome — only the progress bar */
+    .progress{position:fixed;top:0;left:0;height:4px;width:0%;
+      background:linear-gradient(90deg,var(--blue-600),var(--teal-500));z-index:50;transition:width .25s ease}
+
+    /* slides — viewport-locked, top-anchored, cross-fade */
+    .deck{position:relative;width:100%;height:100vh}
+    .slide{
+      position:absolute;inset:0;
+      display:flex;align-items:flex-start;
+      height:100vh;max-height:100vh;overflow:hidden;
+      padding:40px 56px 56px;
+      opacity:0;pointer-events:none;
+      transition:opacity .55s cubic-bezier(.4,0,.2,1);
+    }
+    .slide.active{opacity:1;pointer-events:auto;z-index:1}
+    .slide .wrap{margin:0 auto;width:100%;max-width:var(--maxw)}
+
+    .eyebrow{font-size:17px;letter-spacing:.18em;text-transform:uppercase;
+      color:var(--blue-700);font-weight:700;margin:0 0 16px}
+    h1.title{font-size:92px;line-height:1.04;letter-spacing:-.028em;margin:0 0 18px;font-weight:700}
+    h1.title .accent{background:linear-gradient(90deg,var(--blue-600),var(--teal-500));
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+    h2.h{font-size:58px;line-height:1.1;letter-spacing:-.02em;margin:0 0 14px;font-weight:700}
+    h3.sub{font-size:26px;font-weight:500;color:var(--ink-soft);margin:0 0 22px;line-height:1.5;max-width:1000px}
+    p.lead{font-size:28px;line-height:1.5;color:var(--ink-soft);margin:0 0 18px;max-width:1000px}
+    .inline{background:var(--bg-soft);padding:2px 10px;border:1px solid var(--line);border-radius:6px;
+      font-family:ui-monospace,monospace;font-size:.92em;color:var(--ink)}
+
+    .title-art{position:absolute;right:-40px;top:50%;transform:translateY(-50%);
+      width:780px;height:780px;opacity:.5;pointer-events:none;z-index:0}
+    .title-wrap{position:relative;z-index:1}
+
+    /* path */
+    .path{margin-top:28px;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch}
+    .path .stop{padding:20px 22px;border:1px solid var(--line);border-radius:var(--radius);
+      background:var(--bg);box-shadow:var(--shadow-sm)}
+    .path .stop.now{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50));box-shadow:var(--shadow)}
+    .path .stop .lbl{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;font-weight:600}
+    .path .stop.now .lbl{color:var(--blue-700)}
+    .path .stop .ttl{font-size:23px;font-weight:600;color:var(--ink);margin-bottom:6px}
+    .path .stop .desc{font-size:18px;color:var(--ink-soft);line-height:1.45}
+    .path .connector{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 10px}
+    .path .connector svg{width:34px;height:34px}
+
+    /* two-input split (architecture + production) */
+    .twoinputs{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:18px;align-items:center;margin-top:14px}
+    .twoinputs .input{
+      background:#fff;border:1px solid var(--line);border-radius:18px;
+      padding:28px 24px;box-shadow:var(--shadow);text-align:center;
+    }
+    .twoinputs .input.arch{border-top:4px solid var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50))}
+    .twoinputs .input.prod{border-top:4px solid var(--teal-500);background:linear-gradient(180deg,#fff,#ecfeff)}
+    .twoinputs .input .ic{
+      width:76px;height:76px;border-radius:20px;margin:0 auto 16px;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .twoinputs .input .ic svg{width:38px;height:38px}
+    .twoinputs .input.arch .ic{background:var(--blue-50);color:var(--blue-700)}
+    .twoinputs .input.prod .ic{background:#cffafe;color:var(--rag-blue-stroke)}
+    .twoinputs .input b{font-size:24px;color:var(--ink);display:block;margin-bottom:8px}
+    .twoinputs .input span{font-size:17px;color:var(--ink-soft);line-height:1.5}
+    .twoinputs .plus{
+      font-size:40px;color:var(--ink-soft);font-weight:300;text-align:center;
+    }
+    .twoinputs .result{
+      background:linear-gradient(135deg,var(--blue-600),var(--teal-500));
+      color:#fff;border-radius:18px;padding:28px 24px;text-align:center;
+      box-shadow:0 8px 24px rgba(37,99,235,.25);
+    }
+    .twoinputs .result b{font-size:22px;display:block;margin-bottom:8px}
+    .twoinputs .result span{font-size:17px;opacity:.92;line-height:1.5}
+
+    /* services row */
+    .services{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+    .svc{background:#fff;border:2px solid;border-radius:16px;padding:24px;box-shadow:var(--shadow-sm)}
+    .svc.ingest{border-color:var(--rag-green-stroke);background:linear-gradient(180deg,#fff,var(--rag-green-bg))}
+    .svc.store{border-color:var(--rag-cyl-stroke);background:linear-gradient(180deg,#fff,var(--rag-cyl-bg))}
+    .svc.query{border-color:var(--rag-blue-stroke);background:linear-gradient(180deg,#fff,var(--rag-blue-bg))}
+    .svc .stag{font-size:15px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-bottom:10px}
+    .svc.ingest .stag{color:var(--rag-green-stroke)}
+    .svc.store .stag{color:var(--rag-cyl-stroke)}
+    .svc.query .stag{color:var(--rag-blue-stroke)}
+    .svc h4{margin:0 0 10px;font-size:24px;font-weight:700}
+    .svc p{margin:0;font-size:17px;color:var(--ink-soft);line-height:1.5}
+    .svc .ic{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+    .svc .ic svg{width:26px;height:26px}
+    .svc.ingest .ic{background:var(--rag-green-bg);color:var(--rag-green-stroke)}
+    .svc.store .ic{background:var(--rag-cyl-bg);color:var(--rag-cyl-stroke)}
+    .svc.query .ic{background:var(--rag-blue-bg);color:var(--rag-blue-stroke)}
+
+    /* approach split (one vs many) */
+    .approach{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:6px}
+    .ap{
+      background:#fff;border:1px solid var(--line);border-radius:14px;
+      padding:24px;box-shadow:var(--shadow-sm);
+    }
+    .ap.single{border-top:4px solid var(--amber-500)}
+    .ap.split{border-top:4px solid var(--green-500)}
+    .ap .pl{font-size:15px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-bottom:12px}
+    .ap.single .pl{color:var(--amber-500)}
+    .ap.split .pl{color:var(--green-500)}
+    .ap h4{margin:0 0 10px;font-size:24px;font-weight:700}
+    .ap .lead2{margin:0 0 14px;font-size:18px;color:var(--ink-soft);line-height:1.5}
+    .ap .lead2 b{color:var(--ink)}
+
+    /* container box visual */
+    .ctnbox{
+      display:flex;flex-direction:column;gap:8px;padding:14px;background:var(--bg-soft);
+      border:1px dashed var(--line);border-radius:10px;margin-bottom:14px;
+    }
+    .ctnbox .label{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;text-align:center;margin-bottom:6px}
+    .ctnbox.single{border:2px dashed var(--amber-500);background:rgba(245,158,11,.05)}
+    .ctnbox.single .label{color:var(--amber-500)}
+    .ctnbox .item{
+      background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 14px;
+      font-size:17px;font-family:ui-monospace,monospace;color:var(--ink);text-align:center;
+    }
+    .ctngrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+    .ctngrid .ctnbox{margin-bottom:0;padding:10px}
+    .ctngrid .ctnbox.split-a{border:2px dashed var(--rag-green-stroke);background:rgba(46,125,50,.05)}
+    .ctngrid .ctnbox.split-b{border:2px dashed var(--rag-cyl-stroke);background:rgba(51,105,30,.05)}
+    .ctngrid .ctnbox.split-c{border:2px dashed var(--rag-blue-stroke);background:rgba(21,101,192,.05)}
+    .ctngrid .ctnbox.split-a .label{color:var(--rag-green-stroke)}
+    .ctngrid .ctnbox.split-b .label{color:var(--rag-cyl-stroke)}
+    .ctngrid .ctnbox.split-c .label{color:var(--rag-blue-stroke)}
+
+    .ap ul{margin:0;padding:0 0 0 22px;font-size:17px;color:var(--ink-soft);line-height:1.55}
+    .ap ul li{margin-bottom:6px}
+
+    /* container progression — dev / test / deploy */
+    .stages{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch;margin-top:14px}
+    .stage{
+      background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;
+      box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:12px;
+    }
+    .stage .stitle{
+      font-size:15px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+      color:var(--blue-700);text-align:center;margin-bottom:6px;
+    }
+    .stage h4{margin:0;font-size:28px;font-weight:700;text-align:center;letter-spacing:-.01em}
+    .stage .pkg{
+      background:var(--bg-soft);border:1px solid var(--line);border-radius:10px;padding:12px;
+      display:flex;align-items:center;gap:12px;
+    }
+    .stage .pkg .pkico{
+      font-size:28px;line-height:1;
+    }
+    .stage .pkg b{font-size:18px;color:var(--ink);display:block;margin-bottom:2px}
+    .stage .pkg span{font-size:15px;color:var(--ink-soft)}
+    .stage.now{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50));box-shadow:var(--shadow)}
+    .stages .step-arrow{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 10px}
+    .stages .step-arrow svg{width:34px;height:34px}
+
+    /* takeaway */
+    .takeaway-card{margin:18px auto 0;max-width:1100px;
+      background:linear-gradient(135deg,#fff,var(--bg-soft));border:1px solid var(--line);
+      border-radius:24px;padding:28px 36px;box-shadow:var(--shadow);text-align:center}
+    .takeaway-card .quote{font-size:30px;color:var(--ink);font-weight:600;
+      letter-spacing:-.01em;line-height:1.4;max-width:1000px;margin:0 auto}
+    .takeaway-card .foot{margin-top:14px;font-size:20px;color:var(--ink-soft)}
+
+    .principle{
+      display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;
+      align-items:stretch;margin-top:14px;
+    }
+    .principle .step{
+      background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;
+      box-shadow:var(--shadow-sm);text-align:center;
+    }
+    .principle .step .num{
+      width:52px;height:52px;border-radius:14px;
+      background:linear-gradient(135deg,var(--blue-600),var(--teal-500));color:#fff;
+      display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;margin:0 auto 14px;
+    }
+    .principle .step b{font-size:22px;color:var(--ink);display:block;margin-bottom:8px}
+    .principle .step span{font-size:17px;color:var(--ink-soft);line-height:1.5}
+    .principle .arr{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 10px}
+
+    @media (max-width:1100px){
+      .slide{padding:32px 28px 60px}
+      h1.title{font-size:60px}h2.h{font-size:40px}
+      h3.sub{font-size:20px}p.lead{font-size:22px}
+      .title-art{display:none}
+      .path,.twoinputs,.services,.approach,.stages,.principle,.ctngrid{grid-template-columns:1fr}
+      .path .connector,.twoinputs .plus,.stages .step-arrow,.principle .arr{transform:rotate(90deg);padding:4px 0}
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <main class="deck" id="deck">
+
+    <!-- 1. TITLE -->
+    <section class="slide active" style="position:absolute;overflow:hidden;">
+      <svg class="title-art" viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="ga" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity=".22"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity=".06"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(80 90)">
+          <!-- 6 boxes arranged as packages -->
+          <rect x="0"   y="0"   width="200" height="120" rx="14" fill="url(#ga)"/>
+          <rect x="240" y="0"   width="200" height="120" rx="14" fill="url(#ga)" opacity=".7"/>
+          <rect x="0"   y="160" width="200" height="120" rx="14" fill="url(#ga)" opacity=".7"/>
+          <rect x="240" y="160" width="200" height="120" rx="14" fill="url(#ga)"/>
+          <rect x="0"   y="320" width="200" height="120" rx="14" fill="url(#ga)" opacity=".7"/>
+          <rect x="240" y="320" width="200" height="120" rx="14" fill="url(#ga)" opacity=".7"/>
+          <!-- box flaps -->
+          <line x1="100" y1="0" x2="100" y2="20" stroke="#3b82f6" stroke-width="2" opacity=".4"/>
+          <line x1="340" y1="0" x2="340" y2="20" stroke="#3b82f6" stroke-width="2" opacity=".4"/>
+          <line x1="100" y1="160" x2="100" y2="180" stroke="#3b82f6" stroke-width="2" opacity=".4"/>
+          <line x1="340" y1="160" x2="340" y2="180" stroke="#3b82f6" stroke-width="2" opacity=".4"/>
+          <line x1="100" y1="320" x2="100" y2="340" stroke="#3b82f6" stroke-width="2" opacity=".4"/>
+          <line x1="340" y1="320" x2="340" y2="340" stroke="#3b82f6" stroke-width="2" opacity=".4"/>
+        </g>
+      </svg>
+      <div class="wrap title-wrap">
+        <p class="eyebrow">Chapter 1 &middot; Lesson 3</p>
+        <h1 class="title">Container <span class="accent">Strategy</span></h1>
+        <h3 class="sub">
+          From components to a packaging plan &mdash; how to decide what runs in
+          one container, and what should run in several.
+        </h3>
+        <p style="margin-top:24px;color:var(--ink-soft);font-size:18px;letter-spacing:.04em;">
+          Docker for Local AI &middot; Building AI Applications with Containers
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. WHERE WE ARE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Where we are</p>
+        <h2 class="h">From components to containers.</h2>
+        <p class="lead">
+          Lesson 2 mapped out the components of a RAG system. Now the
+          question is the obvious next one:
+        </p>
+        <p class="lead" style="margin-top:0;font-style:italic;">
+          How do we translate those components into containers?
+        </p>
+        <div class="path">
+          <div class="stop">
+            <div class="lbl">Lesson 2 &middot; done</div>
+            <div class="ttl">RAG components</div>
+            <div class="desc">Ingestion + vector store + query.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop now">
+            <div class="lbl">Lesson 3 &middot; here</div>
+            <div class="ttl">Container strategy</div>
+            <div class="desc">From components to a packaging plan.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop">
+            <div class="lbl">Chapter 2 &middot; next</div>
+            <div class="ttl">Docker 101</div>
+            <div class="desc">Workflow, Dockerfile, build, run, best practices.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. TWO INPUTS -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">No universal answer</p>
+        <h2 class="h">Strategy depends on <i>two</i> inputs.</h2>
+        <h3 class="sub">
+          There's no one-size-fits-all answer. The right container layout depends on
+          what the application looks like <i>and</i> where it has to run.
+        </h3>
+        <div class="twoinputs">
+          <div class="input arch">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+                <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+                <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+                <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            <b>Application architecture</b>
+            <span>What services exist, how they interact, what each one needs.</span>
+          </div>
+          <div class="plus">+</div>
+          <div class="input prod">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <b>Production environment</b>
+            <span>Where the app will run: a single VM, Kubernetes, edge device, cloud.</span>
+          </div>
+          <div class="plus">=</div>
+          <div class="result">
+            <b>Container strategy</b>
+            <span>How many containers, what goes in each, how they communicate.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. IDENTIFY SERVICES -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Step 1 &middot; identify the services</p>
+        <h2 class="h">Three core services in our RAG system.</h2>
+        <h3 class="sub">
+          Before deciding container boundaries, name the services. For our
+          running example, three boxes:
+        </h3>
+        <div class="services">
+          <div class="svc ingest">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5-5 5 5M12 5v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stag">Pipeline</div>
+            <h4>Ingestion pipeline</h4>
+            <p>Processes documents and stores their embeddings.</p>
+          </div>
+          <div class="svc store">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="8" ry="3" stroke="currentColor" stroke-width="2"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" stroke="currentColor" stroke-width="2"/></svg>
+            </div>
+            <div class="stag">Database</div>
+            <h4>Vector database</h4>
+            <p>Stores embeddings, enables fast similarity search.</p>
+          </div>
+          <div class="svc query">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stag">API</div>
+            <h4>Query pipeline</h4>
+            <p>Receives requests, retrieves context, calls the LLM, returns response.</p>
+          </div>
+        </div>
+        <p style="margin-top:14px;font-size:17px;color:var(--ink-soft);text-align:center;max-width:1000px;margin-left:auto;margin-right:auto;">
+          Now we can ask the design question: <b>should these run in one container, or several?</b>
+        </p>
+      </div>
+    </section>
+
+    <!-- 5. ONE CONTAINER -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Approach 1</p>
+        <h2 class="h">When <i>one</i> container is enough.</h2>
+        <h3 class="sub">
+          For some applications, putting both pipelines in a single container is the right call.
+        </h3>
+        <div class="approach" style="grid-template-columns:1fr 1.1fr;">
+          <div class="ap single">
+            <div class="pl">! prototype-style</div>
+            <h4>Single container</h4>
+            <p class="lead2">Ingestion + query running together as <b>one workflow</b>.</p>
+            <div class="ctnbox single">
+              <div class="label">one container</div>
+              <div class="item">ingestion pipeline</div>
+              <div class="item">vector store (in-memory)</div>
+              <div class="item">query pipeline</div>
+            </div>
+            <ul>
+              <li>Simpler to reason about</li>
+              <li>One image, one process, one log stream</li>
+              <li>No service-to-service networking</li>
+            </ul>
+          </div>
+          <div class="ap" style="border-top:4px solid var(--violet-500)">
+            <div class="pl" style="color:var(--violet-500)">&rarr; example</div>
+            <h4>Session-based RAG</h4>
+            <p class="lead2">A user uploads documents during a session and immediately asks questions about them.</p>
+            <ul style="margin-bottom:14px;">
+              <li>Documents are processed temporarily</li>
+              <li>Used during the session, discarded afterward</li>
+              <li>No long-lived knowledge base to maintain</li>
+            </ul>
+            <div style="background:var(--amber-50);border:1px solid var(--amber-500);border-radius:10px;padding:14px 18px;font-size:17px;color:#92400e;line-height:1.5;">
+              <b>When this fits:</b> the two pipelines operate as a single workflow. Splitting them adds complexity without benefit.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. SEPARATE CONTAINERS -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Approach 2</p>
+        <h2 class="h">When separation pays off.</h2>
+        <h3 class="sub">
+          In most production setups, splitting ingestion and query into independent
+          containers becomes useful. Components that operate independently are good
+          candidates for separate containers.
+        </h3>
+        <div class="approach" style="grid-template-columns:1.1fr 1fr;">
+          <div class="ap split">
+            <div class="pl">&#x2713; production-style</div>
+            <h4>Separate containers</h4>
+            <p class="lead2">Each service in its own container, communicating over the network.</p>
+            <div class="ctngrid">
+              <div class="ctnbox split-a">
+                <div class="label">container 1</div>
+                <div class="item">ingestion</div>
+              </div>
+              <div class="ctnbox split-b">
+                <div class="label">container 2</div>
+                <div class="item">vector store</div>
+              </div>
+              <div class="ctnbox split-c">
+                <div class="label">container 3</div>
+                <div class="item">query API</div>
+              </div>
+            </div>
+            <p style="margin:0;font-size:17px;color:var(--ink-soft);line-height:1.5;">Each can be built, deployed, and scaled on its own.</p>
+          </div>
+          <div class="ap" style="border-top:4px solid var(--green-500)">
+            <div class="pl" style="color:var(--green-500)">&rarr; reasons to separate</div>
+            <ul>
+              <li><b>Different cadences</b> &mdash; ingestion runs occasionally; query runs continuously.</li>
+              <li><b>Different resources</b> &mdash; one is CPU-heavy, the other is latency-sensitive.</li>
+              <li><b>Independent scaling</b> &mdash; 10 query workers, 1 ingestion worker.</li>
+              <li><b>Independent deployment</b> &mdash; ship query updates without touching ingestion.</li>
+              <li><b>Failure isolation</b> &mdash; a stuck job won't take down the API.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. OUR PATH -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Our path through the course</p>
+        <h2 class="h">Development &rarr; Test &rarr; Deployment.</h2>
+        <h3 class="sub">
+          We don't start with the final production layout. We start simple, then split out as services stabilize.
+        </h3>
+        <div class="stages">
+          <div class="stage now">
+            <div class="stitle">Stage 1</div>
+            <h4>Development</h4>
+            <div class="pkg">
+              <div class="pkico">&#x1F4E6;</div>
+              <div><b>python-dev</b><span>reproducible Python env</span></div>
+            </div>
+            <div class="pkg">
+              <div class="pkico">&#x1F4E6;</div>
+              <div><b>vector database</b><span>persistent local store</span></div>
+            </div>
+            <p style="font-size:15px;color:var(--ink-soft);margin:0;line-height:1.5;">Two containers. Dev container does double duty for ingestion + query while we iterate.</p>
+          </div>
+          <div class="step-arrow">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stage">
+            <div class="stitle">Stage 2</div>
+            <h4>Test</h4>
+            <div class="pkg">
+              <div class="pkico">&#x1F4E6;</div>
+              <div><b>data pipeline</b><span>ingestion, isolated</span></div>
+            </div>
+            <div class="pkg">
+              <div class="pkico">&#x1F4E6;</div>
+              <div><b>query pipeline</b><span>API service, isolated</span></div>
+            </div>
+            <div class="pkg">
+              <div class="pkico">&#x1F4E6;</div>
+              <div><b>vector database</b><span>same as production</span></div>
+            </div>
+            <p style="font-size:15px;color:var(--ink-soft);margin:0;line-height:1.5;">Split into three. Test like production &mdash; find integration issues now, not later.</p>
+          </div>
+          <div class="step-arrow">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stage">
+            <div class="stitle">Stage 3</div>
+            <h4>Deployment</h4>
+            <div class="pkg">
+              <div class="pkico">&#x1F4E6;</div>
+              <div><b>data pipeline</b><span>scaled independently</span></div>
+            </div>
+            <div class="pkg">
+              <div class="pkico">&#x1F4E6;</div>
+              <div><b>query pipeline</b><span>scaled independently</span></div>
+            </div>
+            <div class="pkg">
+              <div class="pkico">&#x1F4E6;</div>
+              <div><b>vector database</b><span>scaled independently</span></div>
+            </div>
+            <p style="font-size:15px;color:var(--ink-soft);margin:0;line-height:1.5;">The same three containers ship. Tested separately, scaled separately, fail separately.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. THE PRINCIPLE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The order matters</p>
+        <h2 class="h">Services. Requirements. <i>Then</i> containers.</h2>
+        <h3 class="sub">
+          It's tempting to jump straight to the container diagram. Don't. Without
+          clear services and requirements, the container choices won't survive contact with reality.
+        </h3>
+        <div class="principle">
+          <div class="step">
+            <div class="num">1</div>
+            <b>Identify services</b>
+            <span>What does the application actually do, end to end?</span>
+          </div>
+          <div class="arr">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <b>Define requirements</b>
+            <span>What does each service need? Runtime, libs, env, ports, resources.</span>
+          </div>
+          <div class="arr">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="step">
+            <div class="num">3</div>
+            <b>Decide containers</b>
+            <span>How to package those services for the target environment.</span>
+          </div>
+        </div>
+        <p style="margin-top:14px;font-size:17px;color:var(--ink-soft);text-align:center;">
+          The goal isn't "make it run." It's <b>predictable, consistent deployment</b> across environments.
+        </p>
+      </div>
+    </section>
+
+    <!-- 9. TAKEAWAY -->
+    <section class="slide">
+      <div class="wrap" style="text-align:center;">
+        <p class="eyebrow">Takeaway &middot; end of Chapter 1</p>
+        <h2 class="h" style="margin-bottom:6px;">Containers come <i>last</i> in the design.</h2>
+        <h3 class="sub" style="margin:0 auto 18px;">
+          We've made the case for containers, mapped the example AI app, and sketched a strategy for packaging it.
+        </h3>
+        <div class="takeaway-card">
+          <div class="quote">
+            Identify services &middot; Define requirements &middot; <i>then</i> decide containers
+          </div>
+          <div class="foot">
+            That's it for Chapter 1. Next &rarr; Chapter 2: Docker 101 &mdash; workflow, Dockerfile, build, run, best practices.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (function(){
+      const slides=Array.from(document.querySelectorAll('.slide'));
+      const total=slides.length;
+      const prog=document.getElementById('progress');
+      let i=0;
+      function show(n){
+        i=Math.max(0,Math.min(total-1,n));
+        slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+        prog.style.width=(((i+1)/total)*100)+'%';
+        history.replaceState(null,'','#'+(i+1));
+      }
+      function next(){show(i+1)}function prev(){show(i-1)}
+      document.addEventListener('keydown',e=>{
+        if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+        else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev();}
+        else if(e.key==='Home'){e.preventDefault();show(0);}
+        else if(e.key==='End'){e.preventDefault();show(total-1);}
+      });
+      document.addEventListener('click',e=>{if(e.target.closest('a,pre,code'))return;next();});
+      const start=parseInt((location.hash||'#1').slice(1),10);
+      show(isFinite(start)?start-1:0);
+    })();
+  </script>
+</body>
+</html>

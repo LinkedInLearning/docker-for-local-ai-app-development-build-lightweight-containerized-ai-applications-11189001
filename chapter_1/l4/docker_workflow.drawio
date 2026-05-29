@@ -1,0 +1,179 @@
+<mxfile host="65bd71144e">
+    <diagram id="docker-workflow" name="Docker Workflow for AI Applications">
+        <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1740" pageHeight="720" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+
+                <!-- title -->
+                <mxCell id="title" value="The Docker Workflow for AI Applications" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=20;fontStyle=1;fontColor=#1a1a2e;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="18" width="620" height="34" as="geometry"/>
+                </mxCell>
+                <mxCell id="subtitle" value="Develop, test, and deploy in the same containerized environment — each stage maps to a chapter" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;fontStyle=2;fontColor=#6B7280;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="52" width="800" height="22" as="geometry"/>
+                </mxCell>
+
+                <!-- ===================== STAGE LANES (top row) ===================== -->
+
+                <!-- SPEC lane -->
+                <mxCell id="spec-lane" value="SPEC&#10;Plan with AI code-gen" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#5E35B1;strokeWidth=2;verticalAlign=top;fontStyle=1;fontSize=14;fontColor=#5E35B1;spacingTop=8;arcSize=4;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="100" width="360" height="340" as="geometry"/>
+                </mxCell>
+                <mxCell id="spec-scope" value="Project scope" style="shape=document;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5E35B1;fontSize=11;size=0.18;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="150" width="150" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="spec-ai" value="AI code-gen&#10;tool" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5E35B1;fontSize=11;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="230" y="150" width="150" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="spec-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#5E35B1;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="spec-scope" target="spec-ai" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="spec-doc" value="Project Spec&#10;&#10;• Environment settings&#10;• Infrastructure requirements&#10;• General architecture&#10;• Implementation stages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5E35B1;strokeWidth=1.5;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fontSize=12;fontStyle=1;fontColor=#37474F;shadow=1;arcSize=6;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="225" width="320" height="135" as="geometry"/>
+                </mxCell>
+                <mxCell id="spec-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#5E35B1;strokeWidth=1.5;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="spec-ai" target="spec-doc" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="spec-badge" value="Chapter 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5E35B1;strokeColor=none;fontSize=12;fontStyle=1;fontColor=#FFFFFF;arcSize=40;" parent="1" vertex="1">
+                    <mxGeometry x="150" y="395" width="140" height="30" as="geometry"/>
+                </mxCell>
+
+                <!-- DEVELOPMENT lane -->
+                <mxCell id="dev-lane" value="DEVELOPMENT&#10;Prototype in containers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;strokeWidth=2;verticalAlign=top;fontStyle=1;fontSize=14;fontColor=#1565C0;spacingTop=8;arcSize=4;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="100" width="360" height="340" as="geometry"/>
+                </mxCell>
+                <mxCell id="dev-chroma" value="ChromaDB container&#10;(vector database)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#1B5E20;strokeWidth=1.5;fontSize=12;fontStyle=1;fontColor=#1B5E20;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="490" y="150" width="320" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="dev-python" value="Python development container&#10;VS Code + Dev Containers extension" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1565C0;strokeWidth=1.5;fontSize=12;fontStyle=1;fontColor=#1565C0;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="490" y="225" width="320" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="dev-note" value="Prototype the ingestion + query pipelines&#10;inside the spec's exact environment" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontColor=#546E7A;" parent="1" vertex="1">
+                    <mxGeometry x="490" y="300" width="320" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="dev-badge" value="Chapter 3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565C0;strokeColor=none;fontSize=12;fontStyle=1;fontColor=#FFFFFF;arcSize=40;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="395" width="140" height="30" as="geometry"/>
+                </mxCell>
+
+                <!-- TEST lane -->
+                <mxCell id="test-lane" value="TEST&#10;Harden + split out" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F7FA;strokeColor=#00838F;strokeWidth=2;verticalAlign=top;fontStyle=1;fontSize=14;fontColor=#00838F;spacingTop=8;arcSize=4;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="100" width="360" height="340" as="geometry"/>
+                </mxCell>
+                <mxCell id="test-steps" value="1. Functionalize   2. Test   3. Split" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#00838F;strokeWidth=1.5;fontSize=12;fontStyle=1;fontColor=#00838F;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="920" y="150" width="320" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="test-ingest" value="ingestion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=11;dashed=1;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="920" y="218" width="100" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="test-db" value="vector DB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDC8;strokeColor=#1B5E20;fontSize=11;dashed=1;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="1030" y="218" width="100" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="test-query" value="query" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11;dashed=1;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="1140" y="218" width="100" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="test-note" value="Test that the parts connect:&#10;networking · access · port settings" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontColor=#546E7A;" parent="1" vertex="1">
+                    <mxGeometry x="920" y="290" width="320" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="test-badge" value="Chapter 4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00838F;strokeColor=none;fontSize=12;fontStyle=1;fontColor=#FFFFFF;arcSize=40;" parent="1" vertex="1">
+                    <mxGeometry x="1010" y="395" width="140" height="30" as="geometry"/>
+                </mxCell>
+
+                <!-- DEPLOYMENT lane -->
+                <mxCell id="deploy-lane" value="DEPLOYMENT&#10;Optimize + onboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;verticalAlign=top;fontStyle=1;fontSize=14;fontColor=#2E7D32;spacingTop=8;arcSize=4;" parent="1" vertex="1">
+                    <mxGeometry x="1330" y="100" width="360" height="340" as="geometry"/>
+                </mxCell>
+                <mxCell id="deploy-opt" value="Optimize the container&#10;for each service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E7D32;strokeWidth=1.5;fontSize=12;fontStyle=1;fontColor=#2E7D32;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="1350" y="150" width="320" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="deploy-onboard" value="Onboard components gradually&#10;— test as you go" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E7D32;strokeWidth=1.5;fontSize=12;fontStyle=1;fontColor=#2E7D32;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="1350" y="220" width="320" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="deploy-prod" value="Production — fully deployed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#1B5E20;strokeWidth=2;fontSize=12;fontStyle=1;fontColor=#1B5E20;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="1350" y="290" width="320" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="deploy-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1.5;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="deploy-opt" target="deploy-onboard" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="deploy-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1.5;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="deploy-onboard" target="deploy-prod" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="deploy-badge" value="Chapter 5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=none;fontSize=12;fontStyle=1;fontColor=#FFFFFF;arcSize=40;" parent="1" vertex="1">
+                    <mxGeometry x="1440" y="395" width="140" height="30" as="geometry"/>
+                </mxCell>
+
+                <!-- stage-to-stage arrows -->
+                <mxCell id="lane-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#37474F;strokeWidth=2.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="spec-lane" target="dev-lane" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#37474F;strokeWidth=2.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="dev-lane" target="test-lane" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#37474F;strokeWidth=2.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="test-lane" target="deploy-lane" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- ===================== DOCKER WORKFLOW STRIP (bottom row) ===================== -->
+                <mxCell id="wf-strip" value="The Docker workflow (Chapter 2) — turns requirements into the images used in every stage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#90A4AE;strokeWidth=1.5;dashed=1;verticalAlign=top;fontStyle=1;fontSize=13;fontColor=#455A64;spacingTop=8;arcSize=3;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="480" width="1650" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="wf-req" value="Dev environment&#10;requirements" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#5E35B1;strokeWidth=1.5;fontSize=12;fontStyle=1;fontColor=#5E35B1;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="120" y="545" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="wf-dockerfile" value="Dockerfile" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1565C0;strokeWidth=1.5;fontSize=13;fontStyle=1;fontColor=#1565C0;fontFamily=Courier New;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="545" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="wf-image" value="Image" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1565C0;strokeWidth=1.5;fontSize=13;fontStyle=1;fontColor=#1565C0;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="920" y="545" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="wf-container" value="Container" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#1565C0;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="1320" y="545" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="wf-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#455A64;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="wf-req" target="wf-dockerfile" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="wf-e1-l" value="write" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#455A64;labelBackgroundColor=#FAFAFA;" parent="wf-e1" vertex="1" connectable="0">
+                    <mxGeometry x="-0.05" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+                </mxCell>
+                <mxCell id="wf-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#455A64;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="wf-dockerfile" target="wf-image" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="wf-e2-l" value="docker build" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#455A64;labelBackgroundColor=#FAFAFA;" parent="wf-e2" vertex="1" connectable="0">
+                    <mxGeometry x="-0.05" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+                </mxCell>
+                <mxCell id="wf-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#455A64;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="wf-image" target="wf-container" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="wf-e3-l" value="docker run" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#455A64;labelBackgroundColor=#FAFAFA;" parent="wf-e3" vertex="1" connectable="0">
+                    <mxGeometry x="-0.05" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+                </mxCell>
+
+                <!-- requirements come from the spec -->
+                <mxCell id="spec-to-req" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#5E35B1;strokeWidth=1.5;dashed=1;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" parent="1" source="spec-doc" target="wf-req" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="140" y="460"/>
+                            <mxPoint x="240" y="460"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="spec-to-req-l" value="dev requirements" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#5E35B1;labelBackgroundColor=#FFFFFF;" parent="spec-to-req" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+                </mxCell>
+
+                <!-- image powers every stage -->
+                <mxCell id="img-to-dev" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;strokeWidth=1.5;dashed=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" parent="1" source="wf-container" target="dev-lane" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1440" y="460"/>
+                            <mxPoint x="650" y="460"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="img-to-dev-l" value="the running environment we develop / test / deploy in" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#1565C0;labelBackgroundColor=#FFFFFF;" parent="img-to-dev" vertex="1" connectable="0">
+                    <mxGeometry x="0.1" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+                </mxCell>
+
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

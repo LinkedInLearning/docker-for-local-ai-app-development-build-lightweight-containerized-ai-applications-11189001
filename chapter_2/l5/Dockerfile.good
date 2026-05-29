@@ -1,0 +1,45 @@
+# Same app as Dockerfile.bad, written with the practices from L5.
+#
+# Highlights:
+#   - Pinned base image
+#   - ARG + ENV for the Python version
+#   - Dependency layer copied & installed BEFORE source
+#   - Single RUN for apt with cleanup
+#   - pip install with --no-cache-dir
+#   - Non-root user
+#   - Exec form CMD
+#   - EXPOSE for documentation
+#
+FROM python:3.11-slim
+
+# Build-time knobs (overridable with --build-arg)
+ARG APP_USER="appuser"
+ARG APP_UID="1000"
+
+# Runtime config
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    APP_USER=$APP_USER
+
+WORKDIR /app
+
+# System packages — single RUN, no cache left behind
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Dependencies first (cache-friendly)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Application code last
+COPY . .
+
+# Drop root
+RUN useradd -m -u "${APP_UID}" "${APP_USER}" \
+    && chown -R "${APP_USER}:${APP_USER}" /app
+USER ${APP_USER}
+
+EXPOSE 8080
+
+CMD ["python", "main.py"]

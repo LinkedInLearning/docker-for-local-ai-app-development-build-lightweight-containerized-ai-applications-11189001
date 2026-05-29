@@ -1,0 +1,24 @@
+# Anti-pattern Dockerfile — DO NOT copy this into a real project.
+#
+# Issues demonstrated:
+#   - Unpinned base image (`latest` by default)
+#   - Unpinned package versions
+#   - Source code copied before requirements (cache buster)
+#   - Multiple RUNs that should be one
+#   - No apt cache cleanup
+#   - No --no-cache-dir on pip
+#   - Runs as root
+#   - Shell form CMD (broken signal handling)
+#   - No EXPOSE
+#
+FROM python
+
+WORKDIR /app
+
+COPY . .
+
+RUN apt-get update
+RUN apt-get install -y curl git
+RUN pip install fastapi uvicorn
+
+CMD python main.py

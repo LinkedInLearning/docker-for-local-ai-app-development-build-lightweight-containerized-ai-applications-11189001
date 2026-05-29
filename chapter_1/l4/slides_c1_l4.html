@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chapter 1 · Lesson 4 — Containerized Development Workflow for AI Applications</title>
+  <style>
+    :root {
+      --bg:#fff; --bg-soft:#f7f9fc; --ink:#0f172a; --ink-soft:#475569;
+      --muted:#94a3b8; --line:#e2e8f0; --line-soft:#eef2f7;
+      --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-500:#3b82f6;
+      --blue-600:#2563eb; --blue-700:#1d4ed8;
+      --teal-500:#0ea5e9; --amber-500:#f59e0b; --amber-50:#fffbeb;
+      --green-500:#10b981; --green-50:#ecfdf5; --pink-500:#ec4899;
+      --violet-500:#8b5cf6; --violet-50:#f5f3ff;
+      --red-500:#ef4444; --red-50:#fef2f2;
+
+      --rag-green-bg:#E8F5E9;  --rag-green-stroke:#2E7D32;
+      --rag-blue-bg:#E3F2FD;   --rag-blue-stroke:#1565C0;
+      --rag-cyl-bg:#DCEDC8;    --rag-cyl-stroke:#33691E;
+
+      --code-bg:#0f172a; --code-fg:#e2e8f0;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+      --shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.07);
+      --radius:16px; --maxw:1280px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
+      font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+    /* chrome — only the progress bar */
+    .progress{position:fixed;top:0;left:0;height:4px;width:0%;
+      background:linear-gradient(90deg,var(--blue-600),var(--teal-500));z-index:50;transition:width .25s ease}
+
+    /* slides — viewport-locked, top-anchored, cross-fade */
+    .deck{position:relative;width:100%;height:100vh}
+    .slide{
+      position:absolute;inset:0;
+      display:flex;align-items:flex-start;
+      height:100vh;max-height:100vh;overflow:hidden;
+      padding:40px 56px 56px;
+      opacity:0;pointer-events:none;
+      transition:opacity .55s cubic-bezier(.4,0,.2,1);
+    }
+    .slide.active{opacity:1;pointer-events:auto;z-index:1}
+    .slide .wrap{margin:0 auto;width:100%;max-width:var(--maxw)}
+
+    .eyebrow{font-size:17px;letter-spacing:.18em;text-transform:uppercase;
+      color:var(--blue-700);font-weight:700;margin:0 0 16px}
+    h1.title{font-size:92px;line-height:1.04;letter-spacing:-.028em;margin:0 0 18px;font-weight:700}
+    h1.title .accent{background:linear-gradient(90deg,var(--blue-600),var(--teal-500));
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+    h2.h{font-size:58px;line-height:1.1;letter-spacing:-.02em;margin:0 0 14px;font-weight:700}
+    h3.sub{font-size:26px;font-weight:500;color:var(--ink-soft);margin:0 0 22px;line-height:1.5;max-width:1000px}
+    p.lead{font-size:28px;line-height:1.5;color:var(--ink-soft);margin:0 0 18px;max-width:1000px}
+    .inline{background:var(--bg-soft);padding:2px 10px;border:1px solid var(--line);border-radius:6px;
+      font-family:ui-monospace,monospace;font-size:.92em;color:var(--ink)}
+
+    .title-art{position:absolute;right:-40px;top:50%;transform:translateY(-50%);
+      width:780px;height:780px;opacity:.5;pointer-events:none;z-index:0}
+    .title-wrap{position:relative;z-index:1}
+
+    /* path / where-we-are */
+    .path{margin-top:28px;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch}
+    .path .stop{padding:20px 22px;border:1px solid var(--line);border-radius:var(--radius);
+      background:var(--bg);box-shadow:var(--shadow-sm)}
+    .path .stop.now{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50));box-shadow:var(--shadow)}
+    .path .stop .lbl{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;font-weight:600}
+    .path .stop.now .lbl{color:var(--blue-700)}
+    .path .stop .ttl{font-size:23px;font-weight:600;color:var(--ink);margin-bottom:6px}
+    .path .stop .desc{font-size:18px;color:var(--ink-soft);line-height:1.45}
+    .path .connector{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 10px}
+    .path .connector svg{width:34px;height:34px}
+
+    /* spec card (sidebar + contents) */
+    .specrow{display:grid;grid-template-columns:1fr 1.25fr;gap:22px;margin-top:8px;align-items:stretch}
+    .specsource{
+      background:linear-gradient(180deg,#fff,var(--violet-50));border:1px solid var(--line);
+      border-top:4px solid var(--violet-500);border-radius:18px;padding:26px 24px;box-shadow:var(--shadow);
+      display:flex;flex-direction:column;justify-content:center;
+    }
+    .specsource .ic{width:72px;height:72px;border-radius:18px;background:var(--violet-50);
+      color:var(--violet-500);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+    .specsource .ic svg{width:38px;height:38px}
+    .specsource b{font-size:24px;color:var(--ink);display:block;margin-bottom:10px}
+    .specsource span{font-size:18px;color:var(--ink-soft);line-height:1.5}
+    .specsource .out{
+      margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:10px;
+      padding:12px 14px;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:10px;
+    }
+    .specsource .out .arr{color:var(--violet-500);font-weight:700}
+    .speccards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .speccard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow-sm)}
+    .speccard .num{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue-700);font-weight:700;margin-bottom:8px}
+    .speccard b{font-size:21px;color:var(--ink);display:block;margin-bottom:6px}
+    .speccard p{margin:0;font-size:16px;color:var(--ink-soft);line-height:1.45}
+    .speccard.hl{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50))}
+
+    /* horizontal pipeline chain (N steps + arrows) */
+    .chain{display:flex;align-items:stretch;gap:0;margin-top:18px}
+    .chain .node{
+      flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 18px;
+      box-shadow:var(--shadow-sm);text-align:center;display:flex;flex-direction:column;gap:8px;
+    }
+    .chain .node .nlbl{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+    .chain .node b{font-size:22px;color:var(--ink);font-family:ui-monospace,monospace;letter-spacing:-.01em}
+    .chain .node span{font-size:15px;color:var(--ink-soft);line-height:1.4}
+    .chain .node.start{border-top:4px solid var(--violet-500)}
+    .chain .node.mid{border-top:4px solid var(--blue-500)}
+    .chain .node.end{border-top:4px solid var(--green-500)}
+    .chain .arrow{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 8px}
+    .chain .arrow svg{width:30px;height:30px}
+
+    /* dev-stage two-container visual */
+    .devrow{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:8px}
+    .ctn{background:#fff;border:2px solid;border-radius:16px;padding:24px;box-shadow:var(--shadow-sm)}
+    .ctn.py{border-color:var(--rag-blue-stroke);background:linear-gradient(180deg,#fff,var(--rag-blue-bg))}
+    .ctn.db{border-color:var(--rag-cyl-stroke);background:linear-gradient(180deg,#fff,var(--rag-cyl-bg))}
+    .ctn .tag{font-size:15px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-bottom:10px}
+    .ctn.py .tag{color:var(--rag-blue-stroke)}
+    .ctn.db .tag{color:var(--rag-cyl-stroke)}
+    .ctn .ic{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+    .ctn.py .ic{background:var(--rag-blue-bg);color:var(--rag-blue-stroke)}
+    .ctn.db .ic{background:var(--rag-cyl-bg);color:var(--rag-cyl-stroke)}
+    .ctn h4{margin:0 0 10px;font-size:24px;font-weight:700}
+    .ctn p{margin:0 0 12px;font-size:17px;color:var(--ink-soft);line-height:1.5}
+    .ctn .chip{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:999px;
+      padding:5px 14px;font-size:14px;color:var(--ink);font-family:ui-monospace,monospace}
+
+    /* numbered steps (test stage) */
+    .principle{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch;margin-top:14px}
+    .principle .step{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;
+      box-shadow:var(--shadow-sm);text-align:center}
+    .principle .step .num{width:52px;height:52px;border-radius:14px;
+      background:linear-gradient(135deg,var(--blue-600),var(--teal-500));color:#fff;
+      display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;margin:0 auto 14px}
+    .principle .step b{font-size:22px;color:var(--ink);display:block;margin-bottom:8px}
+    .principle .step span{font-size:17px;color:var(--ink-soft);line-height:1.5}
+    .principle .arr{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 10px}
+    .principle .arr svg{width:34px;height:34px}
+
+    /* split-out container grid */
+    .ctngrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px}
+    .ctnbox{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:10px}
+    .ctnbox .label{font-size:13px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;text-align:center}
+    .ctnbox .item{background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 12px;
+      font-size:16px;font-family:ui-monospace,monospace;color:var(--ink);text-align:center}
+    .ctnbox.a{border:2px dashed var(--rag-green-stroke);background:rgba(46,125,50,.05)}
+    .ctnbox.b{border:2px dashed var(--rag-cyl-stroke);background:rgba(51,105,30,.05)}
+    .ctnbox.c{border:2px dashed var(--rag-blue-stroke);background:rgba(21,101,192,.05)}
+    .ctnbox.a .label{color:var(--rag-green-stroke)}
+    .ctnbox.b .label{color:var(--rag-cyl-stroke)}
+    .ctnbox.c .label{color:var(--rag-blue-stroke)}
+
+    /* full workflow — 4 stages w/ chapter badges */
+    .flow4{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:0;align-items:stretch;margin-top:18px}
+    .fstage{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px 18px;
+      box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:10px;text-align:center}
+    .fstage .stitle{font-size:15px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--blue-700)}
+    .fstage h4{margin:0;font-size:25px;font-weight:700;letter-spacing:-.01em}
+    .fstage p{margin:0;font-size:15px;color:var(--ink-soft);line-height:1.45}
+    .fstage .chbadge{margin-top:auto;align-self:center;background:linear-gradient(135deg,var(--blue-600),var(--teal-500));
+      color:#fff;font-size:14px;font-weight:700;letter-spacing:.06em;border-radius:999px;padding:6px 16px}
+    .flow4 .step-arrow{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 8px}
+    .flow4 .step-arrow svg{width:30px;height:30px}
+
+    .next-line{margin-top:16px;font-size:18px;color:var(--ink-soft);text-align:center}
+    .next-line b{color:var(--ink)}
+
+    /* takeaway */
+    .takeaway-card{margin:18px auto 0;max-width:1100px;
+      background:linear-gradient(135deg,#fff,var(--bg-soft));border:1px solid var(--line);
+      border-radius:24px;padding:28px 36px;box-shadow:var(--shadow);text-align:center}
+    .takeaway-card .quote{font-size:30px;color:var(--ink);font-weight:600;
+      letter-spacing:-.01em;line-height:1.4;max-width:1000px;margin:0 auto}
+    .takeaway-card .foot{margin-top:14px;font-size:20px;color:var(--ink-soft)}
+
+    @media (max-width:1100px){
+      .slide{padding:32px 28px 60px}
+      h1.title{font-size:60px}h2.h{font-size:40px}
+      h3.sub{font-size:20px}p.lead{font-size:22px}
+      .title-art{display:none}
+      .path,.specrow,.speccards,.devrow,.principle,.flow4,.ctngrid{grid-template-columns:1fr}
+      .chain{flex-direction:column}
+      .path .connector,.principle .arr,.flow4 .step-arrow,.chain .arrow{transform:rotate(90deg);padding:4px 0}
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <main class="deck" id="deck">
+
+    <!-- 1. TITLE -->
+    <section class="slide active" style="position:absolute;overflow:hidden;">
+      <svg class="title-art" viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="ga" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity=".22"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity=".06"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(70 230)">
+          <!-- workflow: four nodes connected by arrows -->
+          <rect x="0"   y="0" width="120" height="120" rx="16" fill="url(#ga)"/>
+          <rect x="180" y="0" width="120" height="120" rx="16" fill="url(#ga)" opacity=".8"/>
+          <rect x="360" y="0" width="120" height="120" rx="16" fill="url(#ga)" opacity=".6"/>
+          <rect x="540" y="0" width="120" height="120" rx="16" fill="url(#ga)" opacity=".45"/>
+          <path d="M126 60h48M306 60h48M486 60h48" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+          <path d="M170 52l10 8-10 8M350 52l10 8-10 8M530 52l10 8-10 8" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".5"/>
+        </g>
+      </svg>
+      <div class="wrap title-wrap">
+        <p class="eyebrow">Chapter 1 &middot; Lesson 4</p>
+        <h1 class="title">Containerized Development Workflow <span class="accent">for AI Applications</span></h1>
+        <h3 class="sub">
+          From a project spec to a system in production &mdash; the path an AI
+          application travels, and how containers ride along at every stage.
+        </h3>
+        <p style="margin-top:24px;color:var(--ink-soft);font-size:18px;letter-spacing:.04em;">
+          Docker for Local AI &middot; Building AI Applications with Containers
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. WHERE WE ARE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Where we are</p>
+        <h2 class="h">From a plan to a workflow.</h2>
+        <p class="lead">
+          Lesson 3 gave us a container strategy: identify services, define
+          requirements, then decide how to package them. Now the next question:
+        </p>
+        <p class="lead" style="margin-top:0;font-style:italic;">
+          How do we actually get from idea to a running system?
+        </p>
+        <div class="path">
+          <div class="stop">
+            <div class="lbl">Lesson 3 &middot; done</div>
+            <div class="ttl">Container strategy</div>
+            <div class="desc">Services, requirements, dev &rarr; test &rarr; deploy.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop now">
+            <div class="lbl">Lesson 4 &middot; here</div>
+            <div class="ttl">The Docker workflow</div>
+            <div class="desc">Spec &rarr; develop &rarr; test &rarr; deploy.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop">
+            <div class="lbl">Chapter 2 &middot; next</div>
+            <div class="ttl">Docker 101</div>
+            <div class="desc">Workflow, Dockerfile, build, run, best practices.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. START WITH A SPEC -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Step 1 &middot; start with a plan</p>
+        <h2 class="h">Everything starts with a spec.</h2>
+        <h3 class="sub">
+          Before any code or any image, work with your AI code-generation tool to
+          turn the project scope into a clear requirements document.
+        </h3>
+        <div class="specrow">
+          <div class="specsource">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.2 4.8L19 9l-3.5 3.3.9 4.9L12 14.9 7.6 17.2l.9-4.9L5 9l4.8-1.2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            </div>
+            <b>Scope &times; AI code-gen</b>
+            <span>Describe the project, iterate with your AI tool, converge on a written plan.</span>
+            <div class="out"><span class="arr">&rarr;</span> a project spec</div>
+          </div>
+          <div class="speccards">
+            <div class="speccard">
+              <div class="num">includes</div>
+              <b>Environment settings</b>
+              <p>Language version, libraries, system packages.</p>
+            </div>
+            <div class="speccard">
+              <div class="num">includes</div>
+              <b>Infrastructure</b>
+              <p>Services like the vector DB, ports, volumes.</p>
+            </div>
+            <div class="speccard">
+              <div class="num">includes</div>
+              <b>Architecture</b>
+              <p>The services from lesson 3 and how they connect.</p>
+            </div>
+            <div class="speccard">
+              <div class="num">includes</div>
+              <b>Implementation stages</b>
+              <p>How we build the system, step by step.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. SPEC -> DEV IMAGE / DOCKER WORKFLOW -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">From the spec to a container</p>
+        <h2 class="h">Dev requirements build the dev image.</h2>
+        <h3 class="sub">
+          One part of the spec matters most right now: the <b>development
+          environment requirements</b>. They become the recipe for our dev image.
+        </h3>
+        <div class="chain">
+          <div class="node start">
+            <div class="nlbl">from the spec</div>
+            <b>requirements</b>
+            <span>What the dev environment needs.</span>
+          </div>
+          <div class="arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="node mid">
+            <div class="nlbl">write</div>
+            <b>Dockerfile</b>
+            <span>The build instructions.</span>
+          </div>
+          <div class="arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="node mid">
+            <div class="nlbl">docker build</div>
+            <b>image</b>
+            <span>A reproducible snapshot.</span>
+          </div>
+          <div class="arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="node end">
+            <div class="nlbl">docker run</div>
+            <b>container</b>
+            <span>The running environment.</span>
+          </div>
+        </div>
+        <p class="next-line">
+          We'll work through this workflow in detail in <b>Chapter 2 &middot; Docker 101</b>.
+        </p>
+      </div>
+    </section>
+
+    <!-- 5. DEVELOPMENT STAGE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Stage 1 &middot; development &nbsp;&rarr;&nbsp; Chapter 3</p>
+        <h2 class="h">Prototype inside two containers.</h2>
+        <h3 class="sub">
+          Following the lesson-3 strategy, development starts with two containers &mdash;
+          and we write code <i>inside</i> them using VS Code + the Dev Containers extension.
+        </h3>
+        <div class="devrow">
+          <div class="ctn db">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="8" ry="3" stroke="currentColor" stroke-width="2"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" stroke="currentColor" stroke-width="2"/></svg>
+            </div>
+            <div class="tag">Vector database</div>
+            <h4>ChromaDB container</h4>
+            <p>Stores embeddings and serves similarity search for the pipelines.</p>
+            <span class="chip">chromadb/chroma</span>
+          </div>
+          <div class="ctn py">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="tag">Development env</div>
+            <h4>Python dev container</h4>
+            <p>Where we prototype the data ingestion and query pipelines.</p>
+            <span class="chip">VS Code &middot; Dev Containers</span>
+          </div>
+        </div>
+        <p class="next-line">
+          Develop in the <b>exact</b> environment from the spec &mdash; no "works on my machine."
+          The <b>prototype stage</b> is the focus of Chapter 3.
+        </p>
+      </div>
+    </section>
+
+    <!-- 6. TEST STAGE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Stage 2 &middot; test &nbsp;&rarr;&nbsp; Chapter 4</p>
+        <h2 class="h">Make it robust, then split it out.</h2>
+        <h3 class="sub">
+          Once the prototype works, we harden it and move toward a production-shaped layout.
+        </h3>
+        <div class="principle">
+          <div class="step">
+            <div class="num">1</div>
+            <b>Functionalize</b>
+            <span>Turn exploratory prototype code into clean, reusable functions.</span>
+          </div>
+          <div class="arr"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="step">
+            <div class="num">2</div>
+            <b>Test</b>
+            <span>Verify the components behave correctly and predictably.</span>
+          </div>
+          <div class="arr"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="step">
+            <div class="num">3</div>
+            <b>Split containers</b>
+            <span>One for ingestion, one for query &mdash; closer to production.</span>
+          </div>
+        </div>
+        <div class="ctngrid">
+          <div class="ctnbox a"><div class="label">container 1</div><div class="item">ingestion pipeline</div></div>
+          <div class="ctnbox b"><div class="label">container 2</div><div class="item">vector database</div></div>
+          <div class="ctnbox c"><div class="label">container 3</div><div class="item">query pipeline</div></div>
+        </div>
+        <p class="next-line">
+          Now we test that the parts actually <b>connect</b> &mdash; networking, access, ports.
+          The <b>testing stage</b> is the focus of Chapter 4.
+        </p>
+      </div>
+    </section>
+
+    <!-- 7. DEPLOYMENT STAGE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Stage 3 &middot; deployment &nbsp;&rarr;&nbsp; Chapter 5</p>
+        <h2 class="h">Optimize, then onboard gradually.</h2>
+        <h3 class="sub">
+          The last step before production is to optimize each service's container &mdash;
+          and those optimized containers are what we ship.
+        </h3>
+        <div class="chain">
+          <div class="node start">
+            <div class="nlbl">per service</div>
+            <b>optimize</b>
+            <span>Lean, secure, production-ready images.</span>
+          </div>
+          <div class="arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="node mid">
+            <div class="nlbl">roll out</div>
+            <b>onboard</b>
+            <span>Bring components into production one at a time.</span>
+          </div>
+          <div class="arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="node end">
+            <div class="nlbl">verify &amp; repeat</div>
+            <b>fully deployed</b>
+            <span>Test as you go until the whole system is live.</span>
+          </div>
+        </div>
+        <p class="next-line">
+          A gradual, tested rollout &mdash; not a big-bang launch.
+          <b>Deployment to production</b> is the focus of Chapter 5.
+        </p>
+      </div>
+    </section>
+
+    <!-- 8. THE WHOLE WORKFLOW -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The whole workflow</p>
+        <h2 class="h">Spec &rarr; Develop &rarr; Test &rarr; Deploy.</h2>
+        <h3 class="sub">
+          Four stages, each mapping to a chapter of this course. Containers travel
+          with us through every one of them.
+        </h3>
+        <div class="flow4">
+          <div class="fstage">
+            <div class="stitle">Plan</div>
+            <h4>Spec</h4>
+            <p>Requirements doc &amp; the Docker workflow that builds the image.</p>
+            <div class="chbadge">Chapter 2</div>
+          </div>
+          <div class="step-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fstage">
+            <div class="stitle">Stage 1</div>
+            <h4>Develop</h4>
+            <p>Prototype in two containers with VS Code + Dev Containers.</p>
+            <div class="chbadge">Chapter 3</div>
+          </div>
+          <div class="step-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fstage">
+            <div class="stitle">Stage 2</div>
+            <h4>Test</h4>
+            <p>Functionalize, test, split into separate service containers.</p>
+            <div class="chbadge">Chapter 4</div>
+          </div>
+          <div class="step-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fstage">
+            <div class="stitle">Stage 3</div>
+            <h4>Deploy</h4>
+            <p>Optimize each container and onboard into production gradually.</p>
+            <div class="chbadge">Chapter 5</div>
+          </div>
+        </div>
+        <p class="next-line">
+          Containers aren't a final deployment detail &mdash; they're part of the workflow from <b>stage one</b>.
+        </p>
+      </div>
+    </section>
+
+    <!-- 9. TAKEAWAY -->
+    <section class="slide">
+      <div class="wrap" style="text-align:center;">
+        <p class="eyebrow">Takeaway &middot; end of Chapter 1</p>
+        <h2 class="h" style="margin-bottom:6px;">Develop, test, and deploy in containers.</h2>
+        <h3 class="sub" style="margin:0 auto 18px;">
+          We made the case for containers, mapped the example app, planned a
+          container strategy, and walked the workflow that puts it into practice.
+        </h3>
+        <div class="takeaway-card">
+          <div class="quote">
+            Spec &middot; Develop &middot; Test &middot; Deploy &mdash; the same containerized environment, end to end.
+          </div>
+          <div class="foot">
+            That's it for Chapter 1. Next &rarr; Chapter 2: Docker 101 &mdash; requirements, Dockerfile, build, run.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (function(){
+      const slides=Array.from(document.querySelectorAll('.slide'));
+      const total=slides.length;
+      const prog=document.getElementById('progress');
+      let i=0;
+      function show(n){
+        i=Math.max(0,Math.min(total-1,n));
+        slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+        prog.style.width=(((i+1)/total)*100)+'%';
+        history.replaceState(null,'','#'+(i+1));
+      }
+      function next(){show(i+1)}function prev(){show(i-1)}
+      document.addEventListener('keydown',e=>{
+        if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+        else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev();}
+        else if(e.key==='Home'){e.preventDefault();show(0);}
+        else if(e.key==='End'){e.preventDefault();show(total-1);}
+      });
+      document.addEventListener('click',e=>{if(e.target.closest('a,pre,code'))return;next();});
+      const start=parseInt((location.hash||'#1').slice(1),10);
+      show(isFinite(start)?start-1:0);
+    })();
+  </script>
+</body>
+</html>

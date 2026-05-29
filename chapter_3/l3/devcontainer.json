@@ -1,0 +1,54 @@
+// Chapter 3 · Lesson 2 (Dev Containers) — a teaching-sized devcontainer.json.
+//
+// In a real project this file lives at `.devcontainer/devcontainer.json`.
+// When VS Code opens the project it reads this file, brings up the
+// container (here via Docker Compose), installs the listed extensions
+// INSIDE the container, and attaches your editor to it.
+//
+// This is a trimmed version of the project's real
+// `.devcontainer/devcontainer.json` — the real one forwards more ports,
+// installs more extensions, and injects API keys via remoteEnv.
+{
+    "name": "RAG Docker Dev",
+
+    // Reuse the SAME docker-compose.yaml the team runs from the terminal.
+    // The dev container is just another way to start the `python` service.
+    "dockerComposeFile": ["../docker-compose.yaml"],
+    "service": "python",
+    "runServices": ["python"],
+
+    // Leave the containers running when you close VS Code.
+    "shutdownAction": "none",
+
+    // The folder VS Code opens inside the container — matches the volume
+    // mount target in docker-compose.yaml (.:/workspace).
+    "workspaceFolder": "/workspace/",
+
+    // Auto-forward the app ports to the host browser.
+    "forwardPorts": [8501, 8080],
+
+    "customizations": {
+        "vscode": {
+            // Point VS Code at the interpreter that lives in the image.
+            "settings": {
+                "python.defaultInterpreterPath": "/opt/python-3.11-dev/bin/python3"
+            },
+            // Extensions installed INSIDE the container, pinned to the
+            // project — every teammate gets the same toolchain.
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "charliermarsh.ruff",
+                "ms-toolsai.jupyter",
+                "ms-azuretools.vscode-docker",
+                "redhat.vscode-yaml"
+            ]
+        }
+    },
+
+    // Mount something from OUTSIDE the project folder — here, a host file
+    // for shell history so it survives container rebuilds.
+    "mounts": [
+        "source=${localEnv:HOME}/.zsh_history_dev,target=/root/.zsh_history,type=bind"
+    ]
+}

@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chapter 3 · Lesson 4 — Developing Inside the Container</title>
+  <style>
+    :root {
+      --bg:#fff; --bg-soft:#f7f9fc; --ink:#0f172a; --ink-soft:#475569;
+      --muted:#94a3b8; --line:#e2e8f0; --line-soft:#eef2f7;
+      --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-500:#3b82f6;
+      --blue-600:#2563eb; --blue-700:#1d4ed8;
+      --teal-500:#0ea5e9; --amber-500:#f59e0b; --amber-50:#fffbeb;
+      --green-500:#10b981; --green-50:#ecfdf5; --pink-500:#ec4899;
+      --violet-500:#8b5cf6; --violet-50:#f5f3ff;
+      --red-500:#ef4444; --red-50:#fef2f2;
+      --code-bg:#0f172a; --code-fg:#e2e8f0;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+      --shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.07);
+      --radius:16px; --maxw:1280px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
+      font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+    /* chrome — only the progress bar; the deck is otherwise unadorned */
+    .progress{position:fixed;top:0;left:0;height:4px;width:0%;
+      background:linear-gradient(90deg,var(--blue-600),var(--teal-500));z-index:50;transition:width .25s ease}
+
+    /* slides — fit the viewport, do not scroll. Top-anchored, cross-fade only. */
+    .deck{position:relative;width:100%;height:100vh}
+    .slide{
+      position:absolute;inset:0;
+      display:flex;align-items:flex-start;
+      height:100vh;max-height:100vh;overflow:hidden;
+      padding:40px 56px 56px;
+      opacity:0;pointer-events:none;
+      transition:opacity .55s cubic-bezier(.4,0,.2,1);
+    }
+    .slide.active{opacity:1;pointer-events:auto;z-index:1}
+    .slide .wrap{margin:0 auto;width:100%;max-width:var(--maxw)}
+
+    /* typography — presentation scale */
+    .eyebrow{font-size:17px;letter-spacing:.18em;text-transform:uppercase;
+      color:var(--blue-700);font-weight:700;margin:0 0 16px}
+    h1.title{font-size:92px;line-height:1.04;letter-spacing:-.028em;margin:0 0 18px;font-weight:700}
+    h1.title .accent{background:linear-gradient(90deg,var(--blue-600),var(--teal-500));
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+    h2.h{font-size:58px;line-height:1.1;letter-spacing:-.02em;margin:0 0 14px;font-weight:700}
+    h3.sub{font-size:26px;font-weight:500;color:var(--ink-soft);margin:0 0 22px;line-height:1.5;max-width:1000px}
+    p.lead{font-size:28px;line-height:1.5;color:var(--ink-soft);margin:0 0 18px;max-width:1000px}
+    .inline{background:var(--bg-soft);padding:2px 10px;border:1px solid var(--line);border-radius:6px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;color:var(--ink)}
+
+    /* title art */
+    .title-art{position:absolute;right:-40px;top:50%;transform:translateY(-50%);
+      width:780px;height:780px;opacity:.5;pointer-events:none;z-index:0}
+    .title-wrap{position:relative;z-index:1}
+
+    /* path / chapter timeline (3-stop) */
+    .path{margin-top:28px;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch}
+    .path .stop{padding:20px 22px;border:1px solid var(--line);border-radius:var(--radius);
+      background:var(--bg);box-shadow:var(--shadow-sm)}
+    .path .stop.now{border-color:var(--blue-500);background:linear-gradient(180deg,#fff,var(--blue-50));box-shadow:var(--shadow)}
+    .path .stop .lbl{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;font-weight:600}
+    .path .stop.now .lbl{color:var(--blue-700)}
+    .path .stop .ttl{font-size:23px;font-weight:600;color:var(--ink);margin-bottom:6px}
+    .path .stop .desc{font-size:18px;color:var(--ink-soft);line-height:1.45}
+    .path .connector{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);padding:0 10px}
+    .path .connector svg{width:34px;height:34px}
+
+    /* generic code block */
+    pre.code{background:var(--code-bg);color:var(--code-fg);padding:18px 22px;
+      border-radius:14px;font:20px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+      overflow-x:auto;box-shadow:0 6px 18px rgba(15,23,42,.15);margin:0}
+    pre.code .k{color:#93c5fd;font-weight:600}
+    pre.code .s{color:#fcd34d}
+    pre.code .c{color:#64748b}
+    pre.code .v{color:#86efac}
+    pre.code .f{color:#fcd34d;font-weight:600}
+
+    /* AI-in-the-loop chips */
+    .chips{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px}
+    .chip{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);
+      border-radius:14px;padding:16px 20px;box-shadow:var(--shadow-sm)}
+    .chip .ic{width:34px;height:34px;flex-shrink:0;color:var(--violet-500)}
+    .chip b{font-size:21px;color:var(--ink);font-weight:600}
+    .aiquote{margin-top:26px;font-size:26px;color:var(--ink);font-weight:600;line-height:1.4;
+      padding-left:20px;border-left:4px solid var(--violet-500);max-width:1000px}
+    .aiquote em{font-style:normal;background:linear-gradient(90deg,var(--violet-500),var(--blue-600));
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+
+    /* module cards */
+    .modgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:6px}
+    .modgrid .full{grid-column:1 / -1}
+    .modcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;
+      box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:18px}
+    .modcard .num{width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;
+      align-items:center;justify-content:center;background:var(--blue-50);color:var(--blue-700);font-weight:700;font-size:18px}
+    .modcard code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:19px;font-weight:700;
+      color:var(--ink);background:var(--bg-soft);padding:3px 10px;border-radius:7px;border:1px solid var(--line-soft);white-space:nowrap}
+    .modcard span{font-size:18px;color:var(--ink-soft);line-height:1.4}
+
+    /* two validate cards */
+    .twocards{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:10px}
+    .vcard{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:28px 30px;box-shadow:var(--shadow)}
+    .vcard.nb{border-color:var(--green-500);background:linear-gradient(180deg,#fff,var(--green-50))}
+    .vcard.dash{border-color:var(--teal-500);background:linear-gradient(180deg,#fff,#f0f9ff)}
+    .vcard .ic{width:48px;height:48px;margin-bottom:14px}
+    .vcard.nb .ic{color:var(--green-500)}
+    .vcard.dash .ic{color:var(--teal-500)}
+    .vcard h4{font-size:28px;margin:0 0 10px;font-weight:700;color:var(--ink)}
+    .vcard p{font-size:21px;color:var(--ink-soft);line-height:1.5;margin:0}
+
+    /* flow row (notebook pipeline) */
+    .flow{display:flex;align-items:stretch;justify-content:center;gap:0;margin-top:18px;flex-wrap:nowrap}
+    .flow .fnode{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 16px;
+      text-align:center;box-shadow:var(--shadow-sm);min-width:130px}
+    .flow .fnode .k{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin-bottom:8px}
+    .flow .fnode .n{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:18px;font-weight:700;color:var(--ink)}
+    .flow .fnode.store{border-color:var(--violet-500);background:linear-gradient(180deg,#fff,var(--violet-50))}
+    .flow .fnode.db{border-color:var(--green-500);background:linear-gradient(180deg,#fff,var(--green-50))}
+    .flow .farr{display:flex;align-items:center;color:var(--ink-soft);padding:0 6px}
+    .flow .farr svg{width:26px;height:26px}
+    .notebox{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .notebox .nb-item{background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;
+      font-size:19px;color:var(--ink-soft);line-height:1.5}
+    .notebox .nb-item b{color:var(--ink)}
+
+    /* terminal mock */
+    .term{background:var(--code-bg);color:#e2e8f0;border-radius:16px;padding:24px 26px;
+      font:20px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;box-shadow:0 8px 24px rgba(15,23,42,.2);
+      margin-top:14px;max-width:1100px}
+    .term .bar{display:flex;gap:8px;margin-bottom:16px}
+    .term .bar .b{width:14px;height:14px;border-radius:50%}
+    .term .bar .b1{background:#ef4444}.term .bar .b2{background:#f59e0b}.term .bar .b3{background:#10b981}
+    .term .prompt{color:#86efac;font-weight:600}
+    .term .cmd{color:#93c5fd;font-weight:600}
+    .term .out{color:#cbd5e1}
+    .term .ok{color:#86efac}
+    .term .url{color:#7dd3fc}
+    .term hr{border:none;border-top:1px solid #1e293b;margin:14px 0}
+    .dashsteps{display:flex;gap:14px;margin-top:22px;flex-wrap:wrap}
+    .dashsteps .ds{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 20px;
+      font-size:19px;color:var(--ink-soft);box-shadow:var(--shadow-sm)}
+    .dashsteps .ds b{color:var(--ink)}
+
+    /* loop diagram */
+    .loop{position:relative;width:100%;max-width:980px;height:430px;margin:8px auto 0}
+    .loop .lnode{position:absolute;width:230px;background:#fff;border:1px solid var(--line);
+      border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);text-align:center}
+    .loop .lnode .k{font-size:14px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+    .loop .lnode b{font-size:21px;color:var(--ink);display:block;line-height:1.25}
+    .loop .lnode span{font-size:16px;color:var(--ink-soft);line-height:1.4;display:block;margin-top:4px}
+    .loop .n1{top:0;left:50%;transform:translateX(-50%);border-color:var(--blue-500)}
+    .loop .n1 .k{color:var(--blue-700)}
+    .loop .n2{top:150px;right:0;border-color:var(--violet-500)}
+    .loop .n2 .k{color:var(--violet-500)}
+    .loop .n3{bottom:0;left:50%;transform:translateX(-50%);border-color:var(--green-500)}
+    .loop .n3 .k{color:#047857}
+    .loop .n4{top:150px;left:0;border-color:var(--teal-500)}
+    .loop .n4 .k{color:#0369a1}
+    .loop svg.arcs{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+    /* takeaway */
+    .takeaway-card{margin:18px auto 0;max-width:1100px;
+      background:linear-gradient(135deg,#fff,var(--bg-soft));border:1px solid var(--line);
+      border-radius:24px;padding:28px 36px;box-shadow:var(--shadow);text-align:center}
+    .takeaway-card .quote{font-size:30px;color:var(--ink);font-weight:600;
+      letter-spacing:-.01em;line-height:1.4;max-width:900px;margin:0 auto}
+    .takeaway-card .foot{margin-top:14px;font-size:20px;color:var(--ink-soft)}
+
+    @media (max-width:1100px){
+      .slide{padding:32px 28px 60px}
+      h1.title{font-size:60px}h2.h{font-size:40px}
+      h3.sub{font-size:20px}p.lead{font-size:22px}
+      .title-art{display:none}
+      .path,.modgrid,.twocards,.notebox{grid-template-columns:1fr}
+      .path .connector{transform:rotate(90deg);padding:4px 0}
+      .flow{flex-wrap:wrap}
+      .loop{height:auto}.loop .lnode{position:static;width:100%;transform:none;margin-bottom:12px}
+      .loop svg.arcs{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <main class="deck" id="deck">
+
+    <!-- 1. TITLE -->
+    <section class="slide active" style="position:absolute;overflow:hidden;">
+      <svg class="title-art" viewBox="0 0 780 780" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="ga" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity=".22"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity=".08"/>
+          </linearGradient>
+        </defs>
+        <!-- code brackets / cells inside a container box -->
+        <g transform="translate(150 150)">
+          <rect x="0" y="0" width="480" height="480" rx="28" fill="url(#ga)"/>
+          <path d="M170 150 L120 240 L170 330" stroke="#2563eb" stroke-width="5" opacity=".5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M310 150 L360 240 L310 330" stroke="#0ea5e9" stroke-width="5" opacity=".5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="80" y="110" width="320" height="40" rx="8" fill="#3b82f6" opacity=".18"/>
+          <rect x="80" y="330" width="320" height="40" rx="8" fill="#0ea5e9" opacity=".14"/>
+        </g>
+      </svg>
+      <div class="wrap title-wrap">
+        <p class="eyebrow">Chapter 3 &middot; Lesson 4</p>
+        <h1 class="title">Developing Inside <span class="accent">the Container</span></h1>
+        <h3 class="sub">The day-to-day loop of writing modules and validating them with notebooks and a dashboard, with an AI assistant in the loop.</h3>
+        <p style="margin-top:24px;color:var(--ink-soft);font-size:18px;letter-spacing:.04em;">
+          Docker for Local AI &middot; Building AI Applications with Containers
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. WHERE WE ARE -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Where we are</p>
+        <h2 class="h">The environment is ready — now we build.</h2>
+        <p class="lead">Compose brings up the services and the dev container wires the editor into them. This lesson is the thing all of that was for: developing the application.</p>
+
+        <div class="path">
+          <div class="stop">
+            <div class="lbl">Lesson 3 &middot; done</div>
+            <div class="ttl">Dev Containers</div>
+            <div class="desc">Editor running inside the container.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop now">
+            <div class="lbl">Lesson 4 &middot; here</div>
+            <div class="ttl">Developing in the container</div>
+            <div class="desc">Write modules, validate as you go.</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stop">
+            <div class="lbl">Lesson 5 &middot; next</div>
+            <div class="ttl">Best practices</div>
+            <div class="desc">Keeping the setup maintainable.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. NO GAP -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The tight loop</p>
+        <h2 class="h">No gap between writing and running.</h2>
+        <p class="lead">
+          The interpreter, the libraries, the database — everything the code needs is
+          already here. You import a library and it's the pinned version. You connect to
+          ChromaDB and it's right there on the network.
+        </p>
+        <p class="lead">
+          You're not maintaining a local environment <b>and</b> a container environment.
+          There's only one — and it's the one that ships.
+        </p>
+      </div>
+    </section>
+
+    <!-- 4. AI IN THE LOOP -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">AI assistants in the loop</p>
+        <h2 class="h">The assistant runs in the same workspace.</h2>
+        <h3 class="sub">Tools like Claude Code see the same files your code does. They're excellent at the mechanical parts:</h3>
+
+        <div class="chips">
+          <div class="chip">
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M4 4h16v12H4zM4 20h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 9l2 2-2 2M13 13h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <b>Scaffold a module</b>
+          </div>
+          <div class="chip">
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <b>Draft a function</b>
+          </div>
+          <div class="chip">
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <b>Generate tests</b>
+          </div>
+          <div class="chip">
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <b>Explain code</b>
+          </div>
+        </div>
+
+        <div class="aiquote">You bring the <em>architecture</em>; the assistant accelerates the typing.</div>
+      </div>
+    </section>
+
+    <!-- 5. DEVELOP IN MODULES -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Practice &middot; develop in modules</p>
+        <h2 class="h">Small importable pieces, not one giant script.</h2>
+        <h3 class="sub">Our RAG code under <code class="inline">rag/</code> is split by responsibility — each stage its own module.</h3>
+
+        <div class="modgrid">
+          <div class="modcard">
+            <div class="num">1</div>
+            <code>ingestion/pdf_parser.py</code>
+            <span>Read a PDF into structured elements.</span>
+          </div>
+          <div class="modcard">
+            <div class="num">2</div>
+            <code>ingestion/chunker.py</code>
+            <span>Split elements into retrievable chunks.</span>
+          </div>
+          <div class="modcard">
+            <div class="num">3</div>
+            <code>ingestion/embedder.py</code>
+            <span>Turn chunks into embedding vectors.</span>
+          </div>
+          <div class="modcard">
+            <div class="num">4</div>
+            <code>store.py</code>
+            <span>Write and read vectors in ChromaDB.</span>
+          </div>
+          <div class="modcard full">
+            <div class="num">5</div>
+            <code>retrieval/chain.py</code>
+            <span>Retrieve context and answer a query.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. VALIDATE INTERACTIVELY -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Practice &middot; validate as you go</p>
+        <h2 class="h">Two tools to exercise the work.</h2>
+        <h3 class="sub">One for stepping through a pipeline, one for driving the whole system like a user.</h3>
+
+        <div class="twocards">
+          <div class="vcard nb">
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 3v18" stroke="currentColor" stroke-width="1.8"/></svg>
+            <h4>Notebooks</h4>
+            <p>Step through a pipeline cell by cell. Inspect the output of each stage and tweak a parameter before wiring stages together.</p>
+          </div>
+          <div class="vcard dash">
+            <svg class="ic" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M7 13h6M7 16h4M8 22h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <h4>Dashboard</h4>
+            <p>Exercise the whole system end to end — upload, ask, answer — standing in for a real user before anything is productionized.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. HANDS-ON: NOTEBOOK -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Hands-on &middot; VS Code</p>
+        <h2 class="h">The ingestion notebook.</h2>
+        <h3 class="sub"><code class="inline">notebooks/01_pdf_ingestion.ipynb</code> — develop and verify the pipeline a stage at a time.</h3>
+
+        <div class="flow">
+          <div class="fnode"><div class="k">Load</div><div class="n">PDF</div></div>
+          <div class="farr"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fnode"><div class="k">Parse</div><div class="n">elements</div></div>
+          <div class="farr"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fnode"><div class="k">Chunk</div><div class="n">chunks</div></div>
+          <div class="farr"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fnode"><div class="k">Embed</div><div class="n">vectors</div></div>
+          <div class="farr"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fnode store"><div class="k">Store</div><div class="n">store.py</div></div>
+          <div class="farr"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="fnode db"><div class="k">DB</div><div class="n">ChromaDB</div></div>
+        </div>
+
+        <div class="notebox">
+          <div class="nb-item">The Jupyter <b>kernel is the container's interpreter</b> — the same one our modules run under.</div>
+          <div class="nb-item">The <b>store</b> step writes to the <b>chromadb</b> container over the network — the whole multi-container setup, from one cell.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. HANDS-ON: STREAMLIT -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Hands-on &middot; VS Code</p>
+        <h2 class="h">The Streamlit dashboard.</h2>
+        <h3 class="sub">Once the pipeline works, test the full application through <code class="inline">clients/streamlit_app.py</code>.</h3>
+
+        <div class="term">
+          <div class="bar"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div>
+          <div><span class="prompt">$</span> <span class="cmd">bash</span> clients/run_streamlit.sh</div>
+          <div class="out">&nbsp;</div>
+          <div class="out">You can now view your Streamlit app in your browser.</div>
+          <div class="out">Local URL: <span class="url">http://localhost:8501</span> <span class="ok">&larr; forwarded to host</span></div>
+        </div>
+
+        <div class="dashsteps">
+          <div class="ds"><b>Upload</b> a PDF</div>
+          <div class="ds"><b>Ask</b> questions</div>
+          <div class="ds"><b>Get answers</b> with sources</div>
+        </div>
+        <p class="lead" style="margin-top:22px;font-size:24px;">
+          The dev container forwards port <code class="inline">8501</code>, so VS Code pops the
+          app open in the browser on the host — the same pipeline, now driven through a UI.
+        </p>
+      </div>
+    </section>
+
+    <!-- 9. THE DEVELOPMENT LOOP -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">The development loop</p>
+        <h2 class="h">Write, accelerate, validate, exercise.</h2>
+
+        <div class="loop">
+          <svg class="arcs" viewBox="0 0 980 430" fill="none" aria-hidden="true">
+            <defs>
+              <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" fill="#94a3b8"/>
+              </marker>
+            </defs>
+            <path d="M610 65 C 740 95, 800 130, 805 175" stroke="#cbd5e1" stroke-width="2.5" marker-end="url(#ah)"/>
+            <path d="M805 255 C 800 300, 720 350, 600 375" stroke="#cbd5e1" stroke-width="2.5" marker-end="url(#ah)"/>
+            <path d="M370 375 C 250 350, 180 300, 175 255" stroke="#cbd5e1" stroke-width="2.5" marker-end="url(#ah)"/>
+            <path d="M175 175 C 180 130, 250 95, 370 65" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="7 7" marker-end="url(#ah)"/>
+          </svg>
+          <div class="lnode n1"><div class="k">Write</div><b>A small module</b><span>One responsibility at a time.</span></div>
+          <div class="lnode n2"><div class="k">Accelerate</div><b>AI assistant</b><span>Scaffold, draft, test, explain.</span></div>
+          <div class="lnode n3"><div class="k">Exercise</div><b>The dashboard</b><span>The whole system, like a user.</span></div>
+          <div class="lnode n4"><div class="k">Validate</div><b>A stage in a notebook</b><span>Check output before wiring.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. TAKEAWAY -->
+    <section class="slide">
+      <div class="wrap" style="text-align:center;">
+        <p class="eyebrow">Takeaway</p>
+        <h2 class="h" style="margin-bottom:6px;">Small modules, validated as you go.</h2>
+        <h3 class="sub" style="margin:0 auto 18px;">All of it inside the container, against the real database — a working prototype.</h3>
+        <div class="takeaway-card">
+          <div class="quote">
+            <code class="inline" style="font-size:.85em">modules</code> &middot;
+            <code class="inline" style="font-size:.85em">notebooks</code> &middot;
+            <code class="inline" style="font-size:.85em">dashboard</code>
+          </div>
+          <div class="foot">
+            Next lesson &rarr; Best practices.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (function(){
+      const slides=Array.from(document.querySelectorAll('.slide'));
+      const total=slides.length;
+      const prog=document.getElementById('progress');
+      let i=0;
+      function show(n){
+        i=Math.max(0,Math.min(total-1,n));
+        slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+        prog.style.width=(((i+1)/total)*100)+'%';
+        history.replaceState(null,'','#'+(i+1));
+      }
+      function next(){show(i+1)}function prev(){show(i-1)}
+      document.addEventListener('keydown',e=>{
+        if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+        else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev();}
+        else if(e.key==='Home'){e.preventDefault();show(0);}
+        else if(e.key==='End'){e.preventDefault();show(total-1);}
+      });
+      document.addEventListener('click',e=>{if(e.target.closest('a,pre,code'))return;next();});
+      const start=parseInt((location.hash||'#1').slice(1),10);
+      show(isFinite(start)?start-1:0);
+    })();
+  </script>
+</body>
+</html>
