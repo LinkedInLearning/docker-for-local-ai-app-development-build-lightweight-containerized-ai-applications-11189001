@@ -4,3 +4,8 @@ node_modules
 npm-debug.log
 chroma_data/
 
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.egg-info/
+
