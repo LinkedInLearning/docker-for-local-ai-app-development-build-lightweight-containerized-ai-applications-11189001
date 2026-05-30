@@ -6,13 +6,13 @@ This lesson is about sharing images through a **registry**.
 
 [CLICK]
 
-A registry is a service that stores and distributes container images. You have already been using one without thinking about it.
+A registry is a service that stores and distributes images. We already been using one without thinking about it.
 
-Every time a build starts with `FROM python:3.11-slim`, Docker **pulls** that base image from a registry. By default, that registry is **Docker Hub** — the public registry Docker uses unless you tell it otherwise.
+The image we built in the previous lesson uses  the `python:3.11-slim` image. During the build time, if the image is not available locally, Docker **pulls** that base image from a registry. By default, that registry is **Docker Hub** — the public registry Docker uses unless you tell it otherwise.
 
 [CLICK]
 
-We can also pull explicitly:
+We can specifically pull an image with the docker pull command. For example, this is how we pull the python slim image from docker hub using the docker pull command followed with the image name - python:3.11-slim
 
 ```bash
 docker pull python:3.11-slim
@@ -37,7 +37,7 @@ When you type `python:3.11-slim`, Docker fills in the defaults: the `docker.io` 
 
 So sharing an image is three steps: **log in**, **tag**, **push**.
 
-First, log in to Docker Hub:
+First, log in to Docker Hub using:
 
 ```bash
 docker login
@@ -47,17 +47,16 @@ This prompts for your Docker Hub username and a password or access token, and st
 
 [CLICK]
 
-Second, **tag** the local image with your namespace. Tagging does not copy the image — it adds a second name that points at the same image:
+Next, **tag** the local image with your namespace. Tagging does not copy the image — it adds a reference point to the same image. For example, this docker tag command add to the demo:0.1 image the user name as a point of reference.
 
 ```bash
 docker tag demo:0.1 myuser/demo:0.1
 ```
-
-Now `demo:0.1` and `myuser/demo:0.1` are the same image; the second name is one a registry will accept.
+The second name - myuser/demo:0.1 is the one a registry will accept.
 
 [CLICK]
 
-Third, **push** it:
+Lastrly, we will use the docker **push** command to push the image to the image registry.
 
 ```bash
 docker push myuser/demo:0.1
@@ -67,7 +66,7 @@ Docker uploads each layer that the registry does not already have. Layers it alr
 
 [CLICK]
 
-The image now lives on Docker Hub. On any other machine — a colleague's laptop, a server, a CI runner — it can be pulled by name:
+The image now lives on Docker Hub. On any other machine — a colleague's laptop, a server, a CI runner — it can be pulled using the docker pull command followed by the image reference:
 
 ```bash
 docker pull myuser/demo:0.1
@@ -79,9 +78,18 @@ That round trip, push here and pull there, is how an image travels from your mac
 
 Two things worth knowing before we move on.
 
-A repository can be **public** or **private**. Public images anyone can pull; private images require authentication. You choose this per repository on Docker Hub.
+A repository can be public or private. Public images can be pulled by anyone, while private images require authentication.
 
-And the **tag** matters. If you push without a version — just `myuser/demo` — Docker assumes `latest`. That moving tag is convenient but unreliable for anything real, because it silently changes out from under you. We will come back to tagging strategy when we prepare images for production.
+Tags are also important. If you push an image without specifying a version, for example,  myuser/demo, Docker set a default tag as latest. This tag is convenient, but not reliable for real use cases because it can change without notice. We’ll revisit tagging strategies later when we prepare images for production.
+
+
+[PAUSE, SKIP TO LAST SLIDE]
+
+That is the typical workflow: pull base images, build on top of it and tag it with your own namespace, push to share, pull to deploy.
+
+In the next lesson, we will learn how to run images with the `docker run` command.
+
+
 
 [CLICK]
 

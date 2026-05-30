@@ -2,20 +2,21 @@
 
 In the previous lessons, we learned how to build images and run containers.
 
-Once we start working with Docker every day, we end up with many images and containers on our machine. Some are running, some are stopped, and some are taking up disk space we no longer need.
+As we work with Docker, our machine gradually accumulates images, containers, volumes, and networks. Some containers are running, others have stopped, and some resources are no longer needed but still consume disk space.
 
-This lesson covers the commands we use to **list, inspect, debug, and clean up** these objects.
+In this lesson, we'll cover a set of useful Docker CLI commands for listing, inspecting, debugging, and cleaning up these resources.
 
 [CLICK]
 
-Docker manages four types of objects:
+Docker manages four main types of objects:
 
-* **Images** — read-only templates we built or pulled.
+* **Images** — read-only templates that we build or pull from a registry.
 * **Containers** — running or stopped instances of an image.
 * **Volumes** — persistent storage attached to containers.
-* **Networks** — virtual networks containers connect to.
+* **Networks** — virtual networks that allow containers to communicate with each other.
 
-Each one has its own family of commands that follow the same pattern: `docker <object> ls`, `inspect`, `rm`, `prune`.
+
+Each one has its own family of commands that follow the same pattern: `list`, `inspect`, `remove`, `prune`.
 
 In this lesson we focus on the two we touch most often: images and containers.
 
@@ -35,7 +36,7 @@ These two commands give us a snapshot of what is on our machine right now.
 
 Next, **looking inside a container**.
 
-`docker logs <name>` prints everything the container wrote to stdout and stderr. We use this to find out why a container crashed or what an app is doing.
+`docker logs <name>` prints everything the container wrote to Standard Output and Standard Error. We use this to find out why a container crashed or what an app is doing.
 
 `docker logs -f <name>` follows the log output in real time, similar to `tail -f` on a regular log file.
 

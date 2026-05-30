@@ -1,12 +1,12 @@
 # Chapter 2 — Lesson 5: `docker run`
 
-In the previous lesson, we built an image using `docker build`. Now we will use that image to launch an actual container.
+In a previous lesson, we built an image using the `docker build` command. Now we will use that image to launch an actual container.
 
-A container is a running instance of an image. We can launch many containers from the same image, just like we can launch many processes from a single executable.
+A container is a running instance of an image. We can launch many containers from the same image, just like we can launch many processes from a single executable script.
 
 [CLICK]
 
-The basic command is:
+To spin the image as a container we use the docker run command followed by the image name and tag:
 
 ```bash
 docker run my-image:0.1
@@ -14,9 +14,12 @@ docker run my-image:0.1
 
 Docker takes the image, creates a writable layer on top of it, and starts the process defined by the `CMD` or `ENTRYPOINT` instruction.
 
-That is the minimum, but in practice we almost always pass a few flags. Let's go through the most useful ones.
+That is the minimum, but in practice we almost always pass a few flags. 
+
+Let's go through the most useful ones.
 
 [CLICK]
+
 
 `-d` for **detached mode**.
 
@@ -26,7 +29,7 @@ We use this when running long-lived services such as APIs or databases.
 
 [CLICK]
 
-`-p` for **port publishing**.
+Another common flag is the `-p` for **port publishing**.
 
 Inside the container, the application may listen on port 8080. That port is not reachable from the host until we publish it.
 
@@ -36,27 +39,21 @@ docker run -p 8080:8080 my-image:0.1
 
 The first number is the port on the host. The second is the port inside the container. They do not have to match.
 
-`EXPOSE` in the Dockerfile is documentation. `-p` is what actually opens the port.
+The `EXPOSE` command in the Dockerfile simply document the port. `-p` is what actually opens the port.
 
 [CLICK]
+Next, is the -v flag
 
-`-v` for **volumes**.
-
-Containers are ephemeral by default. When the container is removed, anything written inside it disappears.
-
-Volumes solve this. We can mount a host directory or a named volume into the container, and files persist across container restarts.
+Containers are **uh-feh-mr-uhl** (ephemeral) by default. When the container is removed, anything written inside it disappears. In some cases, such during development this is not practical to maintain the code. This is where volumes comes into the picture as they enable to mount local folders to the container file system during the run time. This enables us to maintain persist with our codebase.
 
 ```bash
 docker run -v $(pwd)/data:/data my-image:0.1
 ```
-
-This is also how we mount source code into a development container, so changes on our laptop appear instantly inside the container.
-
 [CLICK]
 
-`-e` for **environment variables**.
+The `-e` for **environment variables** is
 
-Most applications need configuration such as API keys or database URLs. We pass them at run time with `-e`:
+The `-e` flag enables us to pass to the container environment variables during the run time. This is very practical flag when you need to use API keys or tokens during the run time of the container without storing it during the image build time.
 
 ```bash
 docker run -e OPENAI_API_KEY=$OPENAI_API_KEY my-image:0.1
@@ -66,27 +63,26 @@ This keeps secrets out of the image.
 
 [CLICK]
 
-`--name` for a **friendly container name**.
+Next is the --name flag.
 
-By default, Docker assigns a random name like `amazing_einstein`. We can give the container a name we will recognize:
+
+By default, Docker assigns a random name to the containers during the runtime. The --name argument enables us to give the container a name we will recognize. For example, this run command set this container name as rag-api.
 
 ```bash
 docker run --name rag-api my-image:0.1
 ```
 
-This makes it easier to run `docker logs rag-api` or `docker stop rag-api` later.
+[CLICK]
+
+When a container exits, it is not removed by default. Instead, it remains in a stopped state. The --rm flag tells Docker to automatically remove the container once it stops. This is useful when you just want to run a command and don’t need to keep the container afterward.
+
 
 [CLICK]
 
-`--rm` to **clean up automatically**.
+Last but not least are the `i` and `t` flags for an **interactive session**.
 
-When the container exits, it is not deleted by default. It stays around in the stopped state. `--rm` tells Docker to remove the container as soon as it stops — very useful for one-off commands.
-
-[CLICK]
-
-`-it` for an **interactive session**.
-
-These two flags combined give us an interactive terminal inside the container. We use this to drop into a shell and explore:
+These two flags combined give us an interactive terminal inside the container. 
+This is very useful when we need to ssh to the container for debugging or testing:
 
 ```bash
 docker run -it --rm my-image:0.1 bash
@@ -96,6 +92,8 @@ docker run -it --rm my-image:0.1 bash
 
 Putting it together, a realistic run command looks like this:
 
+where we run the container detached, named, with a published port, a mounted volume, and a passed environment variable.
+
 ```bash
 docker run -d --name rag-api \
   -p 8080:8080 \
@@ -104,7 +102,9 @@ docker run -d --name rag-api \
   rag-api:0.1
 ```
 
-Detached, named, with a published port, a mounted volume, and a passed environment variable.
+
+Let's go back to VScode to demo this functionality with the image we created before.
+
 
 [CLICK]
 
@@ -114,6 +114,8 @@ Detached, named, with a published port, a mounted volume, and a passed environme
 > Switch to VS Code and open the integrated terminal. We'll run the `demo:0.1`
 > image we built back in Lesson 3 as a detached container, publish its port,
 > and open the FastAPI app in the browser. Have a browser window ready.
+
+
 
 Let's bring an image to life. This is the same `demo:0.1` image we built in Lesson 3 — a small **FastAPI** application listening on port 8080 inside the container.
 

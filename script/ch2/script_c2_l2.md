@@ -6,11 +6,11 @@ In the previous lesson, we walked through the Docker workflow at a high level. N
 
 A Dockerfile is a plain text file that tells Docker how to build an image.
 
-It has no extension and is usually called `Dockerfile`, but we can give it a custom name such as `Dockerfile_API` or `Dockerfile_Dev`. This is useful when a project needs more than one image, which is exactly what we do in our RAG project.
+A Dockerfile usually has no file extension and is typically named Dockerfile. However, we can also use custom names such as Dockerfile_API or Dockerfile_Dev. This is useful when a project requires multiple images, which is exactly what we do in our RAG application.
 
 [CLICK]
 
-Docker reads the file top to bottom and runs each instruction in order. Most instructions produce a new layer in the resulting image.
+Docker reads the file from top to bottom and executes each instruction in order. Most instructions create a new layer in the final image.
 
 A typical Dockerfile follows a predictable shape:
 
@@ -28,15 +28,15 @@ Let's look at the core instructions you will use most often.
 
 [CLICK]
 
-`FROM` is the first non-comment line of almost every Dockerfile. It selects the base image. For example, `python:3.11-slim` gives us a small Linux image with Python 3.11 already installed.
+`FROM` is the first dockerfile command of almost every Dockerfile. It selects the base image. For example, `python:3.11-slim` gives us a small Linux image with Python version 3.11 already installed.
 
 [CLICK]
 
 `RUN` executes a command during the build. We use it to install packages, run scripts, or perform any setup that needs to be baked into the image.
 
 [CLICK]
-
-`COPY` copies files from our project folder into the image. This is how the application code and configuration get into the container.
+Next is 
+`COPY`, which as the name implies, it enables us to copy files from our project folder into the image. This is how the application script and configuration files get into the container.
 
 [CLICK]
 
@@ -50,7 +50,7 @@ Let's look at the core instructions you will use most often.
 
 [CLICK]
 
-`EXPOSE` documents the port the application listens on. It does not publish the port — that happens at run time — but it tells consumers of the image what to expect.
+`EXPOSE` documents the port the application listens on. It does not publish the port — that happens at run time — but it tells the end users of the image what to expect.
 
 [CLICK]
 
@@ -58,7 +58,14 @@ Finally, `CMD` declares the default command that runs when the container starts.
 
 [CLICK]
 
-Let's see how these instructions look together. Here is a minimal Dockerfile for a Python application:
+Let’s see how these instructions work together. Here is a minimal Dockerfile for containerizing a FastAPI Python application.
+
+The Dockerfile starts by using a slim Python image as the base with the `FROM` command and sets the app folder as the working directory. It then copies the `requirements.txt` file into the image and uses the pip command to install the required Python libraries with the `RUN` command.
+
+Next, it uses the `COPY` command again to add the Python application files to the image file system.
+
+Finally, it exposes port 8080 and defines the command used to launch the FastAPI application.
+
 
 ```dockerfile
 FROM python:3.11-slim
@@ -78,7 +85,7 @@ Notice the order. We copy and install the requirements *before* we copy the rest
 
 [CLICK]
 
-The README that accompanies this lesson contains a full reference for every Dockerfile instruction, when to use each one, and a few common points of confusion such as `CMD` versus `ENTRYPOINT` and `ARG` versus `ENV`.
+If you would like to learn more about Dockerfile instructions, I recommend checking the README file included with this lesson. It contains a full reference of the most common Docker commands and when to use them.
 
 For now, the takeaway is simple: a Dockerfile is a short, ordered list of instructions that describes how to build the environment our application needs.
 

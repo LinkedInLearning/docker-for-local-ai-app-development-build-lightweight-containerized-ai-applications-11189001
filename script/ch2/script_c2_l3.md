@@ -6,7 +6,7 @@ Now we will take that Dockerfile and turn it into a real image using the `docker
 
 [CLICK]
 
-The basic syntax is simple:
+The basic syntax is simple - docker build followed by some arguments. Here is a simple example:
 
 ```bash
 docker build -t my-image:0.1 .
@@ -18,11 +18,11 @@ Three things are happening here. Let's break them down.
 
 First, the dot at the end. That is the **build context**.
 
-The build context is the folder Docker sends to the build engine. Every file Docker copies into the image must live inside the context. If we type a dot, Docker uses the current directory.
+The build context is the local folder reference to the build engine. Every file Docker copies into the image must live inside the context. If we type a dot, Docker uses the current directory.
 
-Anything outside the context cannot be referenced with `COPY` or `ADD`. This is also a good reason to keep the context small. A large context slows down the build and inflates image size.
+Anything outside the context cannot be referenced with the `COPY` or `ADD` commands. This is also a good reason to keep the context small. A large context slows down the build and inflates image size.
 
-To exclude files from the context, we use a `.dockerignore` file. It works like `.gitignore` and is one of the easiest ways to speed up a build.
+To exclude files from the context, we use a `.dockerignore` file. It works exactly like `.gitignore` file and is one of the easiest ways to speed up a build.
 
 [CLICK]
 
@@ -44,15 +44,15 @@ A layer is a read-only filesystem change. Each `RUN`, `COPY`, and `ADD` typicall
 
 [CLICK]
 
-Layers are not just an implementation detail. They drive **build caching**.
+Layers are not just an implementation detail. They are the foundation of Docker’s build cache.
 
-If we run `docker build` a second time, Docker compares each instruction to the previous build. If nothing changed up to a given line, Docker reuses the cached layer instead of rebuilding it.
+When we run docker build again, Docker compares each instruction to the previous build. If nothing changed up to a certain step, Docker reuses the cached layer instead of rebuilding it.
 
-This is why the order of instructions matters. If we copy our application code *before* installing dependencies, every code change invalidates the dependency installation layer, and we wait for `pip` to reinstall everything.
+This is why the order of instructions is important. For example, if we copy the application code before installing dependencies, even a small code change will invalidate the dependency layer. As a result, Docker will reinstall all Python packages during the next build, which can significantly slow down the process.
 
 [CLICK]
 
-We can also pass build arguments from the command line using `--build-arg`. For example, our project's build script uses this to override the Python version:
+We can also pass build arguments from the command line using the `build-arg` argument. For example, our project's build script uses this to override the Python version:
 
 ```bash
 docker build --build-arg PYTHON_VER=3.11 -t my-image:0.1 .
@@ -65,8 +65,8 @@ This works for any `ARG` declared in the Dockerfile.
 Other flags worth knowing:
 
 * `--no-cache` forces Docker to rebuild every layer from scratch — useful when debugging cache problems.
-* `--progress=plain` shows the full build output instead of the compact view.
-* `--platform` builds for a specific architecture, such as `linux/amd64` or `linux/arm64`.
+* `--progress=plain` shows the full build output instead of the compact view, and
+* `--platform` builds for a specific architecture, such as `linux/amd64` or `linux/arm64`. This argument is critical when working with multiple environment and we will dive into it later on in the course. 
 
 [CLICK]
 
@@ -78,14 +78,16 @@ Other flags worth knowing:
 > together with `main.py` and `requirements.txt`) and an integrated terminal
 > open on the **right**, with its working directory set to `chapter_2/l3`.
 
-Let's see this for real — I'll switch over to VS Code.
+Now let’s see this in practice — I'll switch over to VS Code.
+
+On the left side, we have the Dockerfile we wrote in lesson 2. The file is under the chapter_2/l3 folders in the course repository. and on the right side we have the terminal opened in the same folder 
 
 On the left is the Dockerfile we wrote in Lesson 2 — the same seven instructions, copied into this lesson's folder. On the right is a terminal, opened in that same folder.
 
 I'll run the build command we just walked through:
 
 ```bash
-docker build -t demo:0.1 .
+docker build -t chapter_2:lesson_3 .
 ```
 
 Watch the output. Docker prints **one step per instruction** — `[1/6] FROM…`, `[2/6] WORKDIR…`, `[3/6] COPY…`, and so on. Each of those lines maps directly to a line in the Dockerfile on the left, and each one becomes a **layer** in the image. The `RUN pip install` step is the slow one — that's where Docker actually downloads and installs our dependencies. When it's done, Docker prints `exporting to image` and the final image ID.
