@@ -6,50 +6,21 @@ Welcome to Chapter 3.
 
 By now we understand *why* we want to develop AI applications inside containers, and we've worked through the **Docker workflow** — building, running, and sharing images. With that foundation in place, we can start focusing on the **development lifecycle** of an AI application.
 
-That lifecycle runs in three stages — **prototype**, **test**, and **deploy**. In this chapter we focus on the first stage: the **prototype**, where we build a containerized development environment and iterate on the RAG application quickly. Testing comes in Chapter 4, and preparing for production in Chapter 5.
+That lifecycle runs in three stages — **prototype**, **test**, and **deploy**. In this chapter we focus on the first stage: the **prototype**, where we build a containerized development environment that will enable us to start prototype our RAG application in a reproducible environment. Testing comes in Chapter 4, and preparing for production in Chapter 5.
 
-We begin with a strategy lesson — how to design an image so it keeps rebuilding fast as the prototype evolves.
+We begin with a strategy lesson on designing a development image for the prototyping stage of the AI application.
 
 [CLICK]
 
-Here's the reality of development: we start with a set of requirements, but those requirements **change**. We add a library, bump a version, pull in a new model, restructure the project. During a prototype, this happens many times a day.
+Here's the reality of development: we start with a set of requirements, but those requirements **change**. We add a library, bump a version, pull in a new model, restructure the project. During a prototype, this happens often.
 
 Every one of those changes means rebuilding the image. So the real question for this lesson is: how do we structure the image so that rebuilds stay **fast** as the requirements keep moving?
 
 [CLICK]
 
-Let's recall how an image is built. Docker reads the Dockerfile top to bottom and turns most instructions into a **layer** — a read-only filesystem change stacked on top of the previous one.
+We covered the build cache back in Chapter 2, so here it's just a quick reminder: Docker builds layers top to bottom and reuses each cached layer until one of its inputs changes — at which point that layer, and **every layer below it**, rebuilds from scratch.
 
-The key property is the **build cache**. On a rebuild, Docker walks down the layers and reuses each one as long as nothing above it has changed. The moment it hits an instruction whose inputs changed, that layer and **every layer after it** are rebuilt from scratch.
-
-[CLICK]
-
-That cascade is the whole game. One principle follows from it:
-
-> Put the things that rarely change at the **top**, and the things that change constantly at the **bottom**.
-
-We want the volatile parts — the parts we touch every hour — to live in the last possible layer, so a change there invalidates as little as possible.
-
-[CLICK]
-
-The classic example is dependency installation versus source code.
-
-```dockerfile
-# Fragile — code copied before dependencies
-COPY . .
-RUN pip install -r requirements.txt
-```
-
-Here, editing a single line of code changes the `COPY . .` layer, which invalidates the `pip install` below it. Every code change reinstalls every dependency.
-
-```dockerfile
-# Cache-friendly — dependencies first, code last
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-```
-
-Now `pip install` only re-runs when `requirements.txt` actually changes. Editing code only rebuilds the cheap final `COPY` — a sub-second rebuild instead of a multi-minute one.
+That hands us one lever for keeping rebuilds fast: **where a change lives in the Dockerfile decides how much gets rebuilt**. So we put the things that rarely change at the top, and the things we touch constantly at the bottom.
 
 [CLICK]
 

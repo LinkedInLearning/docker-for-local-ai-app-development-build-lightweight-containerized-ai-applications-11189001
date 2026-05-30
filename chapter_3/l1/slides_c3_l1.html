@@ -312,82 +312,25 @@
       </div>
     </section>
 
-    <!-- 4. CACHE CASCADE -->
+    <!-- 4. RECALL — THE BUILD CACHE (brief; covered in Chapter 2) -->
     <section class="slide">
       <div class="wrap">
-        <p class="eyebrow">The build cache</p>
-        <h2 class="h">Change one layer, rebuild everything below.</h2>
-
-        <div class="cascade">
-          <div class="stack">
-            <div class="layer cached">
-              <span class="step">FROM python:3.11-slim</span>
-              <span class="role">base image</span>
-              <span class="badge">cached</span>
-            </div>
-            <div class="layer cached">
-              <span class="step">RUN apt-get install …</span>
-              <span class="role">system setup</span>
-              <span class="badge">cached</span>
-            </div>
-            <div class="layer cached">
-              <span class="step">RUN pip install …</span>
-              <span class="role">dependencies</span>
-              <span class="badge">cached</span>
-            </div>
-            <div class="layer rebuilt">
-              <span class="step">COPY . .</span>
-              <span class="role">project code</span>
-              <span class="badge">rebuilt</span>
-            </div>
-          </div>
-          <div class="casc-note">
-            <div class="big">Docker walks top&nbsp;→&nbsp;bottom.</div>
-            <p>
-              <span class="dot dg"></span>It reuses each layer until an input changes.
-              <br><br>
-              <span class="dot dr"></span>The first changed instruction — and every layer
-              after it — rebuilds from scratch.
-            </p>
-          </div>
-        </div>
+        <p class="eyebrow">Recall &middot; from Chapter 2</p>
+        <h2 class="h">Lean on the build cache.</h2>
+        <p class="lead">
+          We covered this in Chapter 2, so just the reminder: Docker builds layers
+          top to bottom and <b>reuses each cached layer until one of its inputs
+          changes</b> — then that layer, and <b>every layer below it</b>, rebuilds.
+        </p>
+        <p class="lead" style="margin-top:8px;">
+          That hands us one lever for fast rebuilds:
+          <span class="accent" style="font-weight:700;">where a change lives in the Dockerfile decides how much gets rebuilt</span>
+          — so stable things go on top, volatile things on the bottom.
+        </p>
       </div>
     </section>
 
-    <!-- 5. THE PRINCIPLE — BEFORE/AFTER -->
-    <section class="slide">
-      <div class="wrap">
-        <p class="eyebrow">The principle</p>
-        <h2 class="h">Stable on top, volatile on the bottom.</h2>
-        <h3 class="sub">Dependencies change rarely; code changes constantly. Order the instructions to match.</h3>
-
-        <div class="ba">
-          <div class="col bad">
-            <div class="lbl">
-              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-              Fragile
-            </div>
-            <pre class="code"><span class="c"># code before deps</span>
-<span class="k">COPY</span> . .
-<span class="k">RUN</span> pip install -r requirements.txt</pre>
-            <div class="note">Any code edit invalidates <code class="inline">COPY . .</code> — so <code class="inline">pip install</code> re-runs every time.</div>
-          </div>
-          <div class="col good">
-            <div class="lbl">
-              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Cache-friendly
-            </div>
-            <pre class="code"><span class="c"># deps first, code last</span>
-<span class="k">COPY</span> requirements.txt .
-<span class="k">RUN</span> pip install -r requirements.txt
-<span class="k">COPY</span> . .</pre>
-            <div class="note"><code class="inline">pip install</code> re-runs only when deps change. Code edits rebuild one cheap layer.</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 6. THREE TIERS -->
+    <!-- 5. THREE TIERS -->
     <section class="slide">
       <div class="wrap">
         <p class="eyebrow">Our dev image</p>
@@ -423,7 +366,7 @@
       </div>
     </section>
 
-    <!-- 7. THE NEXT MOVE — SPLIT -->
+    <!-- 6. THE NEXT MOVE — SPLIT -->
     <section class="slide">
       <div class="wrap">
         <p class="eyebrow">Looking ahead &middot; Lesson 5</p>
@@ -449,7 +392,7 @@
       </div>
     </section>
 
-    <!-- 8. TAKEAWAY -->
+    <!-- 7. TAKEAWAY -->
     <section class="slide">
       <div class="wrap" style="text-align:center;">
         <p class="eyebrow">Takeaway</p>
@@ -468,7 +411,7 @@
       </div>
     </section>
 
-    <!-- 9. TO THE EDITOR — RAG base/dev Dockerfiles -->
+    <!-- 8. TO THE EDITOR — RAG base/dev Dockerfiles -->
     <section class="slide">
       <div class="wrap">
         <p class="eyebrow">Live walkthrough &middot; to the editor</p>
