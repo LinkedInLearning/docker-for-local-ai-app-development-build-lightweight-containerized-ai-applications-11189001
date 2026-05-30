@@ -75,4 +75,52 @@ Designing for change is not premature optimization — during a prototype, where
 
 Stable at the top, volatile at the bottom, and let the cache do the rest.
 
+[CLICK]
+
+---
+
+> **🎬 LIVE WALKTHROUGH — pivot to VS Code.**
+> Switch to VS Code and open the RAG project's `docker/` folder. Show
+> `Dockerfile_Base` and `Dockerfile_Dev` (side by side if you can). This is the
+> base/dev split from the previous slide, made real.
+
+Let's make this concrete — this is exactly how the RAG project's own images are built. I'll switch over to VS Code and open the `docker/` folder.
+
+First, **`Dockerfile_Base`** — the foundation tier:
+
+```dockerfile
+FROM ubuntu:22.04
+ARG QUARTO_VER="1.7.32"
+ENV QUARTO_VER=$QUARTO_VER
+COPY install_quarto.sh install_dependencies.sh setting_git.sh settings/
+RUN bash ./settings/install_dependencies.sh
+RUN bash ./settings/install_quarto.sh $QUARTO_VER
+```
+
+This is the most stable layer of the whole stack. It starts from `ubuntu:22.04`, installs the system dependencies and shell setup, and adds Quarto. Notice what's *not* here: no Python packages, no project code. That's deliberate. This image is built **once**, pushed to a registry as `python-base`, and reused — we almost never rebuild it.
+
+Now **`Dockerfile_Dev`** — the volatile tier we rebuild as the prototype evolves:
+
+```dockerfile
+FROM docker.io/rkrispin/python-base:0.0.4
+ARG PYTHON_VER="3.11"
+ARG VENV_NAME="my_project"
+ARG RUFF_VER="0.12.0"
+ENV HF_HOME=/opt/hf-cache
+COPY install_uv.sh requirements.txt cache_docling_models.py settings/
+RUN bash ./settings/install_uv.sh $VENV_NAME $PYTHON_VER $RUFF_VER
+RUN mkdir -p $HF_HOME \
+    && /opt/$VENV_NAME/bin/python ./settings/cache_docling_models.py
+```
+
+The very first line is the whole point: it builds `FROM` the `python-base` image we just looked at. It does **not** reinstall the OS or Quarto — that work is already baked into the base.
+
+What the dev image *adds* is the project-specific tier. The build args at the top let us pin the **Python version**, the **virtual-environment name**, and the **Ruff** linter version without editing the file. `install_uv.sh` sets up the Python environment with `uv`; we install our `requirements.txt`; and we pre-download the Docling and HuggingFace models into `HF_HOME` so the first run isn't slow. These are the pieces that move as the prototype changes — so they live in the dev image, never in the base.
+
+So that's the principle in practice: a heavy, stable **base** built once, and a lighter **dev** image — `FROM` that base — that we rebuild all day. Stable on top, volatile on the bottom.
+
+Back to the slides.
+
+---
+
 In the next lesson, we move from a single image to **multiple containers**, and introduce Docker Compose to orchestrate the RAG environment.
