@@ -8,7 +8,7 @@ First, how the services talk.
 
 In our prototype, everything was in one process, so any part could call any other directly. Now they're separate containers, and they communicate over the network.
 
-Here's the key design point: the ingestion service and the query service **don't call each other**. They share state through the database. Ingestion writes vectors to ChromaDB; query reads them back. The database is the contract between them.
+The ingestion service and the query service **don't call each other**. They share state through the database. Ingestion writes vectors to ChromaDB; query reads them back. The database is the contract between them.
 
 Both services reach the database by its **service name** — `chromadb`, port 8000 — the Compose DNS we saw in Chapter 3. No IP addresses.
 
@@ -22,7 +22,7 @@ This is also what a load balancer or orchestrator uses in production to decide w
 
 [CLICK]
 
-Third, and most important: the **integration test**.
+Third, the **integration test**.
 
 Here's the flow that only a multi-container setup can exercise. Ingest a document by calling `POST /ingest` on the **ingestion** service. Poll its job until it completes. Then ask a question by calling `POST /query` on the **query** service. If the answer comes back with sources from the document we just ingested, we've proven something big.
 
@@ -69,7 +69,7 @@ Doing this by hand is fine for exploring, but we want it automated and repeatabl
 pytest chapter_4/l4/test_integration.py -v
 ```
 
-It checks both services are healthy, ingests through one, polls the job, queries through the other, and asserts the answer has sources. The same flow, now a test we can run on every change.
+It runs that same ingest-to-query flow automatically — checking both services are healthy and asserting the answer comes back with sources — a test we can run on every change.
 
 You can also drive this interactively from the Streamlit client — ingest from the sidebar, watch the job complete, then ask a question in the chat. Same flow, human-friendly.
 

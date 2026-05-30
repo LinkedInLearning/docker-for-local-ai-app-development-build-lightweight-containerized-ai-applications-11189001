@@ -1,12 +1,15 @@
 # Chapter 3 — Lesson 2: Docker Compose
 
-In the previous lesson, we talked about designing a single image for change. But our RAG application is not a single container.
+In the previous lesson, we discussed how to design a containerized Python development environment. However, our RAG application consists of multiple services, including a Python application and a vector database.
 
-This lesson introduces **Docker Compose** — the tool we use to define and run a multi-container environment from one file. We'll start with the concepts on slides, then switch to the terminal and bring the environment up for real.
+In this lesson, we'll learn how to use Docker Compose to define, launch, and manage multiple containers as a single application.
+
+We'll start with the core concepts on the slides, then switch to the terminal and bring the environment up in practice.
+
 
 [CLICK]
 
-So far, every container we started took its own `docker run` command with its own flags — ports, volumes, environment variables, networks. That's fine for one container. It falls apart the moment you have two or three that need to start together, talk to each other, and share configuration.
+So far, every container we started took its own `docker run` command with its own flags — ports, volumes, environment variables, and networks. That's fine for one container. However, it falls apart the moment you have two or three that need to start together, talk to each other, and share configuration.
 
 Docker Compose solves that. You describe the whole environment **declaratively** in a single `docker-compose.yaml` file, and bring it all up with one command.
 
@@ -32,13 +35,15 @@ For our RAG prototype, we need **two** services.
 
 The first is `python` — our development container, built from the dev image we've been designing. This is where we write and run code.
 
-The second is `chromadb` — the vector database. And here's a point worth pausing on: we don't build ChromaDB ourselves. It ships as a **dedicated, prebuilt image** on a registry. We just pin a version and run it.
+The second is `chromadb` — the vector database. And here's a point worth pausing on: we don't build ChromaDB ourselves. We used a community built in image,similar to the official Python images.
+
+We just pin a version and run it.
 
 [CLICK]
 
-This is a common and important pattern. Infrastructure components — databases, message queues, caches — are usually **off-the-shelf images** maintained by their authors. You don't Dockerize Postgres or ChromaDB; you pull a known-good version.
+This is a common and important pattern. Infrastructure components such as databases, observability and other manged services usually have **off-the-shelf images** maintained by their authors. You don't Dockerize Postgres or ChromaDB; you pull a known-good version.
 
-Your own application code goes in images **you** build. Everything else, you compose from images **someone else** builds. Compose is what stitches the two kinds together into one environment.
+Your own application code goes in images **you** build. And uses a built-in image when applicable. Compose is what stitches the two kinds together into one environment.
 
 [CLICK]
 
@@ -50,9 +55,11 @@ networks:
     driver: bridge
 ```
 
-On that network, each service is reachable by its **service name** as a hostname. Our Python code connects to the database at the host `chromadb`, port `8000` — no IP addresses, no guessing. Compose wires up the DNS for us.
+Compose creates a network for the application and manage the connects of all the services.
 
-`depends_on` lets us say the `python` service should start after `chromadb`, so the database is there when we need it.
+On that network, each service can be reached by its service name. For example, our Python application connects to the vector database using the hostname chromadb on port 8000. We don't need to manage IP addresses because Compose handles the networking and DNS configuration for us.
+
+The depends_on Settings let us define the startup order between services. In our case, it ensures the Python application starts after the chromadb service.
 
 [CLICK]
 

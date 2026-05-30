@@ -14,8 +14,6 @@ This file is a **test** compose. There's no source mount and no `sleep infinity`
 
 The stack has three services on a shared network: `ingestion` on port 8081, `query` on port 8080, and `chromadb` on 8000.
 
-Two things are worth pointing out.
-
 First, `build`. Instead of pulling a prebuilt image, the two app services build from the Dockerfiles we wrote in Lesson 2, and tag the result. Compose can build as well as run.
 
 Second — and this is new — a **healthcheck** on the database, and `depends_on` with `condition: service_healthy` on the two app services.

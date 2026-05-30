@@ -1,73 +1,71 @@
 # Chapter 4 — Lesson 2: Dedicated Images per Service
 
-In the last lesson we decided to split the prototype into one container per service. This lesson builds the images. We'll cover the design on slides, then switch to the terminal and build both.
+In the previous lesson, we reviewed the motivation to split the application into separate services. In this lesson, we'll build a dedicated image for each one.
 
-The packaging decision: **two dedicated images** — one for ingestion, one for query — each with its own Dockerfile and its own dependency set.
+We'll start with the design on the slides, then switch to the terminal and build the images.
 
-[CLICK]
-
-Start with dependencies, because that's where the split pays off.
-
-The ingestion service parses PDFs. That means **Docling**, and Docling pulls in a large stack — vision models, parsing libraries, system graphics libraries. It's heavy.
-
-The query service never parses anything. It retrieves context and calls an LLM. It needs the web framework and the LLM client libraries — and that's about it.
-
-So we write two requirements files. `requirements-ingestion.txt` carries Docling and the embedding stack. `requirements-query.txt` is lean — FastAPI, the LangChain clients, the ChromaDB client. The biggest single difference is that Docling is simply absent from the query image.
+The key decision is simple: one image for ingestion and one image for query. Each service gets its own Dockerfile and dependency set.
 
 [CLICK]
 
-Next, the entry points. Today our routes all live in one FastAPI app. To serve only half the routes per image, we split them.
+Let's start with dependencies, because that's where the split delivers the biggest benefit.
 
-We move the route definitions into two routers — one for ingestion, one for query — and create two small app modules. `ingestion_app.py` mounts only the ingestion router. `query_app.py` mounts only the query router. Both keep `/health`.
+The ingestion service parses PDFs, so it requires Docling and its supporting libraries. The query service never parses documents. It retrieves context and calls an LLM.
 
-```python
-# rag/api/query_app.py
-from fastapi import FastAPI
-from rag.api.routes import query
-app = FastAPI(title="RAG Query")
-app.include_router(query.router)
-```
+As a result, we maintain two requirements files. requirements-ingestion.txt contains Docling and the embedding stack. requirements-query.txt contains only the libraries needed for serving queries, such as FastAPI, LangChain clients, and the ChromaDB client.
 
-This matters for more than tidiness: because the query app never imports the ingestion module, it never imports Docling. The lean image is lean *because the code says so*.
+The key difference is that the query image doesn't include Docling or any of its dependencies.
 
 [CLICK]
 
-Now the Dockerfiles. They follow every best practice from Chapter 2 — pinned base, dependencies copied before code, exec-form `CMD`. The only differences are the requirements file, the entry-point module, and the port.
+Next, the application entry points.
 
-The query Dockerfile is short. The ingestion Dockerfile adds a couple of system libraries that Docling needs, and points at the ingestion app on port 8081.
+Today, all routes live in a single FastAPI application. To support dedicated services, we split those routes into two routers: one for ingestion and one for query.
 
-Let's build them.
+We then create two lightweight application modules. ingestion_app.py exposes only the ingestion routes, while query_app.py exposes only the query routes. Both keep the /health endpoint.
+
+This separation matters because the query application never imports the ingestion code. As a result, it never loads Docling and can remain lightweight.
+
+[CLICK]
+
+Now for the Dockerfiles.
+
+Both follow the same best practices from earlier chapters: a pinned base image, dependency layers before application code, and an execution with the CMD commands.
+
+The differences are minimal: the requirements file, the application entry point, and the exposed port.
+
+The query image uses the lightweight dependency set, while the ingestion image adds the system libraries required by Docling and runs on port 8081.
+
+Let's go back to VSCode and build them.
 
 [SWITCH TO TERMINAL]
 
-I'm at the project root. First the lean query image:
+From the project root, we'll build the query image first:
 
-```bash
 docker build -f chapter_4/l2/Dockerfile_Query -t rag-query:0.1.0 .
-```
 
 [CLICK]
 
-Now the heavy ingestion image:
+Next, the ingestion image:
 
-```bash
 docker build -f chapter_4/l2/Dockerfile_Ingestion -t rag-ingestion:0.1.0 .
-```
 
-This one takes longer — that's Docling and its dependencies installing.
+This build takes longer because it includes the document parsing stack.
 
 [CLICK]
 
-Now the payoff. Let's compare the two images:
+Now let's compare the results:
 
-```bash
 docker images | grep rag-
-```
 
-The query image is a fraction of the size of the ingestion image. That difference is almost entirely the parsing stack the query service doesn't carry. Every time we deploy the query service, that's the weight we *don't* ship — faster pulls, faster starts, smaller attack surface.
+The query image is significantly smaller than the ingestion image because it doesn't include the parsing dependencies.
+
+That means faster image transfers, faster startup times, and a smaller attack surface whenever we update the query service.
 
 [CLICK]
 
-Two images, each right-sized for its job. Notice we reused everything from earlier chapters: the layer ordering from Chapter 3, the best practices from Chapter 2. The only new idea is splitting one app into two service entry points.
+At this point, we have two images, each optimized for a specific job.
 
-In the next lesson, we stop building images one at a time and orchestrate all three containers — ingestion, query, and the database — into one running stack with Compose.
+Notice that we're reusing everything we've already learned: Dockerfile best practices from Chapter 2 and image design strategies from Chapter 3. The only new idea is creating separate entry points and images for each service.
+
+In the next lesson, we'll bring everything together with Docker Compose and run ingestion, query, and ChromaDB as a single application stack.

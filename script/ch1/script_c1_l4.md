@@ -2,8 +2,6 @@
 
 In the previous lesson, we built a container strategy for our RAG system. We identified the services, thought about their requirements, and decided how to package them across the development, test, and deployment stages.
 
-[CLICK]
-
 Now the question becomes: how do we actually get there?
 
 In this lesson, we will walk through the overall Docker workflow we follow when developing an AI application — from the first idea all the way to a system running in production.
@@ -16,14 +14,12 @@ Before we write a single line of code or build a single image, we work with our 
 
 The output of this process is a project spec.
 
-[CLICK]
-
 A good spec describes:
 
-* The environment settings — the language version, libraries, and system packages.
-* The infrastructure requirements — services such as the vector database, along with ports and volumes.
-* The general architecture — the services we identified in lesson 3 and how they connect.
-* And the implementation stages — how we will build the system, step by step.
+* The environment settings 
+* The infrastructure requirements 
+* The general architecture 
+* And the implementation stages 
 
 [CLICK]
 
@@ -31,7 +27,6 @@ One part of this spec is especially important for us right now: the development 
 
 These requirements describe exactly what our development environment needs, and we will use them to build our development image.
 
-[CLICK]
 
 In chapter 2, we will focus in more detail on this Docker workflow: how requirements turn into a Dockerfile, how a Dockerfile is built into an image, and how an image runs as a container.
 
@@ -43,9 +38,8 @@ Now let's look at the development stage for our RAG system.
 
 Based on the strategy from lesson 3, we start with two containers.
 
-[CLICK]
 
-The first is a vector database container, running ChromaDB.
+The first is a vector database container, using ChromaDB.
 
 The second is a Python development container, which we use to prototype the data ingestion and query pipelines.
 
@@ -59,7 +53,6 @@ Once the prototype is complete, we move into the testing stage.
 
 Here we do three things.
 
-[CLICK]
 
 First, we make the code robust by functionalizing it — turning exploratory prototype code into clean, reusable functions.
 
@@ -87,9 +80,9 @@ So the full workflow looks like this:
 
 Spec, then development, then test, then deployment.
 
-And each stage maps to a chapter in this course — the Docker fundamentals behind the spec in chapter 2, the prototype in chapter 3, the testing stage in chapter 4, and deployment to production in chapter 5.
+And each stage maps to a chapter in this course — the Docker fundamentals behind the spec in chapter 2, the prototype in chapter 3, the testing stage in chapter 4, and deployment readiness in chapter 5.
 
-The important takeaway is that containers are not just a deployment detail bolted on at the end. They are part of the workflow from the very first stage — we develop, test, and deploy inside the same containerized environments.
+The key takeaway is that containers are not something we add at the end of a project. They are part of the workflow from the beginning, allowing us to develop, test, and prepare applications for production in consistent environments.
 
 [CLICK]
 

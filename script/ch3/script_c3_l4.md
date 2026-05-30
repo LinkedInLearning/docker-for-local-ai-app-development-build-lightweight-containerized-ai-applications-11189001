@@ -1,20 +1,20 @@
 # Chapter 3 — Lesson 4: Developing Inside the Container
 
-The environment is ready. Compose brings up our services, and the dev container wires our editor into them. Now we do the thing all of that was for — we **develop the application**.
+The environment is ready. Compose brings up our services, and the dev container connects our editor to them. Now we can start developing the application.
 
-This lesson is about the day-to-day loop of writing code inside the container, with an AI assistant alongside. A short setup on slides, then we move into VS Code and work with the real RAG project.
+This lesson is about the day-to-day loop of writing code inside the container, with an AI assistant alongside. Before we pivot to VSCode let's discuss about the development workflow.
 
 [CLICK]
 
-Working inside the container changes one thing fundamentally: there is no gap between writing code and running it. The interpreter, the libraries, the database — everything the code needs is already here. You import a library and it's the pinned version. You connect to ChromaDB and it's right there on the network.
+Working inside the container changes one thing fundamentally: there is no gap between writing code and running it. The interpreter, the libraries, the database — everything the code needs is already here. You import a library and it's the pinned version. You connect to ChromaDB and with the right network settings.
 
 That tight loop is what makes a containerized prototype productive. You're not maintaining a local environment *and* a container environment — there's only one, and it's the one that ships.
 
 [CLICK]
 
-AI coding assistants fit naturally into this loop. Tools like **Claude Code**, or the in-editor assistants, run in the same workspace and see the same files. They're excellent at scaffolding a module, writing a first draft of a function, generating tests, and explaining unfamiliar code.
+AI coding assistants fit naturally into this workflow. Tools like Claude Code or in-editor assistants run in the same workspace and can see the same files. They’re great at setting up a basic structure for a module, writing initial functions, generating tests, and explaining unfamiliar code.
 
-But the design is still yours. The assistant is fastest when you've already decided *what* the pieces are and *how* they connect — which is exactly the strategy work we did in Chapters 1 and 3. You bring the architecture; the assistant accelerates the typing.
+But the design is still yours. These tools work best when you already know what to build and how the pieces fit together — which is exactly the strategy work we did in Chapters 1 and 3. You define the architecture; the assistant speeds up implementation.
 
 [CLICK]
 

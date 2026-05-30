@@ -12,15 +12,19 @@ We begin with a strategy lesson on designing a development image for the prototy
 
 [CLICK]
 
-Here's the reality of development: we start with a set of requirements, but those requirements **change**. We add a library, bump a version, pull in a new model, restructure the project. During a prototype, this happens often.
+Here's the reality of development: we start with a set of requirements, but those requirements **change**. We add a library, bump a version, pull in a new model, and restructure the project. During a prototype, this happens often.
 
 Every one of those changes means rebuilding the image. So the real question for this lesson is: how do we structure the image so that rebuilds stay **fast** as the requirements keep moving?
 
 [CLICK]
 
-We covered the build cache back in Chapter 2, so here it's just a quick reminder: Docker builds layers top to bottom and reuses each cached layer until one of its inputs changes — at which point that layer, and **every layer below it**, rebuilds from scratch.
+We covered the build cache in Chapter 2, so here’s a quick reminder.
 
-That hands us one lever for keeping rebuilds fast: **where a change lives in the Dockerfile decides how much gets rebuilt**. So we put the things that rarely change at the top, and the things we touch constantly at the bottom.
+Docker builds images layer by layer, from top to bottom. It reuses cached layers as long as nothing changes. But once a layer changes, Docker rebuilds that layer and everything after it.
+
+This gives us an important rule for fast rebuilds: the position of a change in the Dockerfile matters. Changes near the top trigger more rebuilds, while changes near the bottom affect less.
+
+So, when possible, we place things that rarely change at the top, and things we change often at the bottom.
 
 [CLICK]
 
@@ -30,23 +34,25 @@ Map that onto what we're building. Our RAG development image has roughly three t
 * **Changes sometimes** — the Python dependencies in `requirements.txt`.
 * **Changes constantly** — our own project code.
 
-Order the Dockerfile to match: system setup first, dependencies in the middle, project code last. The further down a change lives, the cheaper the rebuild.
+Order the Dockerfile to match: system setup first, dependencies in the middle, project code last. The further down a change lives, the faster the rebuild.
 
 [CLICK]
 
-There's one more move worth previewing. If the stable tier almost never changes, why rebuild it at all?
+There’s one more useful idea to preview.
 
-We can split the work into **two images**: a *base image* that carries the heavy, stable tooling, and a *dev image* built `FROM` that base, carrying only the project-specific pieces. The base is built once and reused; day-to-day we only rebuild the thin dev layer on top.
+If the stable part of the environment rarely changes, we don’t need to rebuild it every time.
 
-We'll come back to that split in detail in Lesson 5. For now, the takeaway is the mindset.
+Instead, we can split the setup into two images: a base image with the heavy, stable tooling, and a dev image built on top of it with only the project-specific parts. The base image is built once and reused, while the dev image is rebuilt as the project evolves.
 
 [CLICK]
 
 Designing for change is not premature optimization — during a prototype, where requirements move fastest, it's the difference between a rebuild you wait through and a rebuild you don't notice.
 
-Stable at the top, volatile at the bottom, and let the cache do the rest.
+Stable at the top, volatile at the bottom, and let the layers caching do the rest.
 
 [CLICK]
+
+Let's now pivot to VSCode and review the RAG prototype Dockerfile settings. 
 
 ---
 

@@ -1,26 +1,34 @@
 # Chapter 3 — Lesson 3: Dev Containers
 
-In the last lesson, we brought our environment up with Docker Compose — but to run anything, we had to shell into the container. Our editor was still on the host, disconnected from where the code actually runs.
+In the last lesson, we brought our environment up with Docker Compose — but to run anything, we had to ssh into the container via the terminal. Our editor was still on the host, disconnected from where the code actually runs.
 
-This lesson closes that gap with **Dev Containers**: a VS Code feature that attaches your editor *inside* the container. We'll cover the idea on slides, then open the project as a dev container and develop in it.
+This lesson closes that gap with **Dev Containers**: a VS Code extension that attaches your editor *inside* the container. 
+
+We'll start by reviewing the core concepts on the slides, and then we'll switch to VS Code and see is it in action.
 
 [CLICK]
 
-A Dev Container moves the whole development experience into the container. VS Code keeps its familiar window on your host, but the **server side** of the editor — the language server, the terminal, the debugger, the extensions — all run inside the container.
+A Dev Container moves the whole development experience into the container. 
+
+This is where the rubber meets the road.
+
+VS Code keeps its familiar window on your host, but the **server side** of the editor — the language server, the terminal, the debugger, the extensions — all run inside the container.
 
 The result is full isolation. The container has the exact Python version, the exact libraries, the exact system tools. Your laptop stays clean. And critically, the environment your editor sees is **identical** to the one that will run in test and production.
 
 [CLICK]
 
-Compare the two setups. Without a dev container, your editor runs against whatever is installed on your host, and you reach into the container with `docker exec`. The editor and the runtime are two different worlds.
+Compare the two setups. Without a dev container, your editor runs against whatever is installed on your host, and you reach into the container using the `docker exec` command. The editor and the runtime are two different worlds.
 
-With a dev container, there's one world. IntelliSense, "go to definition", the integrated terminal, notebook kernels, the debugger — all of it operates on the container's filesystem and interpreter. What you see is what runs.
+With the dev container, everything runs in the same environment. IntelliSense, Settings and Definitions, the integrated terminal, notebook kernels, and the debugger all use the container’s filesystem and interpreter. As a result, the environment you develop-in is the same environment your code runs-in.
 
 [CLICK]
 
-The configuration lives in one file: `.devcontainer/devcontainer.json`. A few features make it powerful.
+The `devcontainer.json` file under the `.devcontainer` folder enables you to customize your project settings.
 
-First, it can build on what we already have. Instead of defining a new environment, our `devcontainer.json` points at the **same `docker-compose.yaml`** from the previous lesson and picks the `python` service:
+A few features make it powerful.
+
+First, it can build on what we already have. Instead of defining a new environment, we can point at the **same `docker-compose.yaml`** file from the previous lesson and picks the compose settings:
 
 ```json
 "dockerComposeFile": ["../docker-compose.yaml"],
@@ -28,11 +36,12 @@ First, it can build on what we already have. Instead of defining a new environme
 "workspaceFolder": "/workspace/"
 ```
 
-A dev container can attach to a Compose service or to a plain image — either works.
+A dev container can attach to a Docker Compose service, use an existing image, or build an image from a Dockerfile when the environment is launched.
 
 [CLICK]
 
-Second, **project-level extensions**. You list the VS Code extensions the project needs, and they're installed *inside the container*, scoped to this project:
+Second, project-level extensions. The extensions argument allows us to customize which VS Code extensions are installed inside the development container. This setup is completely isolated from our local VS Code configuration, so each project can have its own tailored development environment.
+
 
 ```json
 "customizations": {
@@ -46,11 +55,13 @@ Second, **project-level extensions**. You list the VS Code extensions the projec
 }
 ```
 
-Every teammate who opens the project gets the same Python, Ruff, and Jupyter tooling — no "works on my setup" drift in the editor either.
+Every teammate who opens the project gets the same Python, Ruff, and Jupyter settings — no "works on my setup" drift in the editor either.
 
 [CLICK]
 
-Third, **mounts and ports**. We can mount folders from *beyond* the project directory — a shared cache, a credentials file, shell history — so they're available inside the container without copying them into the image:
+Third, mounts and ports. We can mount folders and files from the host machine, such as shared caches, credentials, or shell history, making them available inside the container without copying them into the image.
+
+This helps make the container feel like a natural extension of our local environment. For example, I mount my Zsh history, which enables command suggestions and autocompletion based on commands I've already run on my machine. 
 
 ```json
 "mounts": [
@@ -59,11 +70,11 @@ Third, **mounts and ports**. We can mount folders from *beyond* the project dire
 "forwardPorts": [8501, 8080]
 ```
 
-And `forwardPorts` auto-publishes the app's ports to your browser, so a Streamlit app on 8501 just opens on the host.
+The `forwardPorts` argument enables us to forward ports to your browser.
 
-[CLICK]
 
-Let's see it. I'll switch to VS Code and open the project as a dev container.
+
+Let's see it. I'll switch to VS Code and open the project using the dev container.
 
 [SWITCH TO VS CODE]
 
