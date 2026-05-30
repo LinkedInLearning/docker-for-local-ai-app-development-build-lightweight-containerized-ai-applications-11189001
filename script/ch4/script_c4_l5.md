@@ -1,40 +1,48 @@
-# Chapter 4 — Lesson 5: Testing Best Practices for Multi-Container Apps
+# Chapter 4 — Lesson 5: Testing Best Practices for Multi-Container Applications
 
-We've split the prototype into services, orchestrated them, and tested the end-to-end flow. This final lesson of the chapter steps back to the practices that keep a multi-container application reliable and reproducible.
+We've split the prototype into services, orchestrated them with Compose, and verified the end-to-end workflow.
 
-[CLICK]
-
-Start with the shape of your testing — the **testing pyramid**, mapped onto containers.
-
-At the base, **unit tests**. Each module in isolation, no containers at all — our chunker, our retriever, tested directly. They're fast, so there are many of them.
-
-Above that, **service tests**. One container in isolation, checking its routes and contracts behave.
-
-Then **integration tests** — the whole stack together, the ingest-to-query flow we built in Lesson 4. Fewer of these, because they're slower and need everything running.
-
-At the top, **smoke tests**. A handful of sanity calls you run right after a deploy: is each service answering `/health`, can I ingest and query once.
-
-The rule: lots of fast unit tests at the bottom, a few expensive integration tests at the top.
+In this final lesson, we'll step back and review the practices that help keep a multi-container application reliable and reproducible.
 
 [CLICK]
 
-Second practice: **health and readiness checks**, everywhere.
+Let's start with the testing pyramid.
 
-We added a healthcheck to the database in Lesson 3. The same idea belongs on every service — a `HEALTHCHECK` in the Dockerfile or compose, hitting `/health`. It's what gates startup ordering, what an orchestrator uses to decide a container is ready for traffic, and what tells you *which* service is down when something breaks.
+At the base are **unit tests**. These test individual components in isolation, without containers. They're fast, so we can have lots of them.
+
+Next are **service tests**, which validate a single service running in its own container.
+
+Above that are **integration tests**, where multiple services run together and we verify workflows such as ingesting a document and querying it.
+
+At the top are **smoke tests**—a small set of checks that confirm the system is up and responding.
+
+The goal is simple: many fast tests at the bottom and fewer expensive tests at the top.
 
 [CLICK]
 
-Third: **manage your test data.**
+Second, add health checks everywhere.
 
-Integration tests need data, and that data must be predictable. Use a small, fixed sample document — not a 500-page report that makes every test run slow. Give each test run a **fresh, ephemeral** database collection so runs don't contaminate each other. And tear it down afterward — `docker compose down -v` removes the volumes too, so the next run starts clean.
+In Lesson 3, we added a health check to ChromaDB. The same pattern applies to every service.
 
-Reproducibility is the goal: the same test, run twice, gives the same result.
+Health checks help control startup order, allow orchestrators to determine when a service is ready, and make troubleshooting much easier when something goes wrong.
 
 [CLICK]
 
-Fourth: **run the whole stack in CI.**
+Third, manage your test data carefully.
 
-This is what ties it together. In your pipeline, bring the stack up, run the tests against it, tear it down.
+Integration tests should use small, predictable datasets. A short sample document is better than a large report that slows every test run.
+
+Each test should also use a fresh, temporary database collection so runs don't affect one another.
+
+When the tests finish, clean everything up. Commands such as `docker compose down -v` remove both containers and volumes so the next run starts from a known state.
+
+The goal is reproducibility: the same test should produce the same result every time.
+
+[CLICK]
+
+Fourth, run the full stack in CI.
+
+Bring up the services, run the tests, and tear everything down when the job finishes.
 
 ```yaml
 - run: docker compose -f docker-compose.test.yaml up -d --build
@@ -42,16 +50,27 @@ This is what ties it together. In your pipeline, bring the stack up, run the tes
 - run: docker compose -f docker-compose.test.yaml down -v
 ```
 
-Because the stack is defined in a Compose file and the images are pinned, the environment in CI is the same one you ran locally — and close to production. Every change gets tested against the real multi-container topology, automatically.
+Because the stack is defined in Compose and the images are versioned, CI runs in the same environment you tested locally and one that closely resembles production.
+
+Every change is validated against the real multi-container architecture before it moves forward.
 
 [CLICK]
 
-So, the four practices: a testing pyramid weighted toward fast unit tests; health checks on every service; disciplined, ephemeral test data; and the full stack exercised in CI.
+To summarize, four practices help keep multi-container applications reliable:
+
+* Fast unit tests
+* Health checks on every service
+* Predictable and disposable test data
+* Running the full stack in CI
 
 [CLICK]
 
-That closes Chapter 4. We took a single-container prototype, split it into dedicated services — a lean query image and a heavy ingestion image — orchestrated them with Compose, and tested that they cooperate over the network in an environment close to production.
+That concludes Chapter 4.
 
-But "close to production" is not production. Our images aren't optimized for size or security, we haven't deployed anywhere, and there's no scaling or real observability.
+We started with a single-container prototype and transformed it into a multi-service application. We created dedicated images for ingestion and query, orchestrated them with Docker Compose, and tested them together in an environment that closely resembles production.
 
-That's Chapter 5: **preparing the application for production** — optimizing the containers, deploying to a server or the cloud, and validating the system in its target environment.
+But we're not production-ready yet.
+
+Our images can still be optimized, security can be improved, and we haven't prepared the application to run in its target environment.
+
+That's the focus of Chapter 5: preparing the application for production by optimizing containers, validating the environment, and getting the system ready to run reliably at scale.

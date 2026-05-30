@@ -1,73 +1,79 @@
 # Chapter 4 — Lesson 3: Orchestrating the Stack with Compose
 
-We have two service images and the database image. This lesson wires them into one running stack with Docker Compose — the topology the application will have in production. Concepts on slides, then we bring the stack up in the terminal.
+We now have dedicated images for the ingestion and query services, along with our database container.
+
+In this lesson, we'll use Docker Compose to bring all three services together into a single application stack. We'll start with the concepts on the slides, then switch to the terminal and run everything in practice.
 
 [CLICK]
 
-We already used Compose in Chapter 3, so the tool is familiar. But this is a different *kind* of Compose file, and the difference matters.
+We already used Docker Compose in Chapter 3, so the tool itself is familiar. What's different here is the purpose of the Compose file.
 
-The Chapter 3 file was a **development** compose. It bind-mounted our source code into the container and ran `sleep infinity` so we could attach an editor and live-edit.
+In Chapter 3, we used a development Compose file. It mounted our source code into the container and kept the environment running so we could edit code interactively.
 
-This file is a **test** compose. There's no source mount and no `sleep infinity`. Each container runs its real command against the **built image** — the exact artifact that would ship. We're testing the thing we'd deploy, not a development shell.
+This time, we're using a test Compose file. There are no source mounts and no development shell. Each container runs directly from the image we built in the previous lesson.
 
-[CLICK]
-
-The stack has three services on a shared network: `ingestion` on port 8081, `query` on port 8080, and `chromadb` on 8000.
-
-First, `build`. Instead of pulling a prebuilt image, the two app services build from the Dockerfiles we wrote in Lesson 2, and tag the result. Compose can build as well as run.
-
-Second — and this is new — a **healthcheck** on the database, and `depends_on` with `condition: service_healthy` on the two app services.
+That means we're testing the same artifacts we would use in production.
 
 [CLICK]
 
-Why the healthcheck? `depends_on` on its own only waits for a container to *start*, not to be *ready*. A database container can be "started" a full second or two before it's actually accepting connections.
+The stack consists of three services connected on a shared network: the ingestion service on port 8081, the query service on port 8080, and ChromaDB on port 8000.
 
-The healthcheck closes that gap. We tell Compose how to ask the database "are you ready?" — here, by hitting its heartbeat endpoint — and the app services wait until that check passes before they start. No more race where ingestion comes up and immediately fails because the database isn't listening yet.
+The ingestion and query services are built directly from the Dockerfiles we created in the previous lesson. Compose doesn't just run containers—it can also build the images for us.
+
+The other important addition is a database health check combined with depends_on.
 
 [CLICK]
 
-Let's bring it up.
+Why do we need a health check?
+
+By itself, depends_on only waits for a container to start. It doesn't guarantee that the service inside the container is ready to accept connections.
+
+For a database, that difference matters. The container may be running while the database is still initializing.
+
+The health check solves this problem. Compose repeatedly checks the database heartbeat endpoint and waits until it reports healthy. Only then do the ingestion and query services start.
+
+This prevents startup failures caused by services trying to connect before the database is ready.
+
+[CLICK]
+
+Let's go back to the terminal.
 
 [SWITCH TO TERMINAL]
 
-From the project root, one command builds the images and starts all three containers:
+From the project root, a single command builds the images and starts all three services:
 
-```bash
 docker compose -f chapter_4/l3/docker-compose.test.yaml up -d --build
-```
 
-Compose builds the two service images, starts the database, waits for its healthcheck, then starts ingestion and query.
+Compose builds the service images, starts ChromaDB, waits for the health check to pass, and then starts the ingestion and query services.
 
 [CLICK]
 
-Let's confirm the stack is healthy:
+Let's verify everything is running:
 
-```bash
 docker compose -f chapter_4/l3/docker-compose.test.yaml ps
-```
 
-Three services, all up — and the database shows `healthy`, not just `running`.
+We should see all three services running, with the database reported as healthy.
 
 [CLICK]
 
-A quick look at one service's logs to confirm it started cleanly:
+We can also inspect the logs for one of the services:
 
-```bash
 docker compose -f chapter_4/l3/docker-compose.test.yaml logs query
-```
+
+This confirms the application started successfully.
 
 [CLICK]
 
-And a first smoke test from the multi-service Streamlit client, which talks to both services over HTTP:
+Now let's perform a quick smoke test using the multi-service Streamlit client:
 
-```bash
 bash clients/run_streamlit_services.sh
-```
 
-In the sidebar, I'll click **Check health** — both the ingestion and query services respond. The stack is alive and reachable.
+From the sidebar, I'll select Check Health. Both the ingestion and query services respond, confirming that the stack is running and reachable.
 
 [CLICK]
 
-The whole system is now running as separate containers, exactly as it would in production. But "running" isn't "working" — we haven't proven the services can actually cooperate.
+At this point, the application is running as separate containers, just as it would in production.
 
-In the next lesson, we test that: networking between the containers, health and readiness, and the end-to-end flow of ingesting through one service and querying through the other.
+But running isn't the same as working. We still need to verify that the services can communicate correctly and complete end-to-end workflows.
+
+In the next lesson, we'll test exactly that by ingesting documents through one service and querying them through another.
