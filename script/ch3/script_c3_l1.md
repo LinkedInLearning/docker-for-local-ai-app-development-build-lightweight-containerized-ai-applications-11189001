@@ -1,8 +1,14 @@
 # Chapter 3 — Lesson 1: Designing Images for Change
 
-Welcome to Chapter 3. We've learned *why* containers matter and *how* the Docker workflow works. Now we start building — this chapter is about prototyping our RAG application inside a containerized development environment.
+Welcome to Chapter 3.
 
-We begin with a strategy lesson.
+[CLICK]
+
+By now we understand *why* we want to develop AI applications inside containers, and we've worked through the **Docker workflow** — building, running, and sharing images. With that foundation in place, we can start focusing on the **development lifecycle** of an AI application.
+
+That lifecycle runs in three stages — **prototype**, **test**, and **deploy**. In this chapter we focus on the first stage: the **prototype**, where we build a containerized development environment and iterate on the RAG application quickly. Testing comes in Chapter 4, and preparing for production in Chapter 5.
+
+We begin with a strategy lesson — how to design an image so it keeps rebuilding fast as the prototype evolves.
 
 [CLICK]
 
