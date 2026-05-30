@@ -178,6 +178,27 @@
       letter-spacing:-.01em;line-height:1.4;max-width:900px;margin:0 auto}
     .takeaway-card .foot{margin-top:14px;font-size:20px;color:var(--ink-soft)}
 
+    /* live-walkthrough — VS Code split (Dockerfile_Base | Dockerfile_Dev) */
+    .ide{display:grid;grid-template-columns:1fr 1fr;border:1px solid #334155;border-radius:14px;
+      overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.18);margin:18px auto 16px;max-width:1180px}
+    .ide .col{display:flex;flex-direction:column;min-width:0}
+    .ide .col.l{border-right:1px solid #334155}
+    .ide .tab{display:flex;align-items:center;gap:8px;padding:11px 16px;font-size:14px;font-weight:600;
+      background:#0b1220;color:#cbd5e1;border-bottom:1px solid #334155}
+    .ide .tab .dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+    .ide .tab .role{margin-left:auto;font-weight:600;font-size:12.5px;letter-spacing:.04em}
+    .ide .col.l .tab .role{color:#34d399}
+    .ide .col.r .tab .role{color:#fca5a5}
+    .ide .pane{background:var(--code-bg);color:#e2e8f0;padding:16px 18px;
+      font:14px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace}
+    .ide .pane .kw{color:#93c5fd;font-weight:600}
+    .ide .pane .str{color:#fcd34d}
+    .ide .pane .cmt{color:#64748b}
+    .ide .pane .from{color:#86efac;font-weight:600}
+    .ide-note{text-align:center;font-size:18px;color:var(--ink-soft);line-height:1.5;
+      max-width:980px;margin:0 auto}
+    .ide-note b{color:var(--ink)}
+
     /* responsive — smaller viewports get proportionally smaller type */
     @media (max-width:1100px){
       .slide{padding:32px 28px 60px}
@@ -189,6 +210,8 @@
       .cascade,.ba,.tier{grid-template-columns:1fr}
       .stages{grid-template-columns:1fr}
       .stages .step-arrow{transform:rotate(90deg);padding:4px 0}
+      .ide{grid-template-columns:1fr}
+      .ide .col.l{border-right:0;border-bottom:1px solid #334155}
     }
   </style>
 </head>
@@ -442,6 +465,50 @@
             Next lesson &rarr; Docker Compose.
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- 9. TO THE EDITOR — RAG base/dev Dockerfiles -->
+    <section class="slide">
+      <div class="wrap">
+        <p class="eyebrow">Live walkthrough &middot; to the editor</p>
+        <h2 class="h">See it in the real project.</h2>
+        <h3 class="sub">Over to VS Code — the RAG project's two Dockerfiles are this exact split: a stable base, and a volatile dev image built on top.</h3>
+        <div class="ide">
+          <div class="col l">
+            <div class="tab">
+              <span class="dot" style="background:#ef4444"></span>
+              <span class="dot" style="background:#f59e0b"></span>
+              <span class="dot" style="background:#10b981"></span>
+              &nbsp; docker/Dockerfile_Base
+              <span class="role">foundation &middot; built once</span>
+            </div>
+            <div class="pane">
+              <div><span class="kw">FROM</span> ubuntu:22.04</div>
+              <div><span class="kw">ARG</span> QUARTO_VER=<span class="str">"1.7.32"</span></div>
+              <div><span class="kw">RUN</span> bash install_dependencies.sh</div>
+              <div><span class="kw">RUN</span> bash install_quarto.sh</div>
+              <div><span class="cmt"># OS + system deps + Quarto — rarely changes</span></div>
+            </div>
+          </div>
+          <div class="col r">
+            <div class="tab">
+              &nbsp; docker/Dockerfile_Dev
+              <span class="role">volatile &middot; rebuilt all day</span>
+            </div>
+            <div class="pane">
+              <div><span class="kw">FROM</span> <span class="from">rkrispin/python-base:0.0.4</span></div>
+              <div><span class="kw">ARG</span> PYTHON_VER &nbsp;VENV_NAME &nbsp;RUFF_VER</div>
+              <div><span class="kw">RUN</span> bash install_uv.sh …</div>
+              <div><span class="kw">RUN</span> python cache_docling_models.py</div>
+              <div><span class="cmt"># Python env + deps + model cache — moves often</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="ide-note">
+          <b>Base</b> carries the heavy, stable tooling and is built once;
+          <b>Dev</b> is <code class="inline">FROM</code> the base and holds only what changes as we prototype.
+        </p>
       </div>
     </section>
 
