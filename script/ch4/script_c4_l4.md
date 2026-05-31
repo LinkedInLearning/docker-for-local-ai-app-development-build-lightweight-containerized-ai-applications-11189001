@@ -1,37 +1,54 @@
 # Chapter 4 — Lesson 4: Networking, Health & Integration Testing
 
-The stack is running. But running is not the same as working. This lesson tests that our separate containers actually cooperate — the thing a single-container prototype could never reveal. We'll work through it on the slides; the full hands-on — every command and its output — lives in this lesson's README.
+The stack is running. But running is not the same as working.
+
+In this lesson, we'll review how separate services communicate, why health checks matter, and what an integration test should validate in a multi-container application. The hands-on exercises, commands, and expected outputs are provided in this lesson's README.
 
 [CLICK]
 
-First, how the services talk.
+Let's start with service communication.
 
-In our prototype, everything was in one process, so any part could call any other directly. Now they're separate containers, and they communicate over the network.
+In our prototype, everything ran in a single process, so components could call each other directly. Now they run in separate containers and communicate over a network.
 
-The ingestion service and the query service **don't call each other**. They share state through the database. Ingestion writes vectors to ChromaDB; query reads them back. The database is the contract between them.
+The ingestion service and query service don't talk to each other directly. Instead, they share state through the database. Ingestion writes vectors to ChromaDB, and query reads them back.
 
-Both services reach the database by its **service name** — `chromadb`, port 8000 — the Compose DNS we saw in Chapter 3. No IP addresses.
+That database becomes the contract between the two services.
 
-[CLICK]
-
-Second, health and readiness.
-
-Each service exposes a `/health` endpoint. We use it two ways: the database's healthcheck gates startup, as we saw in Lesson 3, and we can hit each service's `/health` directly to confirm it's ready before sending real traffic.
-
-This is also what a load balancer or orchestrator uses in production to decide whether to route to a container — so building it now means we're already production-shaped.
+Both services reach the database using its service name, `chromadb`, on port `8000`. Docker Compose handles the networking and service discovery for us, so there's no need to manage IP addresses.
 
 [CLICK]
 
-Third, the **integration test**.
+Next, health and readiness.
 
-Here's the flow that only a multi-container setup can exercise. Ingest a document by calling `POST /ingest` on the **ingestion** service. Poll its job until it completes. Then ask a question by calling `POST /query` on the **query** service. If the answer comes back with sources from the document we just ingested, we've proven something big.
+Each service exposes a `/health` endpoint. These endpoints help us verify that a service is ready before it begins handling requests.
 
-We've proven that two independent containers, talking only through a shared database over the network, cooperate correctly. Networking works. The shared-state contract works. The services are genuinely integrated.
+We already saw one example in Lesson 3, where a database health check controlled the startup order of the stack.
 
-For the full hands-on, see this lesson's README. It walks through the ingest-and-query flow with curl, proving service-name DNS from inside the query container, and the automated `pytest` integration test — each command with its expected output.
+The same pattern applies to application services. Health endpoints provide a simple way to verify availability and are commonly used by load balancers and orchestration platforms to determine whether traffic should be routed to a service.
 
 [CLICK]
 
-That's the heart of multi-container testing: not "does each container start," but "do the containers work *together*" — networking, the shared-database contract, and the full ingest-to-query path across service boundaries.
+Now let's look at integration testing.
 
-In the final lesson, we'll step back and cover the testing practices that keep a multi-container app reliable — the testing pyramid, fixtures, and running all of this in CI.
+An integration test validates that multiple services work together correctly.
+
+For our RAG application, a typical test begins by ingesting a document through the ingestion service. Once processing completes, the query service retrieves information from that document and generates a response.
+
+If the expected answer is returned, we've verified several things at once:
+
+* The services can communicate over the network.
+* Both services can access the shared database.
+* The ingestion workflow completed successfully.
+* The query workflow can retrieve and use the stored information.
+
+In other words, we've validated the complete workflow across service boundaries.
+
+The README for this lesson walks through this process step by step, including manual testing with `curl`, verifying service-name DNS, and running an automated integration test with `pytest`.
+
+[CLICK]
+
+That's the core idea behind multi-container testing.
+
+We're not just checking that individual containers start successfully. We're verifying that independent services can communicate, share data, and complete real application workflows together.
+
+In the final lesson of this chapter, we'll step back and review the testing practices that help keep multi-container applications reliable and reproducible.

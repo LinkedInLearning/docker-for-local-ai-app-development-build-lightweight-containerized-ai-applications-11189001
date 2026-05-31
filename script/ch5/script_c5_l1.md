@@ -1,48 +1,54 @@
-# Chapter 5 — Lesson 1: What "Production-Ready" Means
+# Chapter 5 — Lesson 1: What “Production-Ready” Means
 
-Chapter 4 left us with a multi-container application that **runs and passes its tests**. That is a real milestone — but "runs on my machine and in CI" is not the same as "ready for production."
+In Chapter 4, we ended with a multi-container application that runs and passes tests. That’s an important milestone — but “it runs locally and in CI” is not the same as “production-ready.”
 
-This chapter takes those images the last mile. This first lesson defines what *production-ready* actually means, and measures where our images stand against that bar.
+In this chapter, we take those images the last mile. 
 
-[CLICK]
-
-A **working** image is not a **production** image. The difference is a checklist — five things a production image gets right that a prototype usually doesn't.
+In this first lesson, we define what “production-ready” actually means and use it as a baseline to evaluate where we are today.
 
 [CLICK]
 
-First, **size**. Smaller images pull faster, cost less to store, and expose a smaller attack surface. A multi-gigabyte image is slow to deploy and full of things an attacker could use.
+A working image is not a production image. 
 
 [CLICK]
 
-Second, **security**. A minimal surface, no secrets baked into layers, no known vulnerabilities, and least privilege — not running as root.
+The difference comes down to a small set of properties — a checklist that production images get right, but prototypes often miss.
 
 [CLICK]
 
-Third, **portability**. The image has to run on the CPU architecture you deploy to. An image built only for your laptop's architecture may not run on the server.
+First, size. Smaller images pull faster, cost less to store, and reduce the attack surface. Large images are slow to deploy and often include unnecessary dependencies.
 
 [CLICK]
 
-Fourth, **distribution**. A production image is **versioned** and **published** to a registry, so a deploy target can pull exactly the build you intend.
+Second, security. That means minimizing what’s inside the image, avoiding embedded secrets, and running with least privilege — not as root.
 
 [CLICK]
 
-Fifth, **operability**. Once it's running, it needs resource limits, health checks, graceful shutdown, and a way to observe it.
+Third, portability. The image must run on the target infrastructure. If it only works on your local architecture, it won’t reliably run elsewhere.
 
 [CLICK]
 
-Before we fix anything, let's **measure**. You can't improve what you don't baseline:
+Fourth, distribution. Production images are versioned and stored in a registry so we can consistently pull the exact build we intend to run.
+
+[CLICK]
+
+Fifth, operability. Once running, the container should support health checks, resource limits, graceful shutdown, and observability.
+
+[CLICK]
+
+Before we improve anything, we need a baseline. The first step is to measure where we are today:
 
 ```bash
-docker images rag-ingestion rag-query     # how big are we starting?
-docker history rag-ingestion:0.1.0        # which layers dominate?
-dive rag-ingestion:0.1.0                   # wasted space, layer by layer
-docker scout quickview rag-ingestion:0.1.0 # CVE count at a glance
+docker images rag-ingestion rag-query     # image sizes
+docker history rag-ingestion:0.1.0        # layer breakdown
+dive rag-ingestion:0.1.0                  # wasted space per layer
+docker scout quickview rag-ingestion:0.1.0 # vulnerability snapshot
 ```
 
-The heavy ingestion image is large and has a wide surface. That's our starting point.
+The ingestion image is heavy, and both images have a broad surface area. That becomes our starting point.
 
 [CLICK]
 
-Each remaining lesson attacks one column of that checklist — size, security, portability, distribution, operability — and we re-measure to prove the gain.
+Each of the remaining lessons in this chapter targets one item in this checklist — size, security, portability, distribution, and operability — and we’ll re-measure after each step to see the improvement.
 
-Next: the single biggest lever on size — multi-stage builds.
+Next up: the biggest immediate win for image size — multi-stage builds.
