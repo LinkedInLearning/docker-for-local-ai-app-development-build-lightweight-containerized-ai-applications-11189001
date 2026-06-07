@@ -52,7 +52,16 @@
       "Bash(set -e)",
       "Bash(git mv *)",
       "Bash(sed -n '20,32p' chapter_0/learning_goals.md)",
-      "Bash(sed -n '145,160p' chapter_0/naming_convention.md)"
+      "Bash(sed -n '145,160p' chapter_0/naming_convention.md)",
+      "Bash(sed -n '1,40p')",
+      "Bash(awk '/\\\\.stages\\\\{/{f=NR} /\\\\.step-arrow svg|\\\\.step-arrow\\\\{/{print NR\": \"$0}' chapter_1/l3/slides_c1_l3.html)",
+      "Bash(git push *)",
+      "Bash(echo \"=== exit: $? ===\")",
+      "Bash(chmod +x chapter_4/l2/build_query.sh chapter_4/l2/build_ingestion.sh)",
+      "Bash(bash -n chapter_4/l2/build_query.sh)",
+      "Bash(bash -n chapter_4/l2/build_ingestion.sh)",
+      "Bash(grep -niE 'OPENAI|env_file|environment|env-file|\\\\$\\\\{' docker-compose.yaml)",
+      "Bash(docker info *)"
     ]
   }
 }
