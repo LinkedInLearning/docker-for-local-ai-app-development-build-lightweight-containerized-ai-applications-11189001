@@ -1,22 +1,37 @@
 # Chapter 5 — Lesson 5: Publishing to a Registry
 
-The **distribution** column. A production image has to live somewhere a deploy target can pull it from — a server, an orchestrator, a CI runner. That somewhere is a **registry**.
+Let's focus now on **distribution**.
 
-We covered the basics of pulling and pushing back in Chapter 2. This lesson is about publishing *for production*.
+A production image needs to live somewhere that other systems can pull from — a CI pipeline, a server, or an orchestrator. That place is a **registry**.
 
-[CLICK]
-
-There are several registries — **Docker Hub** is the default, GitHub's **GHCR** ties into GitHub Actions, and every cloud has its own. Wherever it goes, the image is named `registry/namespace/repository:tag`, and the namespace is yours.
+We already saw basic push and pull operations in Chapter 2. In this lesson, we focus on publishing images the way production systems expect them to be published.
 
 [CLICK]
 
-The most important production habit is **tagging strategy**. Push an **immutable version** — `0.1.0`, or the git commit SHA — never just `latest`. `latest` is a *moving* tag: it silently changes, so "which build is in production?" becomes unanswerable. Version tags are how you roll back with confidence.
+There are several registries. 
+
+**Docker Hub** is the default, GitHub’s **GHCR** integrates with CI pipelines, and every cloud provider offers its own.
+
+Regardless of where you push, the naming follows the same pattern:
+
+`registry/namespace/repository:tag`
+
+The key part is the namespace — that’s where ownership lives.
 
 [CLICK]
 
-The everyday push: log in, tag for your namespace, push. Docker uploads only the layers the registry doesn't already have:
+The most important production practice is **tagging strategy**.
 
-```bash
+Always push immutable versions like `0.1.0` or a git commit SHA. Avoid using `latest`.
+
+
+[CLICK]
+
+The standard workflow is simple: authenticate, tag, and push.
+
+Docker uploads only layers that don’t already exist in the registry:
+
+```bash id="n4p2x8"
 docker login
 docker tag rag-demo:0.1.0 myuser/rag-demo:0.1.0
 docker push myuser/rag-demo:0.1.0
@@ -24,32 +39,44 @@ docker push myuser/rag-demo:0.1.0
 
 [CLICK]
 
-This is where multi-platform meets publishing. `buildx --push` builds for every platform **and** publishes the manifest list in a single step — no intermediate `--load`:
+This is where multi-platform builds connect to publishing.
 
-```bash
+With Buildx, you can build and publish in one step. The `--push` flag builds for all platforms and publishes a single manifest list:
+
+```bash id="k7v1m3"
 docker buildx build --platform linux/amd64,linux/arm64 \
   -t myuser/rag-demo:0.1.0 --push chapter_5/l4
 ```
 
+No intermediate load step needed.
+
 [CLICK]
 
-Inspect what you published — one tag, multiple architectures — then pull it back and watch Docker select the right one:
+We can inspect what we published:
 
-```bash
+```bash id="x1q8zd"
 docker buildx imagetools inspect myuser/rag-demo:0.1.0
 docker pull myuser/rag-demo:0.1.0
 ```
 
-[CLICK]
-
-For production you also care about **provenance** — proving an image is the build you think it is. Every image has a content **digest** (`@sha256:...`) that pins an exact build, and tools like cosign or `docker scout` can **sign** images and attach attestations so consumers can verify them.
+One tag now represents multiple architectures, and Docker automatically selects the right one at pull time.
 
 [CLICK]
 
-The AI note: large images make publishing slower and bump into registry **storage** and **pull-rate** limits. With multi-gigabyte AI images, tag hygiene and layer caching matter more, not less.
+In production, there’s one more concern: **provenance**.
+
+Every image has a content digest (`sha256:...`) that uniquely identifies the exact build. This allows you to pin and reproduce a specific image precisely.
+
+Tools like **Docker Scout** or image signing tools like **cosign** add verification on top, so you can confirm an image was built from a trusted source and hasn’t been modified.
 
 [CLICK]
 
-Our image is now built, hardened, portable, and published.
+One AI-specific consideration: large model images are expensive to distribute.
 
-Last lesson: operating it in production — and the best practices that tie the chapter together.
+They take longer to push and pull, and they can hit registry storage and bandwidth limits. That makes tag discipline and layer reuse even more important in AI workloads.
+
+[CLICK]
+
+At this point, the image is built, secured, portable, and published.
+
+In the final chapter, we move from publishing to **operating** these containers in production — and tie everything together into a complete production workflow.

@@ -1,57 +1,72 @@
 # Chapter 5 — Lesson 4: Multi-Platform Builds with Buildx
 
-The next column is **portability**. Here's the everyday reality: you develop on one CPU architecture and deploy on another. Apple Silicon laptops are `arm64`; a lot of cloud runs `amd64`; some cloud is ARM. The image has to match where it runs.
+In this lesson we will focus on **portability**.
+
+In practice, we often develop on one architecture and deploy on another. Apple Silicon machines use `arm64`, while most cloud environments still run `amd64`. The image has to work across both.
 
 [CLICK]
 
-The problem is concrete. An image built only for `amd64` either won't start on an `arm64` host, or it silently runs under emulation and crawls. Build for the wrong architecture and you find out in production.
+The issue is straightforward but important.
+
+An image built for one architecture may not run on another. At best, it falls back to slow emulation. At worst, it fails completely. Either way, you only discover the problem when you try to run it in a different environment.
 
 [CLICK]
 
-The tool is **Buildx**, Docker's interface to the BuildKit engine. The default `docker` builder can only build for your current architecture; a **`docker-container`** builder can build for many:
+To solve this, we use **Buildx**, Docker’s extended build system powered by BuildKit.
 
-```bash
+The default builder only targets your local architecture. Buildx, using the `docker-container` driver, can build for multiple platforms:
+
+```bash id="q8k1m2"
 docker buildx create --name multiarch --driver docker-container --use --bootstrap
-docker buildx inspect --bootstrap        # lists the platforms it can target
+docker buildx inspect --bootstrap
 ```
 
 [CLICK]
 
-With that builder, one source builds for many platforms — you just name them:
+Once the builder is set up, we can build for multiple architectures from a single Dockerfile:
 
-```bash
+```bash id="p2m8v7"
 docker buildx build --platform linux/amd64,linux/arm64 -t rag-demo:0.1.0 .
 ```
 
-One Dockerfile, two binaries.
+One source, multiple architectures.
 
 [CLICK]
 
-How does it build `arm64` on an `amd64` machine? **Emulation** — QEMU, bundled with Docker Desktop. It's convenient and it works, but it's slow. For speed at scale you'd use **native builders** for each architecture instead.
+So how does this work?
+
+On a different architecture than the host, Docker uses **emulation** via QEMU, which is included with Docker Desktop. This makes cross-platform builds easy, but slower. At scale, teams often prefer native builders per architecture for performance.
 
 [CLICK]
 
-When you build for several platforms under one tag, the result is a **manifest list** — a single name that points at one image per architecture. A plain `docker pull` then automatically picks the right one for the machine doing the pulling.
+When you build multiple platforms under one tag, Docker produces a **manifest list**. This is a single image name that points to multiple architecture-specific images.
+
+When you pull the image, Docker automatically selects the correct version for your machine.
+
+The course main image we build with this method, let's go to VScode and see the execution file.
 
 [CLICK]
 
-The demo uses a tiny image that prints the architecture it's running on, so the point is visible:
+Let’s make this visible with a small demo image that prints its architecture:
 
-```bash
+```bash id="l9w3xq"
 docker buildx build --platform linux/amd64 --load -t rag-demo:amd64 chapter_5/l4
-docker run --rm --platform linux/amd64 rag-demo:amd64    # -> x86_64
+docker run --rm --platform linux/amd64 rag-demo:amd64    # x86_64
+
 docker buildx build --platform linux/arm64 --load -t rag-demo:arm64 chapter_5/l4
-docker run --rm --platform linux/arm64 rag-demo:arm64    # -> aarch64
+docker run --rm --platform linux/arm64 rag-demo:arm64    # aarch64
 ```
 
-Same source, two architectures, proven by the output.
+Same code, different architectures — confirmed at runtime.
 
 [CLICK]
 
-The AI catch: multi-platform isn't free for heavy images. Not every dependency publishes wheels for every architecture — some native or torch builds will fail or fall back to a slow source compile under emulation. Worth knowing before you promise an ARM build.
+One important caveat for AI workloads: multi-platform builds are not always seamless.
+
+Many heavy dependencies don’t publish prebuilt binaries for every architecture. In those cases, builds may fall back to slow source compilation or fail entirely.
 
 [CLICK]
 
-Our image is now portable. But notice: a multi-arch image under one tag is a manifest list, and that only lives in a **registry**.
+At this point, our image is portable across architectures. But there’s an important detail: a multi-architecture image only exists as a **manifest list**, and that lives in a registry.
 
-Next: publishing.
+Next, we’ll look at publishing images so they can be shared and deployed consistently.

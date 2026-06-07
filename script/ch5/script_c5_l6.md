@@ -1,38 +1,52 @@
 # Chapter 5 — Lesson 6: Best Practices & Going Live
 
-Our image is built, hardened, portable, and published. The last column is **operability** — keeping it reliable once it's running — and **validation** before it ships. This lesson ties the chapter together and closes the course.
+At this point, our image is built, hardened, portable, and published.
+
+Let's focus on  **operability** — what keeps it stable once it’s running — and **validation** before it reaches production. This lesson brings everything together and closes the course.
 
 [CLICK]
 
-Start with **runtime guardrails**. A container with no limits can consume the whole host. In production you cap it and tell the platform how to handle failure:
+Start with **runtime guardrails**.
 
-```bash
+A container without limits can consume all available host resources. In production, we define clear boundaries and restart behavior:
+
+```bash id="a91k3d"
 docker run --memory 1g --cpus 1.5 --restart unless-stopped \
   --read-only myuser/rag-query:0.1.0
 ```
 
 [CLICK]
 
-Then **graceful shutdown and health**. Handle `SIGTERM` so in-flight work finishes when the platform stops the container, and add a `HEALTHCHECK` so the orchestrator knows when it's actually ready — not just started:
+Next, **graceful shutdown and health checks**.
 
-```dockerfile
+Containers should handle `SIGTERM` so in-flight requests can complete cleanly when the platform stops them.
+
+We also define a `HEALTHCHECK` so the orchestrator can distinguish between “started” and “ready”:
+
+```dockerfile id="h2m8qz"
 HEALTHCHECK --interval=30s --timeout=3s \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
 ```
 
 [CLICK]
 
-Before shipping, **validate the built artifact** — the real production image, not a dev shell. Run it, hit `/health`, send a real query, and scan it. This is different from Chapter 4's integration tests: those checked *behavior*; this checks the *image you're about to ship*.
+Before releasing anything, we **validate the final artifact**.
+
+This means running the actual production image — not a development environment — and checking the essentials: the service starts, `/health` responds, a real query works, and the image passes a security scan.
+
+This is different from Chapter 4 integration tests. Those verified service behavior in a composed system. Here we verify the **image itself**, as it will be shipped.
 
 [CLICK]
 
-All of this belongs in **CI** so it happens on every change, not by memory. A production pipeline is: build → scan → test → publish.
+All of this belongs in **CI**, so it runs automatically on every change.
+
+A production pipeline typically follows this flow: build → scan → test → publish.
 
 [CLICK]
 
-Wired into the project's existing workflow, the key steps look like this:
+In a real workflow, that looks like this:
 
-```yaml
+```yaml id="c7k2v9"
 # .github/workflows/main.yml (excerpt)
 - run: docker build -f docker/Dockerfile_Query -t rag-query:${{ github.sha }} .
 - run: docker scout cves --exit-code --only-severity critical,high rag-query:${{ github.sha }}
@@ -41,18 +55,28 @@ Wired into the project's existing workflow, the key steps look like this:
          -t myuser/rag-query:${{ github.ref_name }} --push docker/
 ```
 
-A failing scan or test stops the publish.
+If any step fails, the image is not published.
 
 [CLICK]
 
-Now the recap. The readiness checklist from Lesson 1 — every column, checked off: **size** (multi-stage), **security** (non-root, pinned, scanned), **portability** (buildx), **distribution** (versioned + published), **operability** (limits, health, CI).
+Let’s step back.
+
+The readiness checklist from Lesson 1 is now complete:
+
+* **Size** → multi-stage builds
+* **Security** → non-root, pinned, scanned
+* **Portability** → multi-platform builds
+* **Distribution** → versioned and published images
+* **Operability** → limits, health checks, CI validation
 
 [CLICK]
 
-And honesty about scope. This course did **not** cover orchestration at scale — Kubernetes, autoscaling — or a full observability stack. Those are the natural next steps once your images are production-ready, which now they are.
+One final note on scope.
+
+This course focused on making AI applications **production-ready at the image and container level**. It did not cover orchestration at scale (like Kubernetes) or full observability platforms. Those come next, once the foundation is solid.
 
 [CLICK]
 
-That's the journey: from "why containers" in Chapter 1, through building, developing, and testing, to production-ready AI images here.
+And that’s the journey — from understanding why containers matter, to building, testing, and finally preparing production-ready AI systems.
 
-That's the course. Thank you.
+Thanks for following along.

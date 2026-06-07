@@ -1,10 +1,18 @@
 # Chapter 5 — Lesson 3: Securing Production Images
 
-Our image is smaller. Now let's make it **safe**. Security in a container image comes down to three habits: reduce the attack surface, run with least privilege, and scan for known vulnerabilities.
+Our image is smaller. Now let’s make it **secure**.
 
 [CLICK]
 
-Start with the biggest, easiest win: **don't run as root.** By default a container process is root, and a process that escapes a root container is root on concerns it shouldn't reach. Create an unprivileged user and switch to it:
+Container security comes down to three core practices: reduce the attack surface, run with least privilege, and continuously scan for vulnerabilities.
+
+[CLICK]
+
+Start with the simplest and most important change: **don’t run as root**.
+
+By default, containers run as root. If a process escapes the container, it inherits those privileges on the host — which is exactly what we want to avoid.
+
+We fix this by creating a non-root user and switching to it:
 
 ```dockerfile
 RUN useradd --create-home --uid 10001 appuser
@@ -13,25 +21,35 @@ USER appuser
 
 [CLICK]
 
-**Pin the base image.** `FROM python:3.11-slim` floats — the tag moves under you. For a reproducible, verifiable build, pin by **digest**:
+Next, **pin the base image**.
+
+A tag like `python:3.11-slim` can change over time, which breaks reproducibility. For fully deterministic builds, pin the image by digest:
 
 ```dockerfile
 FROM python:3.11-slim@sha256:<digest>
 ```
 
-And prefer a minimal base — `slim` or `distroless` — so there's simply less in the image to attack.
+Whenever possible, use minimal base images like `slim` or `distroless` to reduce what’s included by default.
 
 [CLICK]
 
-**Keep secrets out of the image.** API keys and tokens must never be baked into a layer — layers are cached, shared, and pushed. Pass them at runtime instead, and verify nothing leaked:
+Next, **keep secrets out of the image**.
+
+API keys and tokens must never be baked into layers. Once included, they are cached, shared, and pushed to registries.
+
+Instead, pass them at runtime and verify they are not present in the image history:
 
 ```bash
-docker history --no-trunc rag-query:0.1.0   # no keys should appear here
+docker history --no-trunc rag-query:0.1.0   # ensure no secrets appear
 ```
 
 [CLICK]
 
-**Drop what you don't need.** Use `--no-install-recommends`, clean the apt lists in the same layer, and at runtime add a **read-only root filesystem** and **drop Linux capabilities**:
+Next, **minimize what’s installed and what’s exposed**.
+
+During builds, avoid unnecessary packages using the `--no-install-recommends` flag, and clean up package caches in the same layer.
+
+At runtime, you can further harden the container by using a read-only filesystem and removing Linux capabilities:
 
 ```bash
 docker run --read-only --cap-drop ALL rag-query:0.1.0
@@ -39,23 +57,29 @@ docker run --read-only --cap-drop ALL rag-query:0.1.0
 
 [CLICK]
 
-Now **scan**. A scanner reads your image's packages and reports known CVEs:
+Now, **scan the image**.
+
+A vulnerability scanner inspects installed packages and reports known CVEs:
 
 ```bash
 docker scout cves rag-query:0.1.0
-# or:  trivy image --severity HIGH,CRITICAL rag-query:0.1.0
+# or: trivy image --severity HIGH,CRITICAL rag-query:0.1.0
 ```
 
 [CLICK]
 
-A scan is only useful if you act on it. Bump the offending base image or dependency to a fixed version, rebuild, and **re-scan** to prove the CVE is gone. That loop — scan, fix, re-scan — is the habit.
+Scanning is only useful if it leads to action. When you find a CVE, upgrade the affected dependency or base image, rebuild, and re-scan.
+
+That loop — scan, fix, re-scan — is the workflow you want to build into your process.
 
 [CLICK]
 
-The AI-specific trap: never bake `OPENAI_API_KEY` or downloaded **model weights** into the image. Show the leak with `docker history`, then inject the key at runtime and mount or download weights as data — not as a baked layer.
+One important AI-specific rule: never bake secrets or model assets into the image.
+
+That includes API keys like `OPENAI_API_KEY` and large model weights. You can verify leaks using `docker history`, then move those values to runtime configuration or external storage.
 
 [CLICK]
 
-The image is now smaller **and** hardened: non-root, pinned, secret-free, scanned.
+At this point, the image is both smaller and safer: it runs as a non-root user, is pinned for reproducibility, contains no secrets, and is continuously scanable.
 
-Next: making it run anywhere — multi-platform builds.
+Next, we’ll make it portable across environments with multi-platform builds.
