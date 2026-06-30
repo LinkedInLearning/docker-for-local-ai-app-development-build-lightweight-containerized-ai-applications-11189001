@@ -61,7 +61,9 @@
       "Bash(bash -n chapter_4/l2/build_query.sh)",
       "Bash(bash -n chapter_4/l2/build_ingestion.sh)",
       "Bash(grep -niE 'OPENAI|env_file|environment|env-file|\\\\$\\\\{' docker-compose.yaml)",
-      "Bash(docker info *)"
+      "Bash(docker info *)",
+      "Bash(grep -E \"^\\(python|pytest|uvicorn|ruff\\)$\")",
+      "Bash(.venv/bin/python *)"
     ]
   }
 }
