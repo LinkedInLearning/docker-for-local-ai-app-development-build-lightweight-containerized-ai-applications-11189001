@@ -131,6 +131,28 @@ asks: *"Are the inputs identical to last time?"*
 If yes, Docker reuses the cached layer. If no, Docker **invalidates
 every layer from this point down** and rebuilds them.
 
+For example, on a rebuild after editing `main.py` — with a
+cache-friendly Dockerfile — everything up to the source copy is reused,
+and only the layers from that change downward are rebuilt:
+
+```mermaid
+flowchart TD
+    F["FROM python:3.11-slim"] --> C1["COPY requirements.txt ."]
+    C1 --> R["RUN pip install ..."]
+    R --> C2["COPY . .  (main.py changed)"]
+    C2 --> M["CMD [...]"]
+
+    classDef cached  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef rebuilt fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+
+    class F,C1,R cached
+    class C2,M rebuilt
+```
+
+The green layers are cache hits; the red layers are invalidated and
+rebuilt. Because the change lands at `COPY . .`, the expensive
+`RUN pip install` above it stays cached.
+
 ### Why order matters
 
 Compare these two Dockerfiles:

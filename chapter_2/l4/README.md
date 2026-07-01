@@ -92,6 +92,35 @@ docker pull myuser/demo:0.1
 docker run --rm myuser/demo:0.1
 ```
 
+```mermaid
+flowchart LR
+    subgraph Local["Your machine"]
+        IMG[demo:0.1]
+    end
+    subgraph Reg["Registry · Docker Hub"]
+        REPO[(myuser/demo:0.1)]
+    end
+    subgraph Others["Any other machine"]
+        direction TB
+        C1[Colleague's laptop]
+        S1[Server]
+        CI[CI runner]
+    end
+
+    IMG -- "tag + push" --> REPO
+    REPO -- pull --> C1
+    REPO -- pull --> S1
+    REPO -- pull --> CI
+
+    classDef local fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef reg   fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef other fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+
+    class IMG local
+    class REPO reg
+    class C1,S1,CI other
+```
+
 That round trip — push here, pull there — is how an image travels from your
 machine to where it actually runs.
 

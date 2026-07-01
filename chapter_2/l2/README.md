@@ -313,6 +313,29 @@ forwarding for `docker stop`.
 | Overridable at build         | `--build-arg NAME=val`               | (rebuild required)                     |
 | Overridable at run           | (impossible — already gone)           | `docker run -e NAME=val`               |
 
+The key difference is *when each one lives* — `ARG` exists only while
+the image is being built; `ENV` crosses the boundary into the running
+container:
+
+```mermaid
+flowchart LR
+    A["ARG · build-time"] --> B{{docker build}}
+    E["ENV · environment"] --> B
+    B --> C[Running container]
+    E -. persists into runtime .-> C
+    A -. gone after build .-> X["✗ not available"]
+
+    classDef arg  fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef env  fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef run  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef gone fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+
+    class A arg
+    class E env
+    class C run
+    class X gone
+```
+
 Use **both** when a value is set at build time but needs to be
 visible at runtime:
 
