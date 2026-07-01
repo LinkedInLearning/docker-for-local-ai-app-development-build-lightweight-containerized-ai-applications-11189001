@@ -50,14 +50,22 @@ external data at the right time, then let it generate a grounded answer.
 
 Conceptually, the system has three actors:
 
-```
-   user question  →  AI model  →  grounded answer
-                       ↑↓
-                  external inputs
-                  (your documents)
+```mermaid
+flowchart LR
+    Q[User question] --> M{{AI model}}
+    M --> A[Grounded answer]
+    D[(External inputs<br/>your documents)] -.retrieved context.-> M
+
+    classDef io    fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef model fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef data  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+
+    class Q,A io
+    class M model
+    class D data
 ```
 
-The "external inputs" arrow is what RAG adds on top of a plain LLM.
+The dashed **external inputs** arrow is what RAG adds on top of a plain LLM.
 
 To make that work, we need two pipelines:
 
@@ -79,8 +87,20 @@ numerical vector representations of text.
 The ingestion pipeline turns documents into embeddings the system can
 search later:
 
-```
-documents → parse → chunk → embed → vector store
+```mermaid
+flowchart LR
+    D[Documents<br/>PDFs / pages] --> P[Parse]
+    P --> C[Chunk]
+    C --> E[Embed]
+    E --> V[(Vector store)]
+
+    classDef data   fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+
+    class D data
+    class P,C,E action
+    class V store
 ```
 
 Typical steps:
@@ -102,8 +122,25 @@ new documents arrive, not on every user request.
 The query pipeline runs on every user request. It is **online /
 real-time**:
 
-```
-question → embed → similarity search → (rerank) → context → LLM → answer
+```mermaid
+flowchart LR
+    Q[Question] --> E[Embed]
+    E --> S[Similarity search]
+    V[(Vector store)] -.top-K chunks.-> S
+    S --> R[Rerank<br/>optional]
+    R --> X[Assemble context]
+    X --> L{{LLM}}
+    L --> A[Grounded answer<br/>+ citations]
+
+    classDef io     fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef model  fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+
+    class Q,A io
+    class E,S,R,X action
+    class V store
+    class L model
 ```
 
 * The user's question is embedded with the **same model** used during
@@ -137,6 +174,35 @@ The detail of *how* RAG works isn't what matters here. What matters is:
 
 > Modern AI systems are usually **composed of multiple independent
 > components** working together.
+
+Seen as services, the whole system looks like this — with the **vector
+store** as the shared piece both pipelines depend on:
+
+```mermaid
+flowchart LR
+    subgraph Ingest["Ingestion pipeline — offline / batch"]
+        direction LR
+        D[Documents] --> P[Parse] --> C[Chunk] --> E1[Embed]
+    end
+
+    subgraph Query["Query pipeline — online / real-time"]
+        direction LR
+        Q[Question] --> E2[Embed] --> S[Similarity search] --> X[Assemble context] --> L{{LLM}} --> A[Answer]
+    end
+
+    E1 --> V[(Vector store)]
+    V -.top-K chunks.-> S
+
+    classDef data   fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef model  fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+
+    class D,Q,A data
+    class P,C,E1,E2,S,X action
+    class V store
+    class L model
+```
 
 Once we see the components — ingestion pipeline, vector database, query
 pipeline — we can ask the question that drives the next lesson:

@@ -63,7 +63,12 @@
       "Bash(grep -niE 'OPENAI|env_file|environment|env-file|\\\\$\\\\{' docker-compose.yaml)",
       "Bash(docker info *)",
       "Bash(grep -E \"^\\(python|pytest|uvicorn|ruff\\)$\")",
-      "Bash(.venv/bin/python *)"
+      "Bash(.venv/bin/python *)",
+      "Bash(command -v mmdc)",
+      "Bash(command -v npx)",
+      "Read(//private/tmp/**)",
+      "Bash(awk '/```mermaid/{n++; print \"---diagram \"n\"---\"; c=1; next} /```/{if\\(c\\){c=0}; next} c{print}' /Users/ramikrispin/Personal/courses/docker-local-ai-11189001/chapter_1/l2/README.md)",
+      "Bash(awk *)"
     ]
   }
 }

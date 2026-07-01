@@ -17,9 +17,21 @@ chapter, so think of this lesson as the map for everything that follows.
 
 ## 0. The shape of the workflow
 
-```
-  Spec  →  Development  →  Test  →  Deployment
-  (ch2)      (ch3)        (ch4)      (ch5)
+```mermaid
+flowchart LR
+    S[Spec<br/>Chapter 2] --> D[Development<br/>Chapter 3]
+    D --> T[Test<br/>Chapter 4]
+    T --> P[Deployment<br/>Chapter 5]
+
+    classDef plan    fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+    classDef dev     fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef action  fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+
+    class S plan
+    class D dev
+    class T action
+    class P runtime
 ```
 
 Four stages. The same containerized environment carries through all of
@@ -63,8 +75,21 @@ image**.
 
 That recipe runs through the core Docker workflow:
 
-```
-requirements  →  Dockerfile  →  docker build  →  image  →  docker run  →  container
+```mermaid
+flowchart LR
+    R[requirements] --> DF[Dockerfile]
+    DF --> B[docker build]
+    B --> I[image]
+    I --> RUN[docker run]
+    RUN --> C[container]
+
+    classDef artifact fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef action   fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef runtime  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+
+    class R,DF artifact
+    class B,RUN action
+    class I,C runtime
 ```
 
 * **requirements** — what the environment needs (from the spec)
@@ -113,10 +138,26 @@ Three steps:
    pipeline**, one for the **query pipeline** (the vector DB is already
    its own container).
 
-```
-   ┌─ ingestion ─┐   ┌─ vector DB ─┐   ┌─ query ─┐
-   │  container  │   │  container  │   │ container│
-   └─────────────┘   └─────────────┘   └──────────┘
+```mermaid
+flowchart LR
+    subgraph C1["Container 1"]
+        I[Ingestion pipeline]
+    end
+    subgraph C2["Container 2"]
+        V[(Vector database)]
+    end
+    subgraph C3["Container 3"]
+        Q[Query pipeline]
+    end
+
+    I -- writes embeddings --> V
+    V -- similarity search --> Q
+
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+
+    class I,Q action
+    class V store
 ```
 
 Splitting them out lets us test in an environment **much closer to

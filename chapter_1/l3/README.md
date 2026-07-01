@@ -73,10 +73,41 @@ for separate containers.
 
 ## 3. The path we'll take
 
-Across this course, we move through three stages:
+Across this course, we move through three stages. We don't start with
+the final production layout — we start simple, then split services out
+as they stabilize:
 
-```
-Development  →  Test  →  Deployment
+```mermaid
+flowchart LR
+    subgraph Dev["Development · 2 containers"]
+        direction TB
+        D1[python-dev<br/>ingestion + query]
+        D2[(Vector database)]
+    end
+
+    subgraph Test["Test · 3 containers"]
+        direction TB
+        T1[Data pipeline<br/>ingestion, isolated]
+        T2[Query pipeline<br/>API, isolated]
+        T3[(Vector database)]
+    end
+
+    subgraph Deploy["Deployment · 3 containers"]
+        direction TB
+        P1[Data pipeline]
+        P2[Query pipeline]
+        P3[(Vector database)]
+    end
+
+    Dev ==> Test ==> Deploy
+
+    classDef dev    fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+
+    class D1 dev
+    class T1,T2,P1,P2 action
+    class D2,T3,P3 store
 ```
 
 ### Development
@@ -121,6 +152,17 @@ start by:
 2. **Defining requirements** — what does each service need?
 3. **Then deciding containers** — how do we package them given the
    target environment?
+
+```mermaid
+flowchart LR
+    S["1 · Identify services<br/>what does the app do, end to end?"]
+    R["2 · Define requirements<br/>runtime, libs, env, ports, resources"]
+    C["3 · Decide containers<br/>package for the target environment"]
+    S --> R --> C
+
+    classDef step fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    class S,R,C step
+```
 
 It's tempting to skip ahead to the deployment diagram, but if you don't
 have services and requirements first, the container choices won't hold

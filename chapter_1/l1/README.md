@@ -76,6 +76,19 @@ dependencies and system configuration into a reproducible environment.**
 
 Instead of sharing setup instructions, we share the environment itself.
 
+```mermaid
+flowchart LR
+    C[(Container image<br/>app + dependencies + config)] --> M[macOS]
+    C --> W[Windows]
+    C --> L[Linux / cloud]
+
+    classDef image  fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef target fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+
+    class C image
+    class M,W,L target
+```
+
 A container is:
 
 * **Reproducible** — same image, same environment, anywhere
@@ -94,8 +107,21 @@ that exact failure locally.
 Once an application is packaged in a container, the **same environment**
 can be used at every stage of the lifecycle:
 
-```
-Development → Testing → Deployment → Production
+```mermaid
+flowchart LR
+    subgraph Lifecycle["The same environment, all the way through"]
+        direction LR
+        Dev[Development] --> Test[Testing]
+        Test --> Deploy[Deployment]
+        Deploy --> Prod[Production]
+    end
+    I[(Container image)] -.-> Dev & Test & Deploy & Prod
+
+    classDef image fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef stage fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+
+    class I image
+    class Dev,Test,Deploy,Prod stage
 ```
 
 This consistency is the real win. The benefit isn't "easier to run."
