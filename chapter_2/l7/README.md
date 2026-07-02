@@ -310,6 +310,25 @@ EXPOSE 8080
 CMD ["python", "main.py"]
 ```
 
+```mermaid
+flowchart LR
+    subgraph Builder["Stage 1 · builder — fat, discarded"]
+        direction TB
+        B1["FROM python:3.11"] --> B2["pip install → /root/.local"]
+    end
+    subgraph Runtime["Stage 2 · runtime — slim, shipped"]
+        direction TB
+        R1["FROM python:3.11-slim"] --> R2["app + copied deps"]
+    end
+    B2 -- "COPY --from=builder /root/.local" --> R2
+
+    classDef fat  fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef slim fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+
+    class B1,B2 fat
+    class R1,R2 slim
+```
+
 The build toolchain stays in `builder` and never ships to
 production.
 

@@ -94,6 +94,20 @@ docker run -p 127.0.0.1:8080:8080 ...   # bind to loopback only
 opens the port. The container port must match what the app
 *actually* listens on, not what `EXPOSE` claims.
 
+```mermaid
+flowchart LR
+    subgraph Host["Host machine"]
+      HP["localhost:8080"]
+    end
+    subgraph Container["Container"]
+      CP["app listens on :8080"]
+    end
+    HP -- "-p 8080:8080" --> CP
+```
+
+The two ports don't have to match — `-p 9000:8080` maps host 9000 to
+the container's 8080.
+
 ### Volumes — `-v`
 
 Three forms you'll see often:

@@ -187,6 +187,23 @@ Builds and runs accumulate quickly. After a few weeks of active
 development it is normal to have 50+ GB of unused Docker data on
 disk.
 
+Cleanup runs from **safe and targeted** to **irreversible** — each
+tier sweeps more than the one before it:
+
+```mermaid
+flowchart LR
+    A["Safe · targeted<br/>container / image / volume / network prune"] --> B["Aggressive<br/>image prune -a · system prune"]
+    B --> C["Nuclear<br/>system prune -a --volumes"]
+
+    classDef safe   fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef med    fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef danger fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+
+    class A safe
+    class B med
+    class C danger
+```
+
 ### Step 1 — see what's using the space
 
 ```bash
