@@ -77,9 +77,20 @@ Open `notebooks/01_pdf_ingestion.ipynb`. Because we're in the container, the
 Jupyter kernel **is** the container's interpreter — the same one the modules
 run under. Step through the cells:
 
-```
-load PDF → parse (pdf_parser) → chunk (chunker)
-        → embed (embedder) → store (store → ChromaDB)
+```mermaid
+flowchart LR
+    PDF[load PDF] --> Parse[parse<br/>pdf_parser]
+    Parse --> Chunk[chunk<br/>chunker]
+    Chunk --> Embed[embed<br/>embedder]
+    Embed --> Store[store<br/>store.py]
+    Store --> DB[(ChromaDB)]
+
+    classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    class PDF data;
+    class Parse,Chunk,Embed,Store action;
+    class DB runtime;
 ```
 
 The notebook is where we *develop and verify* the pipeline a stage at a time.
@@ -119,6 +130,15 @@ flowchart LR
     B --> C[Validate a stage in a notebook]
     C --> D[Exercise the whole app in the dashboard]
     D -->|found a gap| A
+
+    classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef special fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    class A data;
+    class B special;
+    class C action;
+    class D runtime;
 ```
 
 Small modules, an assistant to accelerate them, notebooks to validate each

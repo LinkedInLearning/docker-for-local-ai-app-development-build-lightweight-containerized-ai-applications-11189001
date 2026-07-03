@@ -97,10 +97,14 @@ addresses required.
 
 ```mermaid
 flowchart LR
-    subgraph net["network: rag-docker"]
-      P["python<br/>(dev container)"] -- "chromadb:8000" --> C["chromadb<br/>(vector DB)"]
-    end
     H["host browser"] -- "localhost:8000" --> C
+    subgraph net["network: rag-docker"]
+      P["python<br/>dev container"] -- "chromadb:8000" --> C[("chromadb<br/>vector DB")]
+    end
+    classDef yours fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    class P,H yours;
+    class C store;
 ```
 
 Our Python code connects to the database at host `chromadb`, port `8000`.

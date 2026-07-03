@@ -42,8 +42,8 @@ flowchart TD
     B -. cached .-> C
     C -. "edit one line of code" .-> D
 
-    classDef cached fill:#ecfdf5,stroke:#10b981;
-    classDef rebuilt fill:#fef2f2,stroke:#ef4444;
+    classDef cached fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef rebuilt fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
     class A,B,C cached
     class D rebuilt
 ```
@@ -110,6 +110,19 @@ the work into **two images**:
 * A **base image** carrying the heavy, stable tooling — built once, reused.
 * A **dev image** built `FROM` the base, carrying only the project-specific
   pieces — rebuilt as the project changes.
+
+```mermaid
+flowchart LR
+    base["base image<br/>OS · runtime · system packages<br/>built once, reused"]
+    dev["dev image<br/>project deps · source · notebooks<br/>rebuilt as the project changes"]
+
+    base -- "FROM base" --> dev
+
+    classDef stable fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef volatile fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+    class base stable
+    class dev volatile
+```
 
 This is exactly how the project is structured (`docker/Dockerfile_Base` and
 `docker/Dockerfile_Dev`). We'll cover the split in detail in **Lesson 5**; for

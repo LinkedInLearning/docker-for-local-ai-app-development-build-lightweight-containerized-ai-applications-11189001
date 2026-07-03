@@ -73,14 +73,16 @@ them in **two separate images**.
 
 ```mermaid
 flowchart TD
-    U[ubuntu:22.04] --> BASE["Base image<br/>python-base:0.0.4<br/>system deps · Quarto · shell"]
-    BASE --> DEV["Dev image<br/>python-dev-rag-docker:0.0.3<br/>uv · requirements.txt · models"]
+    U[ubuntu:22.04] --> BASE["Base image · stable<br/>python-base:0.0.4<br/>system deps · Quarto · shell"]
+    BASE --> DEV["Dev image · volatile<br/>python-dev-rag-docker:0.0.3<br/>uv · requirements.txt · models"]
     DEV --> C["dev container"]
 
-    classDef stable fill:#ecfdf5,stroke:#10b981;
-    classDef volatile fill:#eff6ff,stroke:#3b82f6;
-    class U,BASE stable
-    class DEV,C volatile
+    classDef input fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef stable fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef volatile fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+    class U input
+    class BASE,C stable
+    class DEV volatile
 ```
 
 ### The base image — stable, project-agnostic

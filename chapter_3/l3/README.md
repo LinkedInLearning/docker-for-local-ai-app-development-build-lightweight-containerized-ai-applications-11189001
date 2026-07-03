@@ -122,6 +122,27 @@ VS Code reads `.devcontainer/devcontainer.json`, starts the Compose services
 container. The first time it builds; afterwards it's quick. The remote
 indicator now reads **"Dev Container: RAG Docker Dev"** — you're inside.
 
+```mermaid
+flowchart LR
+    CLICK["Reopen in<br/>Container"]
+    CFG["Read<br/>devcontainer.json"]
+    subgraph compose["Compose services"]
+      PY{{"python service"}}
+      DB[("chromadb")]
+    end
+    ATTACH["Window reconnected<br/>Dev Container: RAG Docker Dev"]
+
+    CLICK --> CFG --> compose --> ATTACH
+
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef model fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+    classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    class CLICK,CFG action;
+    class PY model;
+    class DB store;
+    class ATTACH store;
+```
+
 ### Verify you're really inside the container
 
 Open the integrated terminal (it runs in the container) and check the
