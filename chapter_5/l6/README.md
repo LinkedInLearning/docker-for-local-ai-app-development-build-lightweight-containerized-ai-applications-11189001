@@ -45,8 +45,25 @@ checked *behavior*; this checks the *image you're about to ship*.
 
 ## 4. Put it in CI
 
-Make it happen on every change: **build → scan → test → publish**. Wired into
-the project's existing `.github/workflows/main.yml`:
+Make it happen on every change: **build → scan → test → publish** — one ordered
+gate where a failing scan or test stops the publish, so bad images never reach
+the registry. Wired into the project's existing `.github/workflows/main.yml`:
+
+```mermaid
+flowchart LR
+  build[Build<br/>the image] --> scan[Scan<br/>for CVEs]
+  scan --> test[Test<br/>run the suite]
+  test --> push[(Push<br/>publish multi-arch)]
+  scan -. fails .-> stop{{Publish<br/>blocked}}
+  test -. fails .-> stop
+
+  classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+  classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+  classDef danger fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+  class build,scan,test action;
+  class push store;
+  class stop danger;
+```
 
 ```yaml
 - run: docker build -f docker/Dockerfile_Query -t rag-query:${{ github.sha }} .
@@ -55,8 +72,6 @@ the project's existing `.github/workflows/main.yml`:
 - run: docker buildx build --platform linux/amd64,linux/arm64 \
          -t myuser/rag-query:${{ github.ref_name }} --push docker/
 ```
-
-A failing scan or test stops the publish.
 
 ---
 

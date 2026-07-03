@@ -50,6 +50,30 @@ docker buildx imagetools inspect myuser/rag-demo:0.1.0   # one tag, many arches
 docker pull myuser/rag-demo:0.1.0                         # Docker picks your arch
 ```
 
+The registry receives a **manifest list**: one tag that fans out to a
+per-architecture image, and a pull resolves to the variant matching the host.
+
+```mermaid
+flowchart LR
+  tag["myuser/rag-demo:0.1.0<br/>(manifest list)"]
+  amd["linux/amd64<br/>@sha256:9f3a…"]
+  arm["linux/arm64<br/>@sha256:b71c…"]
+  pull(["docker pull<br/>on this host"])
+
+  tag --> amd
+  tag --> arm
+  amd -.-> pull
+  arm -.-> pull
+
+  classDef modelStyle fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+  classDef artifactStyle fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+  classDef actionStyle fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+
+  class tag modelStyle;
+  class amd,arm artifactStyle;
+  class pull actionStyle;
+```
+
 ---
 
 ## 5. Provenance and integrity

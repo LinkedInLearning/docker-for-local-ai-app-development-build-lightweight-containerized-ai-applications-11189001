@@ -47,6 +47,20 @@ A multi-platform build under one tag produces a **manifest list**: one name
 pointing at one image per architecture. A plain `docker pull` auto-selects the
 right one.
 
+```mermaid
+flowchart LR
+  tag[("rag-demo:0.1.0<br/>manifest list<br/>one tag")]
+  amd["linux/amd64 image<br/>for x86 hosts"]
+  arm["linux/arm64 image<br/>for ARM hosts"]
+  tag --> amd
+  tag --> arm
+
+  classDef manifest fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+  classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+  class tag manifest;
+  class amd,arm data;
+```
+
 ---
 
 ## 5. Demo

@@ -69,6 +69,26 @@ Two things are new:
   the result. Compose builds as well as runs.
 * **`healthcheck` + `depends_on: service_healthy`** — see below.
 
+The two app services sit on the same `rag-net` bridge network as the database,
+reach it by name (`chromadb`), and only start once its healthcheck passes:
+
+```mermaid
+flowchart LR
+  subgraph net["rag-net (bridge network)"]
+    ingestion["ingestion<br/>:8081"]
+    query["query<br/>:8080"]
+    chromadb[("chromadb<br/>:8000")]
+  end
+
+  ingestion -. "depends_on:<br/>service_healthy" .-> chromadb
+  query -. "depends_on:<br/>service_healthy" .-> chromadb
+
+  classDef svc fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+  classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+  class ingestion,query svc;
+  class chromadb store;
+```
+
 ---
 
 ## 3. Why a healthcheck

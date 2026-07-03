@@ -51,6 +51,13 @@ flowchart LR
       Q
       DB
     end
+
+    classDef input fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef process fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    class Client input;
+    class I,Q process;
+    class DB store;
 ```
 
 Three services:

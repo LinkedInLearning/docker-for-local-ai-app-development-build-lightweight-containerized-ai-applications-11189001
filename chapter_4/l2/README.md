@@ -63,6 +63,33 @@ says so*, not just because a requirements file omits a line.
 > Chosen over a single `main:app` gated by a `ROLE` env var, which would keep
 > the heavy imports one stray `import` away from the lean image.
 
+The shared codebase fans out into two entry points, and the import boundary is
+what keeps Docling out of the lean image:
+
+```mermaid
+flowchart LR
+    routes["rag/api/routes<br/>query + ingestion"]:::data
+
+    subgraph lean["query image (lean)"]
+        qapp["query_app.py"]:::action
+        qdocling["Docling<br/>never imported"]:::absent
+    end
+
+    subgraph heavy["ingestion image (heavy)"]
+        iapp["ingestion_app.py"]:::action
+        idocling{{"Docling<br/>vision + parsing"}}:::model
+    end
+
+    routes -->|query router only| qapp
+    routes -->|ingestion router only| iapp
+    iapp --> idocling
+
+    classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef model fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+    classDef absent fill:#f4f4f6,stroke:#9aa1ac,stroke-width:1px,stroke-dasharray:4 3,color:#6b7280;
+```
+
 ---
 
 ## 3. The two Dockerfiles

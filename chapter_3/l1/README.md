@@ -119,7 +119,7 @@ flowchart LR
     base -- "FROM base" --> dev
 
     classDef stable fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-    classDef volatile fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+    classDef volatile fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
     class base stable
     class dev volatile
 ```

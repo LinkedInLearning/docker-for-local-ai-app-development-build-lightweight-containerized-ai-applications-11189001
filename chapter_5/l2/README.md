@@ -22,6 +22,30 @@ extra attack surface.
 A multi-stage build uses a throwaway **builder** stage to install/compile, and a
 clean **runtime** stage that copies only the finished artifacts:
 
+```mermaid
+flowchart LR
+  subgraph builder["Builder stage (discarded)"]
+    tools["build-essential<br/>+ pip cache"]
+    venv["/opt/venv<br/>(finished deps)"]
+    tools --> venv
+  end
+  subgraph runtime["Runtime stage (shipped)"]
+    rvenv["/opt/venv"]
+    app["rag/ app code"]
+  end
+  venv -->|"COPY --from=builder"| rvenv
+
+  class tools action
+  class venv,rvenv,app artifact
+  class builder volatile
+  class runtime runtime
+
+  classDef artifact fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+  classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+  classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+  classDef volatile fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+```
+
 ```dockerfile
 FROM python:3.11-slim AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential

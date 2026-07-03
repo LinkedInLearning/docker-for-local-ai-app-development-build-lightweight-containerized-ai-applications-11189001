@@ -73,6 +73,19 @@ docker scout cves rag-query:0.1.0
 Act on it: bump the offending base or dependency to a fixed version, rebuild,
 and **re-scan** to prove the CVE is gone. That loop is the habit.
 
+```mermaid
+flowchart LR
+    scan[Scan<br/>find the CVE] --> fix[Fix<br/>bump &amp; rebuild]
+    fix --> rescan[Re-scan<br/>prove it's gone]
+    rescan -->|still found| scan
+    rescan -->|clean| done[Clean image]
+
+    classDef process fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef good fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    class scan,fix,rescan process;
+    class done good;
+```
+
 > We lead with `docker scout` (bundled with Docker Desktop); `trivy` is the
 > common CI alternative.
 

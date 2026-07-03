@@ -19,10 +19,10 @@ flowchart TD
     U["Unit — per module, no containers"]
     S --- I --- SV --- U
 
-    classDef many fill:#ecfdf5,stroke:#10b981;
-    classDef few fill:#fef2f2,stroke:#ef4444;
-    class U,SV many
-    class I,S few
+    classDef base fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef top fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    class U,SV base
+    class I,S top
 ```
 
 | Layer | Scope | Speed | Count |

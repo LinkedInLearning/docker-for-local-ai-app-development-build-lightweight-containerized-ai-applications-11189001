@@ -27,6 +27,11 @@ DNS — no IP addresses.
 flowchart LR
     I["ingestion :8081"] -->|write vectors| DB[("chromadb :8000")]
     Q["query :8080"] -->|read vectors| DB
+
+    classDef svc fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    class I,Q svc;
+    class DB store;
 ```
 
 ---
@@ -46,11 +51,22 @@ Each service exposes `/health`. We use it two ways:
 
 The flow only a multi-container setup can exercise:
 
-```
-POST /ingest  → ingestion service   (parse → embed → store in chromadb)
-   poll GET /ingest/jobs/{id} until "completed"
-POST /query   → query service       (retrieve from chromadb → LLM → answer)
-   assert the answer has sources
+```mermaid
+flowchart TD
+    subgraph ING["ingestion service :8081"]
+        A["POST /ingest<br/>parse → embed → store"] --> B["poll GET /ingest/jobs/{id}<br/>until completed"]
+    end
+    subgraph QRY["query service :8080"]
+        C["POST /query<br/>retrieve → LLM → answer"] --> D["assert the answer has sources"]
+    end
+    B --> C
+
+    classDef ingest fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+    classDef query fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef check fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    class A,B ingest;
+    class C query;
+    class D check;
 ```
 
 If the answer comes back with sources from the document we just ingested,
