@@ -52,9 +52,9 @@ flowchart LR
       DB
     end
 
-    classDef input fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef process fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef input fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef process fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
     class Client input;
     class I,Q process;
     class DB store;

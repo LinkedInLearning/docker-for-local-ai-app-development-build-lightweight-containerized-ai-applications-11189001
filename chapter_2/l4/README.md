@@ -112,9 +112,9 @@ flowchart LR
     REPO -- pull --> S1
     REPO -- pull --> CI
 
-    classDef local fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef reg   fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef other fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef local fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef reg   fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef other fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class IMG local
     class REPO reg

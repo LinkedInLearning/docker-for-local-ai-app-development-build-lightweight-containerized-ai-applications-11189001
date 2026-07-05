@@ -56,9 +56,9 @@ flowchart LR
     M --> A[Grounded answer]
     D[(External inputs<br/>your documents)] -.retrieved context.-> M
 
-    classDef io    fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef model fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef data  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef io    fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef model fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef data  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class Q,A io
     class M model
@@ -94,9 +94,9 @@ flowchart LR
     C --> E[Embed]
     E --> V[(Vector store)]
 
-    classDef data   fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef data   fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class D data
     class P,C,E action
@@ -132,10 +132,10 @@ flowchart LR
     X --> L{{LLM}}
     L --> A[Grounded answer<br/>+ citations]
 
-    classDef io     fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-    classDef model  fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+    classDef io     fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+    classDef model  fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
 
     class Q,A io
     class E,S,R,X action
@@ -193,10 +193,10 @@ flowchart LR
     E1 --> V[(Vector store)]
     V -.top-K chunks.-> S
 
-    classDef data   fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-    classDef model  fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+    classDef data   fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+    classDef model  fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
 
     class D,Q,A data
     class P,C,E1,E2,S,X action

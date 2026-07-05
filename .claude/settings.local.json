@@ -70,7 +70,8 @@
       "Bash(awk '/```mermaid/{n++; print \"---diagram \"n\"---\"; c=1; next} /```/{if\\(c\\){c=0}; next} c{print}' /Users/ramikrispin/Personal/courses/docker-local-ai-11189001/chapter_1/l2/README.md)",
       "Bash(awk *)",
       "Bash(grep -vE '^```')",
-      "Read(//Users/**)"
+      "Read(//Users/**)",
+      "Bash(perl -i -pe ' *)"
     ]
   }
 }

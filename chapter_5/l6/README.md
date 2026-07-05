@@ -57,9 +57,9 @@ flowchart LR
   scan -. fails .-> stop{{Publish<br/>blocked}}
   test -. fails .-> stop
 
-  classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-  classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-  classDef danger fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+  classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+  classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+  classDef danger fill:#fdecec,stroke:#d26b6b,stroke-width:1px,color:#5c1a1a;
   class build,scan,test action;
   class push store;
   class stop danger;

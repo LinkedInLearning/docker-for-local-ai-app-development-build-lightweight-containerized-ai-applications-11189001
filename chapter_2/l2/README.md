@@ -325,10 +325,10 @@ flowchart LR
     E -. persists into runtime .-> C
     A -. gone after build .-> X["✗ not available"]
 
-    classDef arg  fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef env  fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef run  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-    classDef gone fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+    classDef arg  fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef env  fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef run  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+    classDef gone fill:#fdecec,stroke:#d26b6b,stroke-width:1px,color:#5c1a1a;
 
     class A arg
     class E env

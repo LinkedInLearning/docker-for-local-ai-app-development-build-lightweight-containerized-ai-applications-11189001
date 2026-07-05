@@ -42,8 +42,8 @@ flowchart TD
     B -. cached .-> C
     C -. "edit one line of code" .-> D
 
-    classDef cached fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-    classDef rebuilt fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+    classDef cached fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+    classDef rebuilt fill:#fdecec,stroke:#d26b6b,stroke-width:1px,color:#5c1a1a;
     class A,B,C cached
     class D rebuilt
 ```
@@ -118,8 +118,8 @@ flowchart LR
 
     base -- "FROM base" --> dev
 
-    classDef stable fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-    classDef volatile fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+    classDef stable fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+    classDef volatile fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
     class base stable
     class dev volatile
 ```

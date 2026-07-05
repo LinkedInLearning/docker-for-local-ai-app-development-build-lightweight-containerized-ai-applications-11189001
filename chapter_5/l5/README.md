@@ -65,9 +65,9 @@ flowchart LR
   amd -.-> pull
   arm -.-> pull
 
-  classDef modelStyle fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
-  classDef artifactStyle fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-  classDef actionStyle fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
+  classDef modelStyle fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
+  classDef artifactStyle fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+  classDef actionStyle fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
 
   class tag modelStyle;
   class amd,arm artifactStyle;

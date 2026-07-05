@@ -26,9 +26,9 @@ flowchart LR
       I -- "docker run" --> C3[Container 3]
     end
 
-    classDef artifact fill:#f0f4ff,stroke:#5b6ee1;
-    classDef image    fill:#fff4e6,stroke:#d28b4f;
-    classDef runtime  fill:#e8f7ee,stroke:#3aa667;
+    classDef artifact fill:#f0f4ff,stroke:#5b6ee1,color:#1a2440;
+    classDef image    fill:#fff4e6,stroke:#d28b4f,color:#5c3410;
+    classDef runtime  fill:#e8f7ee,stroke:#3aa667,color:#12341f;
 
     class D artifact
     class I image

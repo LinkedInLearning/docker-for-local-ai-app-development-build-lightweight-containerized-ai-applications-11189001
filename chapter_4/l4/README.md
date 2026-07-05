@@ -28,8 +28,8 @@ flowchart LR
     I["ingestion :8081"] -->|write vectors| DB[("chromadb :8000")]
     Q["query :8080"] -->|read vectors| DB
 
-    classDef svc fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef svc fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
     class I,Q svc;
     class DB store;
 ```
@@ -61,9 +61,9 @@ flowchart TD
     end
     B --> C
 
-    classDef ingest fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef query fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef check fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef ingest fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef query fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef check fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
     class A,B ingest;
     class C query;
     class D check;

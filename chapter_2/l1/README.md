@@ -26,9 +26,9 @@ flowchart LR
     D --> E[4. docker run]
     E --> F[Container]
 
-    classDef artifact fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef action   fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef runtime  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef artifact fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef action   fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef runtime  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class A,B artifact
     class C,E action
@@ -148,8 +148,8 @@ flowchart LR
     I --> C2[container-2]
     I --> C3[container-3]
 
-    classDef artifact fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef runtime  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef artifact fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef runtime  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class I artifact
     class C1,C2,C3 runtime

@@ -101,9 +101,9 @@ flowchart LR
 
     Dev ==> Test ==> Deploy
 
-    classDef dev    fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef dev    fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class D1 dev
     class T1,T2,P1,P2 action
@@ -160,7 +160,7 @@ flowchart LR
     C["3 · Decide containers<br/>package for the target environment"]
     S --> R --> C
 
-    classDef step fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef step fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
     class S,R,C step
 ```
 

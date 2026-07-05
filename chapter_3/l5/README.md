@@ -77,9 +77,9 @@ flowchart TD
     BASE --> DEV["Dev image · volatile<br/>python-dev-rag-docker:0.0.3<br/>uv · requirements.txt · models"]
     DEV --> C["dev container"]
 
-    classDef input fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef stable fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-    classDef volatile fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+    classDef input fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef stable fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+    classDef volatile fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
     class U input
     class BASE,C stable
     class DEV volatile

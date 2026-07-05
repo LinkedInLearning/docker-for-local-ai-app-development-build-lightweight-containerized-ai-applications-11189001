@@ -84,9 +84,9 @@ flowchart LR
     routes -->|ingestion router only| iapp
     iapp --> idocling
 
-    classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef model fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+    classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef model fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
     classDef absent fill:#f4f4f6,stroke:#9aa1ac,stroke-width:1px,stroke-dasharray:4 3,color:#6b7280;
 ```
 

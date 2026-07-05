@@ -322,8 +322,8 @@ flowchart LR
     end
     B2 -- "COPY --from=builder /root/.local" --> R2
 
-    classDef fat  fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef slim fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef fat  fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef slim fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class B1,B2 fat
     class R1,R2 slim

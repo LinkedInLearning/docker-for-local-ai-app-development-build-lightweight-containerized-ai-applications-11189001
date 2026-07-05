@@ -85,9 +85,9 @@ flowchart LR
     Embed --> Store[store<br/>store.py]
     Store --> DB[(ChromaDB)]
 
-    classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
     class PDF data;
     class Parse,Chunk,Embed,Store action;
     class DB runtime;
@@ -131,10 +131,10 @@ flowchart LR
     C --> D[Exercise the whole app in the dashboard]
     D -->|found a gap| A
 
-    classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef special fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
-    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef special fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
     class A data;
     class B special;
     class C action;

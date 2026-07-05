@@ -134,9 +134,9 @@ flowchart LR
 
     CLICK --> CFG --> compose --> ATTACH
 
-    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef model fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
-    classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef model fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
+    classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
     class CLICK,CFG action;
     class PY model;
     class DB store;

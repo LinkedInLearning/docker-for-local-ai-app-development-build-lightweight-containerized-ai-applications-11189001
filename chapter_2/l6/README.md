@@ -195,9 +195,9 @@ flowchart LR
     A["Safe · targeted<br/>container / image / volume / network prune"] --> B["Aggressive<br/>image prune -a · system prune"]
     B --> C["Nuclear<br/>system prune -a --volumes"]
 
-    classDef safe   fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-    classDef med    fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef danger fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+    classDef safe   fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+    classDef med    fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef danger fill:#fdecec,stroke:#d26b6b,stroke-width:1px,color:#5c1a1a;
 
     class A safe
     class B med

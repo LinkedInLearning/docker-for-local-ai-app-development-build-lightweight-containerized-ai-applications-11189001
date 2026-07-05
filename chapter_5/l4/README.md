@@ -55,8 +55,8 @@ flowchart LR
   tag --> amd
   tag --> arm
 
-  classDef manifest fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
-  classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+  classDef manifest fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
+  classDef data fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
   class tag manifest;
   class amd,arm data;
 ```

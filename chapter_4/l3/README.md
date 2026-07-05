@@ -83,8 +83,8 @@ flowchart LR
   ingestion -. "depends_on:<br/>service_healthy" .-> chromadb
   query -. "depends_on:<br/>service_healthy" .-> chromadb
 
-  classDef svc fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-  classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+  classDef svc fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+  classDef store fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
   class ingestion,query svc;
   class chromadb store;
 ```

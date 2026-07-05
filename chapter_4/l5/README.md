@@ -19,8 +19,8 @@ flowchart TD
     U["Unit — per module, no containers"]
     S --- I --- SV --- U
 
-    classDef base fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-    classDef top fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
+    classDef base fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+    classDef top fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
     class U,SV base
     class I,S top
 ```

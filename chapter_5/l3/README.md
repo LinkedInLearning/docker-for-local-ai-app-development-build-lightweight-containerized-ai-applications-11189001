@@ -80,8 +80,8 @@ flowchart LR
     rescan -->|still found| scan
     rescan -->|clean| done[Clean image]
 
-    classDef process fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef good fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef process fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef good fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
     class scan,fix,rescan process;
     class done good;
 ```

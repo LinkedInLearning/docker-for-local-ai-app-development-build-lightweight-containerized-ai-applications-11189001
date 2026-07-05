@@ -62,7 +62,7 @@ flowchart LR
     P -- "docker build ." --> D[Docker engine]
     D --> I[Image]
 
-    classDef ignored fill:#fce4e4,stroke:#c46666;
+    classDef ignored fill:#fce4e4,stroke:#c46666,color:#5c1a1a;
     class F4,F5 ignored
 ```
 
@@ -142,8 +142,8 @@ flowchart TD
     R --> C2["COPY . .  (main.py changed)"]
     C2 --> M["CMD [...]"]
 
-    classDef cached  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-    classDef rebuilt fill:#fdecec,stroke:#d26b6b,stroke-width:1px;
+    classDef cached  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+    classDef rebuilt fill:#fdecec,stroke:#d26b6b,stroke-width:1px,color:#5c1a1a;
 
     class F,C1,R cached
     class C2,M rebuilt

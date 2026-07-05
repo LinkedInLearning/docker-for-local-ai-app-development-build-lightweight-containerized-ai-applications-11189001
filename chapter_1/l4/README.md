@@ -23,10 +23,10 @@ flowchart LR
     D --> T[Test<br/>Chapter 4]
     T --> P[Deployment<br/>Chapter 5]
 
-    classDef plan    fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
-    classDef dev     fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef action  fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef plan    fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
+    classDef dev     fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef action  fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class S plan
     class D dev
@@ -83,9 +83,9 @@ flowchart LR
     I --> RUN[docker run]
     RUN --> C[container]
 
-    classDef artifact fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef action   fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef runtime  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef artifact fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef action   fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef runtime  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class R,DF artifact
     class B,RUN action
@@ -153,8 +153,8 @@ flowchart LR
     I -- writes embeddings --> V
     V -- similarity search --> Q
 
-    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+    classDef store  fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class I,Q action
     class V store

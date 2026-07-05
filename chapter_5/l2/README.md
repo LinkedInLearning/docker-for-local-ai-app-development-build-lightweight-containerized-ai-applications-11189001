@@ -40,10 +40,10 @@ flowchart LR
   class builder volatile
   class runtime runtime
 
-  classDef artifact fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-  classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px;
-  classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
-  classDef volatile fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px;
+  classDef artifact fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+  classDef action fill:#fff4e6,stroke:#d28b4f,stroke-width:1px,color:#5c3410;
+  classDef runtime fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
+  classDef volatile fill:#f5e6ff,stroke:#9b5bd1,stroke-width:1px,color:#3d1a5c;
 ```
 
 ```dockerfile
