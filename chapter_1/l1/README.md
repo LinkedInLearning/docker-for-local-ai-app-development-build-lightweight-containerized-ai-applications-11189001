@@ -82,8 +82,8 @@ flowchart LR
     C --> W[Windows]
     C --> L[Linux / cloud]
 
-    classDef image  fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef target fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef image  fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef target fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class C image
     class M,W,L target
@@ -117,8 +117,8 @@ flowchart LR
     end
     I[(Container image)] -.-> Dev & Test & Deploy & Prod
 
-    classDef image fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px;
-    classDef stage fill:#e8f7ee,stroke:#3aa667,stroke-width:1px;
+    classDef image fill:#f0f4ff,stroke:#5b6ee1,stroke-width:1px,color:#1a2440;
+    classDef stage fill:#e8f7ee,stroke:#3aa667,stroke-width:1px,color:#12341f;
 
     class I image
     class Dev,Test,Deploy,Prod stage
