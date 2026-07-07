@@ -148,6 +148,59 @@ the database is alive.
 > `docker compose down` removes the containers and network, but the ingested
 > data survives because it lives in the mounted `./chroma_data` volume.
 
+### Common gotcha: port 8000 is already in use
+
+If `docker compose up -d` fails with an error like:
+
+```text
+Bind for 0.0.0.0:8000 failed: port is already allocated
+```
+
+it means another process or container is already using port `8000` on your
+host machine. First, check what is using the port:
+
+```bash
+lsof -i :8000
+```
+
+If the port belongs to another Docker container, you can also inspect running
+containers:
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Ports}}"
+```
+
+Then choose one of these fixes:
+
+* Stop the process or container that is already using port `8000`.
+* Or change only the **host** side of the port mapping in
+  `docker-compose.yaml`.
+
+For example, change:
+
+```yaml
+ports:
+  - 8000:8000
+```
+
+to:
+
+```yaml
+ports:
+  - 8001:8000
+```
+
+The left side is the host port, and the right side is the container port. With
+this change, ChromaDB still listens on port `8000` inside the Docker network,
+but your host reaches it at `localhost:8001`.
+
+After editing the compose file, restart the environment:
+
+```bash
+docker compose down
+docker compose up -d
+```
+
 ### Compose command cheat sheet
 
 | Intent | Command |
