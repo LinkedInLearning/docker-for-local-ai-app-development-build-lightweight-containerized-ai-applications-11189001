@@ -60,11 +60,19 @@ services:
     environment:
       - ANONYMIZED_TELEMETRY=false
     healthcheck:
-      # The off-the-shelf chroma image is minimal and ships no curl, so we probe
-      # with the Python that is already inside it (urlopen exits non-zero on error).
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v2/heartbeat')"]
+      # The off-the-shelf chroma 1.x image is a compiled server on a minimal
+      # Debian base — no curl, wget, or python inside, only bash. So we probe
+      # with bash's built-in /dev/tcp: open a socket to the heartbeat endpoint
+      # and confirm an HTTP 200 (the command exits non-zero on any failure).
+      test:
+        - "CMD"
+        - "bash"
+        - "-c"
+        - "exec 3<>/dev/tcp/localhost/8000 && printf 'GET /api/v2/heartbeat HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '200 OK' <&3"
       interval: 10s
       timeout: 5s
       retries: 5
+      # Give chroma time to boot before the first probe counts against retries.
+      start_period: 20s
     networks:
       - rag-net

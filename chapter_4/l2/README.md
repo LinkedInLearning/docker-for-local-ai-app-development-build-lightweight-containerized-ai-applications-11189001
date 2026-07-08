@@ -129,7 +129,11 @@ CMD ["uvicorn", "rag.api.ingestion_app:app", "--host", "0.0.0.0", "--port", "808
 
 ## 4. Hands-on: build and compare
 
-From the project root:
+> ⚠️ **Run these commands from the project root** (the repository's top-level
+> folder — the one containing `rag/`, `config/`, and `chapter_4/`), **not** from
+> inside `chapter_4/l2/`. The trailing `.` sets the build context to the root, and
+> the Dockerfiles' `COPY` paths (`chapter_4/l2/...`, `rag/`, `config/`) are all
+> resolved relative to it. Running from anywhere else will fail with "file not found".
 
 ```bash
 # Lean query image

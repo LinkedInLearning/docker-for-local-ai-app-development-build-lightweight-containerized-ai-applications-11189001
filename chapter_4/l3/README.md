@@ -56,10 +56,11 @@ services:
     image: chromadb/chroma:1.3.5
     volumes: ["./chroma_data:/chroma/chroma"]
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v2/heartbeat')"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8000 && printf 'GET /api/v2/heartbeat HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '200 OK' <&3"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
     networks: [rag-net]
 ```
 
@@ -102,9 +103,14 @@ The healthcheck closes the gap: we tell Compose how to ask the database "are
 you ready?" (here, its heartbeat endpoint), and the app services wait until
 that check passes. No more startup race.
 
-> The probe is a Python one-liner, not `curl`: the off-the-shelf
-> `chromadb/chroma` image is minimal and has no `curl`, but it does have the
-> Python that runs Chroma itself — so we reuse what's already inside the image.
+> **Probing a minimal image.** Chroma 1.x is a compiled server on a stripped-down
+> Debian base — it ships no `curl`, no `wget`, and no Python. The one HTTP-capable
+> tool inside is `bash`, so we probe with its built-in `/dev/tcp`: open a socket to
+> the heartbeat endpoint and match an HTTP `200 OK`. The lesson: check what's
+> actually in an off-the-shelf image before assuming a probe tool exists.
+>
+> `start_period: 20s` gives Chroma time to boot before failed probes count
+> against the retry budget.
 
 ---
 
