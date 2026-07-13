@@ -1,4 +1,6 @@
 {
     "workbench.colorTheme": "Default High Contrast",
-    "workbench.editor.showTabs": "multiple"
+    "workbench.editor.showTabs": "multiple",
+    "python.defaultInterpreterPath": "/opt/python-3.11-dev/bin/python",
+    "python.venvPath": "/opt"
 }

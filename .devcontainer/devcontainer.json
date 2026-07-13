@@ -17,7 +17,7 @@
         "vscode": {
             "settings": {
                 "python.defaultInterpreterPath": "/opt/python-3.11-dev/bin/python3",
-                "python.selectInterpreter": "/opt/python-3.11-dev/bin/python3"
+                "python.venvPath": "/opt"
             },
             "extensions": [
                 // Container
