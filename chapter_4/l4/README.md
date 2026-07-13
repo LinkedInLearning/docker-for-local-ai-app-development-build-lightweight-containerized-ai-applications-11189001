@@ -83,11 +83,13 @@ shared-state contract works, the services are genuinely integrated.
 ```bash
 # Ingest — ingestion service on 8081
 curl -X POST localhost:8081/ingest \
-  -H "X-API-Key: dev-key" -d '{"source_dir":"pdf/"}'
+  -H "X-API-Key: dev-key" -H "Content-Type: application/json" \
+  -d '{"source_dir":"pdf/"}'
 
 # Query — query service on 8080 (reads the same chromadb)
 curl -X POST localhost:8080/query \
-  -H "X-API-Key: dev-key" -d '{"question":"What is this document about?"}'
+  -H "X-API-Key: dev-key" -H "Content-Type: application/json" \
+  -d '{"question":"What is this document about?"}'
 
 # Prove service-name DNS from inside the query container.
 # (The image is lean and has no curl — we use the Python it already ships.)

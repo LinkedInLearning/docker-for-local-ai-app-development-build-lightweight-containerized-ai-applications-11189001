@@ -35,9 +35,18 @@ docker buildx inspect --bootstrap        # lists targetable platforms
 docker buildx build --platform linux/amd64,linux/arm64 -t rag-demo:0.1.0 .
 ```
 
-Building `arm64` on an `amd64` host (or vice versa) uses **QEMU emulation** —
-bundled with Docker Desktop, convenient but slow. Native builders are faster at
-scale.
+Building `arm64` on an `amd64` host (or vice versa) uses **QEMU emulation** to
+run the foreign-arch instructions. It's bundled with Docker Desktop and works
+anywhere with no extra hardware — convenient, but the foreign-arch build runs
+slowly. **Native builders** — a real machine of each architecture building its
+own image at full speed — take more setup but are the right answer for heavy or
+frequent builds.
+
+On a plain Linux host (no Docker Desktop), install the emulators once:
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --install all
+```
 
 ---
 
