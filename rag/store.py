@@ -75,6 +75,23 @@ class ChromaStore:
         if results["ids"]:
             self._collection.delete(ids=results["ids"])
 
+    def count_by_source(self, source_file: str) -> int:
+        """Number of chunks already stored for a given source file."""
+        results = self._collection.get(
+            where={"source_file": source_file},
+            include=[],
+        )
+        return len(results["ids"])
+
+    def document_exists(self, source_file: str) -> bool:
+        """True if any chunk for this source file is already stored."""
+        results = self._collection.get(
+            where={"source_file": source_file},
+            limit=1,
+            include=[],
+        )
+        return len(results["ids"]) > 0
+
     def list_documents(self) -> list[dict]:
         total = self._collection.count()
         all_metadatas: list[dict] = []
@@ -91,7 +108,11 @@ class ChromaStore:
         for meta in all_metadatas:
             source = meta.get("source_file", "unknown")
             if source not in sources:
-                sources[source] = {"file": source, "chunks": 0}
+                sources[source] = {
+                    "file": source,
+                    "label": meta.get("label", ""),
+                    "chunks": 0,
+                }
             sources[source]["chunks"] += 1
         return list(sources.values())
 
@@ -100,11 +121,27 @@ class ChromaStore:
         chunks: list[Chunk],
         embedder: Embeddings,
         source_file: str = "",
+        label: str = "",
+        overwrite: bool = False,
         progress_callback: Callable[[int, int], None] | None = None,
         batch_size: int = 50,
     ) -> int:
         if not chunks:
             return 0
+
+        # Guard against re-ingesting an already-stored document. When
+        # overwrite is False we skip the ingestion; when it is set we drop
+        # the existing chunks first so stale ones (from a different
+        # chunking of the same file) don't linger.
+        if source_file and self.document_exists(source_file):
+            existing = self.count_by_source(source_file)
+            if not overwrite:
+                print(
+                    f"Skipped: '{source_file}' is already stored "
+                    f"({existing} chunks). Pass overwrite=True to replace it."
+                )
+                return 0
+            self.delete_by_source(source_file)
 
         texts = [c.content for c in chunks]
         total = len(texts)
@@ -129,6 +166,7 @@ class ChromaStore:
                 "source_file": source_file or chunk.metadata.get(
                     "source_file", ""
                 ),
+                "label": label or chunk.metadata.get("label", ""),
                 "page_number": chunk.page,
                 "chunk_type": chunk.type,
                 "section_title": chunk.section_title,

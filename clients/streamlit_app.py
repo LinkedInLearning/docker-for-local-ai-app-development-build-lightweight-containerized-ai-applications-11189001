@@ -52,12 +52,64 @@ def _load_config_or_stop() -> Settings:
         st.stop()
 
 
+def _collection_names(client) -> list[str]:
+    """Return sorted collection names from a ChromaDB client.
+
+    Robust across ChromaDB versions: ``list_collections()`` returns name
+    strings in some releases and ``Collection`` objects in others (which
+    aren't orderable, so ``sorted()`` on them raises). Normalize to names
+    before sorting.
+    """
+    names = [
+        c if isinstance(c, str) else c.name
+        for c in client.list_collections()
+    ]
+    return sorted(names)
+
+
 def list_chromadb_collections(config: Settings) -> list[str]:
     """Return names of all collections currently on the ChromaDB server."""
     client = chromadb.HttpClient(
         host=config.chromadb.host, port=config.chromadb.port
     )
-    return sorted(client.list_collections())
+    return _collection_names(client)
+
+
+@st.cache_data(show_spinner=False, ttl=60)
+def summarize_chromadb(host: str, port: int) -> dict[str, list[dict]]:
+    """Summarize what is already stored in ChromaDB and ready to query.
+
+    Returns a mapping of ``collection_name -> [{file, label, chunks}, ...]``,
+    aggregating chunks by their ``source_file`` metadata so each document
+    shows the file it was loaded from and its human-friendly label.
+
+    Cached (short TTL) because it runs on every rerun; call
+    ``summarize_chromadb.clear()`` after ingesting/removing data.
+    """
+    client = chromadb.HttpClient(host=host, port=port)
+    summary: dict[str, list[dict]] = {}
+    for name in _collection_names(client):
+        collection = client.get_collection(name)
+        total = collection.count()
+
+        docs: dict[str, dict] = {}
+        for offset in range(0, total, 100):
+            batch = collection.get(
+                include=["metadatas"], limit=100, offset=offset
+            )
+            for meta in batch["metadatas"]:
+                source = (meta or {}).get("source_file", "unknown")
+                if source not in docs:
+                    docs[source] = {
+                        "file": source,
+                        "label": (meta or {}).get("label", ""),
+                        "chunks": 0,
+                    }
+                docs[source]["chunks"] += 1
+        summary[name] = list(docs.values())
+    return summary
+
+
 
 
 def init_session_state(base_config: Settings) -> None:
@@ -153,19 +205,26 @@ def reset_session() -> None:
             pass
         st.session_state.session_id = uuid.uuid4().hex[:12]
         st.session_state.ingested_files = {}
+        summarize_chromadb.clear()  # dropped collection must leave the overview
     st.session_state.messages = []
 
 
-def ingest_pdf(path: Path, source_label: str | None = None) -> int:
+def ingest_pdf(
+    path: Path,
+    source_label: str | None = None,
+    doc_label: str | None = None,
+) -> int:
     config = build_session_config()
     ov = st.session_state.config_overrides
-    label = source_label or path.name
+    source_file = source_label or path.name
+    # Human-friendly label stored with every chunk; defaults to the file name.
+    label = doc_label or source_file
     embed_provider = config.active.embedding_provider
     embed_model_name = config.providers[
         embed_provider
     ].models.embedding.name
 
-    with st.status(f"Ingesting `{label}`", expanded=True) as status:
+    with st.status(f"Ingesting `{source_file}`", expanded=True) as status:
         # Stage 1 — parse
         ocr_label = "OCR on" if ov["do_ocr"] else "OCR off"
         ts_label = (
@@ -239,7 +298,8 @@ def ingest_pdf(path: Path, source_label: str | None = None) -> int:
         n = store.ingest_chunks(
             chunks,
             embedder,
-            source_file=label,
+            source_file=source_file,
+            label=label,
             progress_callback=_on_progress,
         )
         progress.empty()
@@ -250,8 +310,10 @@ def ingest_pdf(path: Path, source_label: str | None = None) -> int:
 
         status.update(
             state="complete",
-            label=f"Done — {n} chunks ingested from `{label}`",
+            label=f"Done — {n} chunks ingested from `{source_file}` "
+                  f"(label: {label})",
         )
+    summarize_chromadb.clear()  # stored-data overview must reflect the new doc
     return n
 
 
@@ -260,6 +322,43 @@ def remove_source(filename: str) -> None:
     store = ChromaStore(config)
     store.delete_by_source(filename)
     st.session_state.ingested_files.pop(filename, None)
+    summarize_chromadb.clear()  # overview must reflect the removal
+
+
+def delete_document(collection_name: str, source_file: str) -> int:
+    """Delete every chunk of ``source_file`` from a specific collection.
+
+    Targets the given collection by name (independent of the current
+    session's collection), so it works for the persistent collections the
+    notebooks populate as well as ad-hoc session ones. Returns the number
+    of chunks removed.
+    """
+    config = load_config()
+    config.chromadb.collection_name = collection_name
+    store = ChromaStore(config)
+    deleted = store.count_by_source(source_file)
+    store.delete_by_source(source_file)
+    # Keep session bookkeeping and the cached overview in sync.
+    st.session_state.ingested_files.pop(source_file, None)
+    summarize_chromadb.clear()
+    return deleted
+
+
+def delete_collection(collection_name: str) -> None:
+    """Delete an entire collection (all documents/vectors) from ChromaDB.
+
+    Removes the whole collection by name — this is irreversible. If the
+    current session is connected to this collection, reset that reference.
+    """
+    config = load_config()
+    client = chromadb.HttpClient(
+        host=config.chromadb.host, port=config.chromadb.port
+    )
+    client.delete_collection(name=collection_name)
+    # If we just deleted the collection the session was pointed at, clear it.
+    if st.session_state.get("existing_collection") == collection_name:
+        st.session_state.existing_collection = None
+    summarize_chromadb.clear()
 
 
 def ask(question: str) -> dict:
@@ -497,7 +596,8 @@ def _render_existing_collection_section(base_config: Settings) -> None:
         total_chunks = sum(d["chunks"] for d in docs)
         st.caption(f"**{total_chunks}** vectors across **{len(docs)}** document(s)")
         for d in docs[:15]:
-            st.caption(f"· {d['file']} ({d['chunks']} chunks)")
+            label = d.get("label") or "—"
+            st.caption(f"· {d['file']} · _{label}_ ({d['chunks']} chunks)")
         if len(docs) > 15:
             st.caption(f"… and {len(docs) - 15} more")
 
@@ -518,16 +618,23 @@ def _render_pdf_library_section() -> None:
         for pdf in pdfs:
             size_mb = pdf.stat().st_size / (1024 * 1024)
             already = pdf.name in st.session_state.ingested_files
-            cols = st.columns([3, 1])
-            cols[0].caption(f"{pdf.name} · {size_mb:.1f} MB")
-            clicked = cols[1].button(
+            st.caption(f"{pdf.name} · {size_mb:.1f} MB")
+            doc_label = st.text_input(
+                "Label",
+                value=pdf.stem,
+                key=f"label_{pdf.name}",
+                disabled=already,
+                help="Human-friendly name stored with the document "
+                     "(used for display and metadata filtering).",
+            )
+            clicked = st.button(
                 "Done" if already else "Ingest",
                 key=f"ingest_{pdf.name}",
                 disabled=already,
             )
             if clicked:
                 try:
-                    n = ingest_pdf(pdf)
+                    n = ingest_pdf(pdf, doc_label=doc_label or None)
                     st.session_state.ingested_files[pdf.name] = n
                     st.rerun()
                 except Exception as e:
@@ -552,6 +659,110 @@ def _render_session_section() -> None:
             st.rerun()
 
 
+def render_stored_data_overview(base_config: Settings) -> None:
+    """Show what is already stored in ChromaDB and ready to query.
+
+    Runs on app load so users immediately see which files were loaded and
+    under what label, across every collection on the ChromaDB server.
+    """
+    with st.expander("📚 Data already available in ChromaDB", expanded=True):
+        try:
+            summary = summarize_chromadb(
+                base_config.chromadb.host, base_config.chromadb.port
+            )
+        except Exception as e:
+            st.warning(
+                f"Could not reach ChromaDB at "
+                f"`{base_config.chromadb.host}:{base_config.chromadb.port}`: {e}"
+            )
+            return
+
+        # Only collections that actually hold documents are interesting.
+        populated = {name: docs for name, docs in summary.items() if docs}
+        if not populated:
+            st.caption(
+                "No documents stored yet. Ingest a PDF here, or run "
+                "`notebooks/01_pdf_ingestion.ipynb` to populate a collection."
+            )
+            return
+
+        for name, docs in populated.items():
+            _render_collection_header(name, docs)
+            for d in docs:
+                _render_document_row(name, d)
+
+
+def _render_collection_header(collection_name: str, docs: list[dict]) -> None:
+    """Collection title row with a confirm-then-delete control for the whole
+    collection (all its documents/vectors)."""
+    total_chunks = sum(d["chunks"] for d in docs)
+    pending_key = f"confirm_delete_collection::{collection_name}"
+
+    cols = st.columns([8, 2])
+    cols[0].markdown(
+        f"**`{collection_name}`** — {len(docs)} document(s), "
+        f"{total_chunks} chunks"
+    )
+
+    if st.session_state.get(pending_key):
+        # Second step: confirm or cancel dropping the entire collection.
+        cols[0].warning(
+            f"Delete the **entire** `{collection_name}` collection "
+            f"({total_chunks} chunks)? This cannot be undone."
+        )
+        c1, c2 = cols[1].columns(2)
+        if c1.button("✓", key=f"yes_{pending_key}", help="Confirm delete"):
+            delete_collection(collection_name)
+            st.session_state.pop(pending_key, None)
+            st.toast(f"Deleted collection '{collection_name}'.")
+            st.rerun()
+        if c2.button("✗", key=f"no_{pending_key}", help="Cancel"):
+            st.session_state.pop(pending_key, None)
+            st.rerun()
+    else:
+        # First step: arm the confirmation.
+        if cols[1].button(
+            "🗑️ Collection",
+            key=f"del_{pending_key}",
+            help=f"Delete the entire '{collection_name}' collection",
+        ):
+            st.session_state[pending_key] = True
+            st.rerun()
+
+
+def _render_document_row(collection_name: str, doc: dict) -> None:
+    """One document row in the overview, with a confirm-then-delete control."""
+    source = doc["file"]
+    label = doc.get("label") or "—"
+    pending_key = f"confirm_delete::{collection_name}::{source}"
+
+    cols = st.columns([4, 3, 1, 1])
+    cols[0].caption(f"📄 {source}")
+    cols[1].caption(f"🏷️ {label}")
+    cols[2].caption(f"{doc['chunks']} chunks")
+
+    if st.session_state.get(pending_key):
+        # Second step: confirm or cancel.
+        c1, c2 = cols[3].columns(2)
+        if c1.button("✓", key=f"yes_{pending_key}", help="Confirm delete"):
+            n = delete_document(collection_name, source)
+            st.session_state.pop(pending_key, None)
+            st.toast(f"Deleted {n} chunks of '{source}' from '{collection_name}'.")
+            st.rerun()
+        if c2.button("✗", key=f"no_{pending_key}", help="Cancel"):
+            st.session_state.pop(pending_key, None)
+            st.rerun()
+    else:
+        # First step: arm the confirmation.
+        if cols[3].button(
+            "🗑️",
+            key=f"del_{pending_key}",
+            help=f"Delete '{source}' from '{collection_name}'",
+        ):
+            st.session_state[pending_key] = True
+            st.rerun()
+
+
 def render_main() -> None:
     st.title("RAG Q&A")
 
@@ -570,6 +781,9 @@ def render_main() -> None:
             f"{len(st.session_state.ingested_files)} document(s) ingested"
         )
 
+    # What's already stored and ready to query, shown on load.
+    render_stored_data_overview(base_config=load_config())
+
     # Upload widget only in ad-hoc mode
     if not in_existing_mode:
         uploaded = st.file_uploader(
@@ -584,23 +798,36 @@ def render_main() -> None:
             if uploaded.name in st.session_state.ingested_files:
                 st.info(f"`{uploaded.name}` is already in this session.")
             else:
-                with tempfile.NamedTemporaryFile(
-                    delete=False, suffix=".pdf"
-                ) as tmp:
-                    tmp.write(uploaded.getvalue())
-                    tmp_path = Path(tmp.name)
-                try:
-                    n = ingest_pdf(tmp_path, source_label=uploaded.name)
-                    st.session_state.ingested_files[uploaded.name] = n
-                except Exception as e:
-                    st.error(f"Failed to ingest: {e}")
-                finally:
-                    tmp_path.unlink(missing_ok=True)
+                doc_label = st.text_input(
+                    "Label",
+                    value=Path(uploaded.name).stem,
+                    key=f"upload_label_{uploaded.name}",
+                    help="Human-friendly name stored with the document "
+                         "(used for display and metadata filtering).",
+                )
+                if st.button("Ingest", key=f"upload_ingest_{uploaded.name}"):
+                    with tempfile.NamedTemporaryFile(
+                        delete=False, suffix=".pdf"
+                    ) as tmp:
+                        tmp.write(uploaded.getvalue())
+                        tmp_path = Path(tmp.name)
+                    try:
+                        n = ingest_pdf(
+                            tmp_path,
+                            source_label=uploaded.name,
+                            doc_label=doc_label or None,
+                        )
+                        st.session_state.ingested_files[uploaded.name] = n
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to ingest: {e}")
+                    finally:
+                        tmp_path.unlink(missing_ok=True)
 
     # Chat history (both modes)
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+            st.markdown(_md(msg["content"]))
             if msg["role"] == "assistant":
                 _render_sources(msg.get("sources", []))
                 meta = msg.get("metadata")
@@ -632,7 +859,7 @@ def render_main() -> None:
 
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
-        st.markdown(question)
+        st.markdown(_md(question))
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
@@ -646,7 +873,7 @@ def render_main() -> None:
                 )
                 return
 
-        st.markdown(result["answer"])
+        st.markdown(_md(result["answer"]))
         _render_sources(result["sources"])
         st.caption(
             f"{result['provider']} · `{result['model']}` · "
@@ -665,6 +892,16 @@ def render_main() -> None:
         })
 
 
+def _md(text: str) -> str:
+    """Make free text safe for st.markdown.
+
+    Streamlit renders ``$...$`` as LaTeX math, so dollar amounts in answers
+    (e.g. "$25.2 billion ... $71.5 billion") get swallowed into a math span
+    and rendered with characters stacked. Escaping ``$`` keeps them literal.
+    """
+    return (text or "").replace("$", "\\$")
+
+
 def _render_sources(sources: list[dict]) -> None:
     if not sources:
         return
@@ -673,8 +910,8 @@ def _render_sources(sources: list[dict]) -> None:
             header = f"**{s['file']}** · page {s['page']}"
             if s.get("section"):
                 header += f" · _{s['section']}_"
-            st.markdown(header)
-            st.caption(s["excerpt"])
+            st.markdown(_md(header))
+            st.caption(_md(s["excerpt"]))
 
 
 def main() -> None:

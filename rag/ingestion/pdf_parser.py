@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -8,12 +9,65 @@ from pathlib import Path
 from typing import Any
 
 from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.datamodel.pipeline_options import (
+    PdfPipelineOptions,
+    TableFormerMode,
+)
 from docling.document_converter import DocumentConverter, PdfFormatOption
+
+# AcceleratorOptions moved to its own module in newer Docling releases;
+# fall back to the legacy location for older versions.
+try:
+    from docling.datamodel.accelerator_options import (
+        AcceleratorDevice,
+        AcceleratorOptions,
+    )
+except ImportError:  # pragma: no cover - depends on docling version
+    from docling.datamodel.pipeline_options import (
+        AcceleratorDevice,
+        AcceleratorOptions,
+    )
 
 __all__ = ["ParsedElement", "parse_pdf"]
 
 logger = logging.getLogger(__name__)
+
+# Building a DocumentConverter loads the layout + table-structure models,
+# which is slow. Cache converters by their pipeline options so repeated
+# calls (e.g. re-running a notebook cell) reuse the already-loaded models.
+_CONVERTER_CACHE: dict[tuple, DocumentConverter] = {}
+
+
+def _get_converter(
+    do_ocr: bool,
+    do_table_structure: bool,
+    table_mode: TableFormerMode,
+    num_threads: int,
+) -> DocumentConverter:
+    key = (do_ocr, do_table_structure, table_mode, num_threads)
+    converter = _CONVERTER_CACHE.get(key)
+    if converter is not None:
+        return converter
+
+    pipeline_options = PdfPipelineOptions()
+    pipeline_options.do_ocr = do_ocr
+    pipeline_options.do_table_structure = do_table_structure
+    pipeline_options.accelerator_options = AcceleratorOptions(
+        num_threads=num_threads,
+        device=AcceleratorDevice.CPU,
+    )
+    if do_table_structure:
+        pipeline_options.table_structure_options.mode = table_mode
+
+    converter = DocumentConverter(
+        format_options={
+            InputFormat.PDF: PdfFormatOption(
+                pipeline_options=pipeline_options
+            )
+        }
+    )
+    _CONVERTER_CACHE[key] = converter
+    return converter
 
 
 @dataclass
@@ -30,6 +84,8 @@ def parse_pdf(
     *,
     do_ocr: bool = False,
     do_table_structure: bool = True,
+    fast_tables: bool = True,
+    num_threads: int | None = None,
     status_callback: Callable[[str], None] | None = None,
 ) -> list[ParsedElement]:
     path = Path(path)
@@ -41,21 +97,25 @@ def parse_pdf(
         if status_callback is not None:
             status_callback(msg)
 
+    table_mode = (
+        TableFormerMode.FAST if fast_tables else TableFormerMode.ACCURATE
+    )
+    if num_threads is None:
+        num_threads = os.cpu_count() or 4
+
     _emit(
         f"Configuring Docling pipeline "
         f"(OCR={'on' if do_ocr else 'off'}, "
-        f"table_structure={'on' if do_table_structure else 'off'})"
+        f"table_structure={'on' if do_table_structure else 'off'}, "
+        f"table_mode={table_mode.value if do_table_structure else 'n/a'}, "
+        f"threads={num_threads})"
     )
 
-    pipeline_options = PdfPipelineOptions()
-    pipeline_options.do_ocr = do_ocr
-    pipeline_options.do_table_structure = do_table_structure
-    converter = DocumentConverter(
-        format_options={
-            InputFormat.PDF: PdfFormatOption(
-                pipeline_options=pipeline_options
-            )
-        }
+    converter = _get_converter(
+        do_ocr=do_ocr,
+        do_table_structure=do_table_structure,
+        table_mode=table_mode,
+        num_threads=num_threads,
     )
 
     _emit(
@@ -119,21 +179,27 @@ def _get_text(element, doc=None) -> str:
     if hasattr(element, "text"):
         return element.text
     if hasattr(element, "export_to_markdown"):
-        try:
-            return element.export_to_markdown()
-        except TypeError:
-            if doc is not None:
+        # Newer Docling expects the doc argument; older versions don't
+        # accept it. Prefer passing doc to avoid the deprecation warning.
+        if doc is not None:
+            try:
                 return element.export_to_markdown(doc)
+            except TypeError:
+                return element.export_to_markdown()
+        return element.export_to_markdown()
     return str(element)
 
 
 def _export_table(element, doc=None) -> str:
     if hasattr(element, "export_to_markdown"):
-        try:
-            return element.export_to_markdown()
-        except TypeError:
-            if doc is not None:
+        # Newer Docling expects the doc argument; older versions don't
+        # accept it. Prefer passing doc to avoid the deprecation warning.
+        if doc is not None:
+            try:
                 return element.export_to_markdown(doc)
+            except TypeError:
+                return element.export_to_markdown()
+        return element.export_to_markdown()
     if hasattr(element, "text"):
         return element.text
     return str(element)
