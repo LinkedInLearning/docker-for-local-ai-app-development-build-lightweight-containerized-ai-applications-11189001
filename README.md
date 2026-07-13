@@ -5,7 +5,10 @@ This is the repository for the LinkedIn Learning course `Docker for Local AI App
 
 ## Course Description
 
+In this course for developers, learn how to build lightweight, containerized AI applications using a simple, repeatable workflow. Instructor Rami Krispin shows you how to run small open‑source LLMs locally, integrate powerful AI APIs, and orchestrate multiservice stacks—such as app containers, embedding services, and vector databases—using Docker and Docker Compose. Through hands-on, interactive building exercises, learn how to containerize AI features, debug them in an isolated environment, and package them as portable microservices. By the end of this course, you’ll be equipped with a fully reproducible development workflow you can use on any machine to prototype and ship AI‑powered application features with confidence.
+
 _See the readme file in the main branch for updated instructions and information._
+
 ## Instructions
 This repository has branches for each of the videos in the course. You can use the branch pop up menu in github to switch to a specific branch and take a look at the course at that stage, or you can add `/tree/BRANCH_NAME` to the URL to go to the branch you want to access.
 
@@ -24,25 +27,19 @@ To resolve this issue:
     Add changes to git using this command: git add .
 	Commit changes using this command: git commit -m "some message"
 
-## Installing
-1. To use these exercise files, you must have the following installed:
-	- [list of requirements for course]
-2. Clone this repository into your local machine using the terminal (Mac), CMD (Windows), or a GUI tool like SourceTree.
-3. [Course-specific instructions]
 
 ## Instructor
 
-Instructor name
+Rami Krispin is a senior manager of data science and engineering.
 
-Instructor description
+Rami Krispin is a data science and engineering manager who mainly focuses on time series analysis, forecasting, and MLOps applications. He is passionate about open source, Docker and MLOps, working with data and APIs, machine learning, Bayesian statistics, data visualization, and GIS data.
 
-                            
+Rami is also an open-source contributor and the author of Hands-On Time Series Analysis with R and several R packages for time series analysis and machine learning applications.
 
 Check out my other courses on [LinkedIn Learning](https://www.linkedin.com/learning/instructors/).
 
-
 [0]: # (Replace these placeholder URLs with actual course URLs)
 
-[lil-course-url]: https://www.linkedin.com/learning/
-[lil-thumbnail-url]: https://media.licdn.com/dms/image/v2/D4E0DAQG0eDHsyOSqTA/learning-public-crop_675_1200/B4EZVdqqdwHUAY-/0/1741033220778?e=2147483647&v=beta&t=FxUDo6FA8W8CiFROwqfZKL_mzQhYx9loYLfjN-LNjgA
+[lil-course-url]: https://www.linkedin.com/learning/docker-for-local-ai-app-development-build-lightweight-containerized-ai-applications
+[lil-thumbnail-url]: https://media.licdn.com/dms/image/v2/D560DAQGoTCsSja_SFA/learning-public-crop_675_1200/B56Z6RYQG5KYAY-/0/1780555514606?e=2147483647&v=beta&t=PkBX1XXo7ehcBusW7D7b6-WZ6zKelpDvWM717DvFabA
 
