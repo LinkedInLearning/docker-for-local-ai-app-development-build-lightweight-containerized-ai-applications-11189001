@@ -71,7 +71,17 @@
       "Bash(awk *)",
       "Bash(grep -vE '^```')",
       "Read(//Users/**)",
-      "Bash(perl -i -pe ' *)"
+      "Bash(perl -i -pe ' *)",
+      "Bash(/tmp/fastapi_test_venv/bin/pip install *)",
+      "Bash(mkdir -p /tmp/c5slides)",
+      "Bash(cp \"/Users/ramikrispin/Documents/LinkedIn Learning/docker-local-ai-11189001-docs/slides/\"slides_c5_l*.html /tmp/c5slides/)",
+      "Read(//tmp/**)",
+      "Bash(echo \"---EXIT $?---\")",
+      "Bash(cat .dockerignore)",
+      "Bash(cat requirements-ingestion.txt)",
+      "Bash(git check-ignore *)",
+      "Bash(.venv/bin/pip list *)",
+      "Bash(git --no-pager diff --stat)"
     ]
   }
 }
