@@ -1,0 +1,40 @@
+# Chapter 5 · Lesson 3 — the INSECURE query image (the "before").
+#
+# This builds and runs, but it violates every habit this lesson is about. We
+# keep it only to contrast with the hardened Dockerfile_Query: point a scanner
+# and `docker history` at it and watch the problems show up.
+#
+# What's wrong here (each fixed in Dockerfile_Query):
+#   1. Floating base tag        -> not reproducible; moves under you.
+#   2. Extra tools (curl, etc.) -> larger surface, more CVEs to triage.
+#   3. A BAKED-IN secret        -> leaks with the image (visible in history!).
+#   4. Runs as root (default)   -> no least privilege.
+#
+# Build from the REPO ROOT (the context must contain rag/):
+#   docker build -f chapter_5/l3/Dockerfile_Query.insecure -t rag-query:insecure .
+#   docker history --no-trunc rag-query:insecure | grep -i key   # secret is right there
+#   docker scout quickview rag-query:insecure                    # CVE count
+
+FROM python:3.11-slim
+
+# Anti-pattern: pull in tools the runtime doesn't need — more surface, more CVEs.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgl1 libglib2.0-0 curl vim git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Anti-pattern: bake a secret into a layer. This value is a FAKE placeholder for
+# the demo — never put a real key here. `docker history` will reveal it, which is
+# exactly the point: baked secrets leak with the image.
+ENV OPENAI_API_KEY="sk-demo-FAKE-do-not-use-baked-into-layer"
+
+COPY chapter_5/l3/requirements-query.txt requirements.txt
+RUN pip install -r requirements.txt          # pip cache is left behind in the layer
+
+COPY rag/ /app/rag/
+COPY chapter_5/l3/query_cli.py /app/query_cli.py
+
+# Anti-pattern: no USER directive — the container runs as root.
+ENTRYPOINT ["python", "query_cli.py"]
+CMD ["--check"]

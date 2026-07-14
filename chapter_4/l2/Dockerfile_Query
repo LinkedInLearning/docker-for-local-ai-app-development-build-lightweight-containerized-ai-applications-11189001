@@ -11,6 +11,11 @@ WORKDIR /app
 COPY chapter_4/l2/requirements-query.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-cache the cross-encoder reranker model (~80 MB) into the image's
+# HuggingFace cache so the first query doesn't download it at runtime. Mirrors
+# docker/cache_docling_models.py::_download_cross_encoder.
+RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+
 # Only the code this service needs.
 COPY rag/ /app/rag/
 COPY config/ /app/config/

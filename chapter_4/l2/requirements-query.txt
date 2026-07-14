@@ -1,12 +1,12 @@
-# Chapter 4 · Lesson 2 — dependencies for the LEAN query service.
+# Chapter 4 · Lesson 2 — dependencies for the query service.
 #
-# The query service retrieves context and calls the LLM. It does NOT parse
-# PDFs, so it carries none of the heavy Docling / vision stack — that is the
-# single biggest size difference from the ingestion image.
+# The query service retrieves context, reranks it, and calls the LLM. It does
+# NOT parse PDFs, so it carries none of the heavy Docling / vision stack.
 #
-# (Assumes embeddings are produced via an API provider. If you switch the
-#  query path to local embeddings or a cross-encoder reranker, add
-#  sentence-transformers here too.)
+# It DOES rerank retrieved chunks with a cross-encoder
+# (cross-encoder/ms-marco-MiniLM-L-6-v2), which requires sentence-transformers
+# (and, transitively, torch). That model is pre-cached at build time in
+# Dockerfile_Query so the first query doesn't download it at runtime.
 
 fastapi==0.115.0
 uvicorn==0.30.0
@@ -19,3 +19,4 @@ langchain-core>=0.3.0
 langchain-openai>=0.3.0
 langchain-anthropic>=0.3.0
 langchain-google-genai>=2.1.0
+sentence-transformers==3.0.0

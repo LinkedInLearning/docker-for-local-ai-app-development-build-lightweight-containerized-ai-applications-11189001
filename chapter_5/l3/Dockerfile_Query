@@ -1,0 +1,69 @@
+# Chapter 5 · Lesson 3 — the HARDENED query image (the "after").
+#
+# Same app as Dockerfile_Query.insecure, locked down along the three security
+# pillars from the checklist (Ch5 L1, column 2):
+#   - Least privilege     -> runs as a non-root user.
+#   - Minimal surface     -> slim base, only the runtime libs Docling needs,
+#                            no extra tools, multi-stage so pip/build cache and
+#                            the toolchain never reach the final image.
+#   - No secrets in layers-> the API key is injected at runtime, never baked.
+#
+# It also folds in the size levers from Lesson 2 (multi-stage + .dockerignore),
+# because a smaller image is a smaller attack surface.
+#
+# Build from the REPO ROOT (the context must contain rag/):
+#   docker build -f chapter_5/l3/Dockerfile_Query -t rag-query:0.1.0 .
+#   docker run --rm rag-query:0.1.0                          # --check (default)
+#   docker run --rm rag-query:0.1.0 --whoami                 # proves non-root
+#   docker run --rm -e OPENAI_API_KEY rag-query:0.1.0 --secret-check
+
+# ---------- Stage 1: builder ----------
+# Pin the base by digest for a reproducible, verifiable build. Pinning by digest
+# (not a floating tag) is the security best practice; replace <digest> with the
+# one from `docker buildx imagetools inspect python:3.11-slim`:
+#   FROM python:3.11-slim@sha256:<digest> AS builder
+FROM python:3.11-slim AS builder
+
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY chapter_5/l3/requirements-query.txt requirements.txt
+RUN pip install -r requirements.txt
+
+# ---------- Stage 2: runtime ----------
+FROM python:3.11-slim AS runtime
+
+# ONLY the system libraries the stack needs at run time — no curl/vim/git, no
+# compilers. Less installed = smaller surface and fewer CVEs to triage.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Application code last — the most-likely-to-change layer sits on top.
+COPY rag/ /app/rag/
+COPY chapter_5/l3/query_cli.py /app/query_cli.py
+
+# Least privilege: create an unprivileged user and drop to it.
+RUN useradd --create-home --uid 10001 appuser \
+    && chown -R appuser /app
+USER appuser
+
+# No secrets in the image. The API key is supplied at runtime via env
+# (`-e OPENAI_API_KEY`), never baked into a layer — so it can't leak with the
+# image and won't appear in `docker history`.
+ENTRYPOINT ["python", "query_cli.py"]
+CMD ["--check"]

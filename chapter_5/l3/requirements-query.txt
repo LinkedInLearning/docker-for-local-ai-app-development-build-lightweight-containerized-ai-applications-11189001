@@ -1,0 +1,19 @@
+# Chapter 5 · Lesson 3 — dependencies for the query-service image.
+#
+# The query side is lighter than ingestion: it retrieves chunks from ChromaDB,
+# optionally reranks them, and calls a chat model. We pin the same versions the
+# project uses so the demo image mirrors the real query dependency set.
+#
+# Security angle (this lesson): fewer packages = smaller attack surface and
+# fewer CVEs to triage. Everything here is imported by the rag.retrieval stack.
+
+# --- Retrieval + rerank (rag.retrieval.retriever / reranker) ---
+chromadb>=1.3.5
+sentence-transformers==3.0.0
+
+# --- Chat providers (rag.retrieval.chain builds these at query time) ---
+langchain-openai==1.2.1
+
+# --- Config (rag.config / rag.store import these at package import time) ---
+pydantic-settings>=2.10.1
+pyyaml==6.0.2

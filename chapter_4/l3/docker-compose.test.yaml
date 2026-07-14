@@ -19,7 +19,7 @@ networks:
 services:
   ingestion:
     build:
-      context: .
+      context: ../..
       dockerfile: chapter_4/l2/Dockerfile_Ingestion
     image: rag-ingestion:0.1.0
     ports:
@@ -29,6 +29,12 @@ services:
       - CHROMA_PORT=8000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - RAG_API_KEYS=${RAG_API_KEYS:-dev-key}
+    # The ingestion API reads PDFs from a server-side directory (its default
+    # RAG_API_ALLOWED_UPLOAD_DIR resolves to /app/pdf). Mount the repo's pdf/
+    # read-only so `POST /ingest {"source_dir":"pdf/"}` finds real files. Path
+    # is relative to this compose file (chapter_4/l3/), hence ../../pdf.
+    volumes:
+      - ../../pdf:/app/pdf:ro
     depends_on:
       chromadb:
         condition: service_healthy
@@ -37,7 +43,7 @@ services:
 
   query:
     build:
-      context: .
+      context: ../..
       dockerfile: chapter_4/l2/Dockerfile_Query
     image: rag-query:0.1.0
     ports:

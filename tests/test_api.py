@@ -53,12 +53,8 @@ def mock_config():
 
 
 class TestHealthEndpoint:
-    @patch("rag.api.main.get_store")
-    @patch("rag.api.main.get_config")
-    def test_health_healthy(
-        self, mock_config_fn, mock_store_fn, client, mock_config
-    ):
-        mock_config_fn.return_value = mock_config
+    @patch("rag.api.routes.health.get_store")
+    def test_health_healthy(self, mock_store_fn, client):
         mock_store = MagicMock()
         mock_store.count.return_value = 42
         mock_store_fn.return_value = mock_store
@@ -70,12 +66,8 @@ class TestHealthEndpoint:
         assert data["chromadb"] == "connected"
         assert data["documents"] == 42
 
-    @patch("rag.api.main.get_store")
-    @patch("rag.api.main.get_config")
-    def test_health_disconnected(
-        self, mock_config_fn, mock_store_fn, client, mock_config
-    ):
-        mock_config_fn.return_value = mock_config
+    @patch("rag.api.routes.health.get_store")
+    def test_health_disconnected(self, mock_store_fn, client):
         mock_store_fn.side_effect = Exception("Connection refused")
 
         response = client.get("/health")
@@ -140,8 +132,8 @@ class TestIngestEndpoint:
 
 
 class TestQueryEndpoint:
-    @patch("rag.api.main.get_config")
-    @patch("rag.api.main.query_rag")
+    @patch("rag.api.routes.query.get_config")
+    @patch("rag.api.routes.query.query_rag")
     def test_query_success(
         self, mock_query_rag, mock_config_fn, client, mock_config
     ):
@@ -168,8 +160,8 @@ class TestQueryEndpoint:
         assert len(data["sources"]) == 1
         assert data["metadata"]["provider"] == "openai"
 
-    @patch("rag.api.main.get_config")
-    @patch("rag.api.main.query_rag")
+    @patch("rag.api.routes.query.get_config")
+    @patch("rag.api.routes.query.query_rag")
     def test_query_value_error(
         self, mock_query_rag, mock_config_fn, client, mock_config
     ):
@@ -188,7 +180,7 @@ class TestQueryEndpoint:
 
 
 class TestDocumentsEndpoint:
-    @patch("rag.api.main.get_store")
+    @patch("rag.api.routes.query.get_store")
     def test_list_documents(self, mock_store_fn, client):
         mock_store = MagicMock()
         mock_store.list_documents.return_value = [
@@ -203,7 +195,7 @@ class TestDocumentsEndpoint:
         assert len(data) == 2
         assert data[0]["file"] == "10Q-Q1.pdf"
 
-    @patch("rag.api.main.get_store")
+    @patch("rag.api.routes.ingestion.get_store")
     def test_delete_document(self, mock_store_fn, client):
         mock_store = MagicMock()
         mock_store.collection.get.return_value = {
@@ -217,7 +209,7 @@ class TestDocumentsEndpoint:
             "10Q-Q1.pdf"
         )
 
-    @patch("rag.api.main.get_store")
+    @patch("rag.api.routes.ingestion.get_store")
     def test_delete_document_not_found(self, mock_store_fn, client):
         mock_store = MagicMock()
         mock_store.collection.get.return_value = {"ids": []}
@@ -228,7 +220,7 @@ class TestDocumentsEndpoint:
 
 
 class TestConfigEndpoint:
-    @patch("rag.api.main.get_config")
+    @patch("rag.api.routes.query.get_config")
     def test_get_config(self, mock_config_fn, client, mock_config):
         mock_config_fn.return_value = mock_config
 

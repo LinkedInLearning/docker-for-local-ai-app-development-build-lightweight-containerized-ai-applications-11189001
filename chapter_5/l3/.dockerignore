@@ -1,0 +1,46 @@
+# Chapter 5 · Lesson 3 — build-context excludes for the query image.
+#
+# SECURITY ANGLE: the most important job of a .dockerignore in this lesson is
+# keeping secrets and local state OUT of the build context, so they can never be
+# copied into a layer by a broad `COPY . .` or leak via the context.
+#
+# PLACEMENT NOTE: Docker reads the .dockerignore from the *build-context root*.
+# The demo builds from the repo root, so to take effect this file's rules must
+# live in a root .dockerignore. This copy documents the intended rules for the
+# lesson; see DEMO.md for the placement caveat.
+
+# --- Secrets — never let these enter the build context ---
+.env
+.env.*
+*.pem
+*.key
+*.crt
+secrets/
+
+# --- Local data / runtime state — must not leak into the image ---
+chroma_data/
+*.log
+
+# --- Version control / project metadata ---
+.git
+.gitignore
+
+# --- Python caches & build artifacts ---
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# --- Local virtualenvs — never ship the host's venv into the image ---
+.venv/
+venv/
+
+# --- Editor / OS noise ---
+.vscode/
+.idea/
+.DS_Store

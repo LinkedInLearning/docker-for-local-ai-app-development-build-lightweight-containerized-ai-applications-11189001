@@ -139,4 +139,21 @@ def load_config(path: str | Path = _DEFAULT_CONFIG) -> Settings:
     with open(path) as f:
         data = yaml.safe_load(f)
 
-    return Settings(**data)
+    settings = Settings(**data)
+
+    # Environment overrides so the container / Compose is the source of truth
+    # for where ChromaDB lives (12-factor). These fall back to the YAML values
+    # when unset, so local runs keep working unchanged.
+    host = os.environ.get("CHROMA_HOST", "").strip()
+    if host:
+        settings.chromadb.host = host
+    port = os.environ.get("CHROMA_PORT", "").strip()
+    if port:
+        try:
+            settings.chromadb.port = int(port)
+        except ValueError as exc:
+            raise ValueError(
+                f"CHROMA_PORT must be an integer, got {port!r}"
+            ) from exc
+
+    return settings
