@@ -1,15 +1,18 @@
 # Chapter 4 · Lesson 2 — dependencies for the HEAVY ingestion service.
 #
-# The ingestion service parses PDFs (Docling), chunks, embeds, and stores.
-# Docling and sentence-transformers pull in large model + vision/torch
-# dependencies that the query service never needs — this is why the two
-# images are split.
+# The ingestion service parses PDFs (Docling), chunks, embeds them via the
+# OpenAI embeddings client, and stores the vectors in ChromaDB. Docling pulls
+# in a large model + vision/torch stack that the query service never needs —
+# that is the biggest size difference between the two images.
 
 fastapi==0.115.0
 uvicorn==0.30.0
+slowapi==0.1.9
 pydantic-settings>=2.10.1
 pyyaml==6.0.2
 docling==2.93.0
 langchain-text-splitters==1.1.2
+langchain-core>=0.3.0
+langchain-openai>=0.3.0
 sentence-transformers==3.0.0
 chromadb>=1.3.5
