@@ -5,28 +5,22 @@ This is the repository for the LinkedIn Learning course `Docker for Local AI App
 
 ## Course Description
 
-In this course for developers, learn how to build lightweight, containerized AI applications using a simple, repeatable workflow. Instructor Rami Krispin shows you how to run small open‑source LLMs locally, integrate powerful AI APIs, and orchestrate multiservice stacks—such as app containers, embedding services, and vector databases—using Docker and Docker Compose. Through hands-on, interactive building exercises, learn how to containerize AI features, debug them in an isolated environment, and package them as portable microservices. By the end of this course, you’ll be equipped with a fully reproducible development workflow you can use on any machine to prototype and ship AI‑powered application features with confidence.
-
-_See the readme file in the main branch for updated instructions and information._
+In this course for AI developers, learn how to make Docker containers part of the entire application lifecycle - from defining requirements and building a reproducible development environment to testing services and preparing images for production. Instructor Rami Krispin uses a retrieval-augmented generation (RAG) system as a running architectural case study, showing you how to identify application services, define their requirements, and choose container boundaries that fit both development and production needs. Build a foundation in Dockerfiles, images, registries, and the build-and-run workflow; then use Docker Compose and VS Code Dev Containers to create a containerized workspace for prototyping and validating the application. See how to transform that prototype into dedicated ingestion, query, and vector database services, test the stack in an environment that closely resembles production, and prepare its images for release through multi-stage builds, security hardening, multi-platform builds, versioned publishing, runtime safeguards, and CI validation. By the end of the course, you’ll have a practical, reusable framework for developing, testing, and preparing multi-service AI applications for production at the image and container levels.
 
 ## Instructions
-This repository has branches for each of the videos in the course. You can use the branch pop up menu in github to switch to a specific branch and take a look at the course at that stage, or you can add `/tree/BRANCH_NAME` to the URL to go to the branch you want to access.
+To use the course materials, make sure you have:
 
-## Branches
-The branches are structured to correspond to the videos in the course. The naming convention is `CHAPTER#_MOVIE#`. As an example, the branch named `02_03` corresponds to the second chapter and the third video in that chapter. 
-Some branches will have a beginning and an end state. These are marked with the letters `b` for "beginning" and `e` for "end". The `b` branch contains the code as it is at the beginning of the movie. The `e` branch contains the code as it is at the end of the movie. The `main` branch holds the final state of the code when in the course.
+- **Docker:** Docker Desktop for macOS or Windows, or Docker Engine for Linux.
+- **Visual Studio Code:** Install VS Code and the Dev Containers extension.
+- **Internet access:** Required on the initial launch to download the container images and models.
+- **Model provider credentials:** The course uses OpenAI by default for embeddings and chat. You can also configure Google Gemini for either role or Anthropic for chat. Change the active providers and model selections in [`config/settings.yaml`](config/settings.yaml).
+- **Python:** No local installation is required because the project runs inside a VS Code Dev Container.
 
-When switching from one exercise files branch to the next after making changes to the files, you may get a message like this:
+For more detailed guidance, see:
 
-    error: Your local changes to the following files would be overwritten by checkout:        [files]
-    Please commit your changes or stash them before you switch branches.
-    Aborting
-
-To resolve this issue:
-	
-    Add changes to git using this command: git add .
-	Commit changes using this command: git commit -m "some message"
-
+- **Setup and configuration:** [Project Settings](docs/01_settings.md) covers environment variables, storage, launching the Dev Container, and verifying the environment.
+- **Application architecture:** [The RAG System](docs/02_rag.md) explains the ingestion and query pipelines, ChromaDB, and the main project modules.
+- **Command-line workflows:** [Command-Line Usage](docs/03_rag_cli.md) shows how to run the ingestion and query pipelines inside the development container.
 
 ## Instructor
 
