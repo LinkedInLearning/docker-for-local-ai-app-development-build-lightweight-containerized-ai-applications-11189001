@@ -1,31 +1,33 @@
-# Project Settings — Running with Dev Containers
+# Course Settings — Running with Dev Containers
 
-This project is designed to run inside a **VS Code Dev Container**: a
-reproducible, containerized development environment defined by
-[`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) and the
-root [`docker-compose.yaml`](../docker-compose.yaml). Opening the folder in the
-container gives you the full Python stack (Docling, ChromaDB client, LangChain,
-etc.) and a running ChromaDB service — no local Python setup required.
+Throughout this course, you will use tools such as Docker, VS Code, and the
+terminal to learn how Docker works and explore the development workflow for
+containerized AI applications. A retrieval-augmented generation (RAG)
+application serves as the running example for demonstrating these concepts.
+
+This document provides detailed information about the course requirements and
+settings, including the local Docker environment, VS Code Dev Container,
+environment variables, application configuration, and persistent storage.
 
 ---
 
-## 1. Project structure
+## 1. Course repository structure
 
 A high-level map of the repository so you know where things live:
 
 ```
 .
-├── rag/              # The RAG library — the heart of the project
+├── rag/              # The RAG library — the heart of the course application
 ├── clients/          # Streamlit web UIs on top of the rag/ library
 ├── config/           # settings.yaml — app behavior (models, chunking, retrieval)
 ├── docker/           # Dockerfiles, build scripts, and pinned requirements
 ├── notebooks/        # Jupyter notebooks: ingest, query, inspect ChromaDB
-├── docs/             # This documentation
+├── docs/             # Course documentation
 ├── pdf/              # Sample financial PDFs (10-Q filings) to ingest
 ├── chroma_data/      # Local ChromaDB vector store (gitignored, auto-created)
 ├── chapter_1/ … chapter_5/   # Course lesson materials
 ├── docker-compose.yaml       # Dev stack: python + chromadb services
-└── README.md         # Project overview
+└── README.md         # Course overview
 ```
 
 | Folder / file | What it covers |
@@ -35,12 +37,12 @@ A high-level map of the repository so you know where things live:
 | **`config/`** | Application configuration. Holds `settings.yaml` — the single source of truth for app behavior (see [§5](#5-application-configuration-configsettingsyaml)). |
 | **`docker/`** | Everything for building the images: `Dockerfile_Base` / `Dockerfile_Dev` / `Dockerfile_API`, build & install scripts, and the pinned `requirements*.txt`. |
 | **`notebooks/`** | Jupyter notebooks that walk through PDF ingestion, querying, and inspecting the ChromaDB collection. |
-| **`docs/`** | Project documentation (this folder). |
+| **`docs/`** | Course documentation (this folder). |
 | **`pdf/`** | Sample financial PDFs (10-Q filings) used as ingestion input. |
 | **`chroma_data/`** | The local ChromaDB vector store (bind-mount target). Gitignored and auto-created on first run — see [§6](#6-chromadb-storage--persistence). |
-| **`chapter_1/` … `chapter_5/`** | Self-contained course lesson materials (each with per-lesson `l1`, `l2`, … subfolders). They teach the Docker + local-AI concepts the project is built on; not needed to run the app. |
-| **`docker-compose.yaml`** | Defines the dev stack — the `python` development container and the `chromadb` service (see [§3](#3-launching-the-project)). |
-| **`README.md` / `CONTRIBUTING.md` / `LICENSE` / `NOTICE`** | Top-level project overview, contribution guide, and licensing. |
+| **`chapter_1/` … `chapter_5/`** | Self-contained course lesson materials (each with per-lesson `l1`, `l2`, … subfolders). They teach the Docker + local-AI concepts used by the application; not needed to run the app. |
+| **`docker-compose.yaml`** | Defines the dev stack — the `python` development container and the `chromadb` service (see [§3](#3-launching-the-course-environment)). |
+| **`README.md` / `CONTRIBUTING.md` / `LICENSE` / `NOTICE`** | Top-level course overview, contribution guide, and licensing. |
 
 ---
 
@@ -48,7 +50,7 @@ A high-level map of the repository so you know where things live:
 
 | Tool | Purpose | Notes |
 | ---- | ------- | ----- |
-| **Docker** | Runs the containers | Docker Desktop (macOS/Windows) or Docker Engine (Linux). Must be running before you open the project. |
+| **Docker** | Runs the containers | [Docker Desktop](https://www.docker.com/products/docker-desktop/) (macOS/Windows) or Docker Engine (Linux). Must be running before you open the course repository. |
 | **Visual Studio Code** | Editor / host for the dev container | <https://code.visualstudio.com> |
 | **Dev Containers extension** | Builds and attaches to the container | `ms-vscode-remote.remote-containers` |
 
@@ -65,11 +67,11 @@ container** — they're listed under `customizations.vscode.extensions` in
 
 ---
 
-## 3. Launching the project
+## 3. Launching the course environment
 
 1. Start Docker (Docker Desktop, or `dockerd` on Linux).
 2. Set the required environment variables on your host — see [§4](#4-environment-variables).
-3. Open the project folder in VS Code.
+3. Open the course repository folder in VS Code.
 4. Run **“Dev Containers: Reopen in Container”** (Command Palette, `⌘⇧P` / `Ctrl⇧P`),
    or click **Reopen in Container** when VS Code prompts.
 
@@ -262,7 +264,7 @@ OpenAI.
 | ----- | ------- | ----- |
 | `enabled` | `false` | Turn tracing on/off. |
 | `provider` | `langsmith` | Tracing backend. |
-| `project_name` | `rag-docker` | Project name reported to the backend. |
+| `project_name` | `rag-docker` | Tracing name reported to the backend. |
 
 When `enabled: true`, tracing also needs `LANGSMITH_API_KEY` in the environment
 (see [§4](#4-environment-variables)).
@@ -322,9 +324,10 @@ Notes:
 
 - The folder is created automatically on first run; `chroma_data/` is gitignored,
   so your local vectors are never committed.
-- A **relative** path resolves against the Compose project directory (the repo
-  root for the dev `docker-compose.yaml`). Use an **absolute** path to keep the
-  store outside the repo, share it across projects, or put it on a larger disk.
+- A **relative** path resolves against the directory containing the Compose
+  file (the repo root for the dev `docker-compose.yaml`). Use an **absolute**
+  path to keep the store outside the repo, share it across repositories, or put
+  it on a larger disk.
 - Inside the app, services reach the database by service name **`chromadb:8000`**
   (see `config/settings.yaml`); from your host it's on `localhost:8000`.
 - **Resetting the database:** because this is a *bind mount* (not a named
@@ -375,7 +378,7 @@ Two settings work together (both in `docker-compose.yaml`, `python` service):
   be customized.
 
 Because the cache is a bind mount, the models **persist across
-`docker compose down` / `up`** and are shared with any other project pointing at
+`docker compose down` / `up`** and are shared with any other environment using
 the same host folder.
 
 ### Pre-warming the cache
