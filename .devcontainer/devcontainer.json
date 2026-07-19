@@ -52,9 +52,9 @@
         }
     },
     // Optional, local zsh history (requires: touch ~/.zsh_history_dev):
-    "mounts": [
-        "source=${localEnv:HOME}/.zsh_history_dev,target=/root/.zsh_history,type=bind,consistency=cache"
-    ],
+    // "mounts": [
+    //     "source=${localEnv:HOME}/.zsh_history_dev,target=/root/.zsh_history,type=bind,consistency=cache"
+    // ],
     "remoteEnv": {
         "OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY:key_is_missing}",
         "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY:key_is_missing}",
