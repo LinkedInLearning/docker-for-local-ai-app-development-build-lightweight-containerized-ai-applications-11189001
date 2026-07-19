@@ -13,20 +13,7 @@ For detailed guidance, see [Course Settings](01_settings.md),
 
 ## Course repository structure
 
-```text
-.
-├── rag/              # The RAG library — the heart of the course application
-├── clients/          # Streamlit web UIs on top of the rag/ library
-├── config/           # settings.yaml — app behavior (models, chunking, retrieval)
-├── docker/           # Dockerfiles, build scripts, and pinned requirements
-├── notebooks/        # Jupyter notebooks: ingest, query, inspect ChromaDB
-├── docs/             # Course documentation
-├── pdf/              # Sample financial PDFs (10-Q filings) to ingest
-├── chroma_data/      # Local ChromaDB vector store (gitignored, auto-created)
-├── chapter_1/ … chapter_5/   # Course lesson materials
-├── docker-compose.yaml       # Dev stack: python + chromadb services
-└── README.md         # Course overview
-```
+![Course repository tree grouped into the RAG application, container workflow, and course materials](assets/course-repository-structure.png)
 
 ## Requirements
 
