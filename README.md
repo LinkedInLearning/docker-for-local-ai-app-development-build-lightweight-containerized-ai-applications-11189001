@@ -21,6 +21,7 @@ For more detailed guidance, see:
 - **Setup and configuration:** [Project Settings](docs/01_settings.md) covers environment variables, storage, launching the Dev Container, and verifying the environment.
 - **Application architecture:** [The RAG System](docs/02_rag.md) explains the ingestion and query pipelines, ChromaDB, and the main project modules.
 - **Command-line workflows:** [Command-Line Usage](docs/03_rag_cli.md) shows how to run the ingestion and query pipelines inside the development container.
+- **GitHub Codespaces setup:** [Codespaces Settings](docs/04_github_codespaces_settings.md) explains how to configure secrets, launch the course environment in Codespaces, and manage ChromaDB and model-cache persistence.
 
 ## Instructor
 
@@ -30,10 +31,9 @@ Rami Krispin is a data science and engineering manager who mainly focuses on tim
 
 Rami is also an open-source contributor and the author of Hands-On Time Series Analysis with R and several R packages for time series analysis and machine learning applications.
 
-Check out my other courses on [LinkedIn Learning](https://www.linkedin.com/learning/instructors/).
+Check out my other courses on [LinkedIn Learning](https://www.linkedin.com/learning/instructors/rami-krispin).
 
 [0]: # (Replace these placeholder URLs with actual course URLs)
 
 [lil-course-url]: https://www.linkedin.com/learning/docker-for-local-ai-app-development-build-lightweight-containerized-ai-applications
 [lil-thumbnail-url]: https://media.licdn.com/dms/image/v2/D560DAQGoTCsSja_SFA/learning-public-crop_675_1200/B56Z6RYQG5KYAY-/0/1780555514606?e=2147483647&v=beta&t=PkBX1XXo7ehcBusW7D7b6-WZ6zKelpDvWM717DvFabA
-
