@@ -121,6 +121,19 @@ choose one of:
 `CHROMA_HOST` / `CHROMA_PORT`, if set, override the `chromadb` host/port from the
 YAML (so the containerized services can point at the `chromadb` service by name).
 
+### Prerequisites
+
+Beyond an environment and a running ChromaDB, the pipelines need local models:
+
+- **Provider API key** — at least `OPENAI_API_KEY` for embedding and chat.
+- **Hugging Face / Docling model cache** — ingestion parses PDFs with **Docling**
+  (layout + TableFormer models) and retrieval reranks with a **cross-encoder**,
+  all pulled from Hugging Face (~330 MB). The dev image pre-caches them at build
+  time, and the cache is bind-mounted from the host (`HF_HOME`) so it persists
+  across container restarts. If you're not on the pre-cached image, warm it once
+  with `bash docker/cache_models.sh`. See
+  **[`01_settings.md` §7](01_settings.md#7-hugging-face--docling-model-cache)**.
+
 ---
 
 ## 5. Core functions

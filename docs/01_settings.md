@@ -108,6 +108,7 @@ The app reads provider keys and a few settings from the environment. The
 | `GEMINI_API_KEY` | Alternate embedding/chat provider (`gemini-2.5-flash`) | — |
 | `LANGSMITH_API_KEY` | LangSmith tracing (only if observability is enabled) | — |
 | `CHROMA_DATA_PATH` | Host path persisted as the ChromaDB volume | `./chroma_data` |
+| `HF_HOME` | Host directory bind-mounted as the Docling / Hugging Face model cache (see [§7](#7-hugging-face--docling-model-cache)) | `~/.cache/huggingface` |
 | `RAG_API_KEYS` | Comma-separated API keys the FastAPI services require | — |
 
 > The config loader treats the literal value `key_is_missing` as “unset” — that
@@ -337,7 +338,60 @@ Notes:
 
 ---
 
-## 7. Verifying the environment
+## 7. Hugging Face / Docling model cache
+
+Ingestion uses **Docling** (layout + TableFormer models) to parse PDFs, and
+retrieval uses a **cross-encoder reranker** — both downloaded from Hugging Face
+(~330 MB total). To avoid re-downloading them on every container rebuild, the
+cache lives on your **host** and is bind-mounted into the container.
+
+Two settings work together (both in `docker-compose.yaml`, `python` service):
+
+```yaml
+    volumes:
+      - ${HF_HOME:-~/.cache/huggingface}:/opt/hf-cache   # host : container
+    environment:
+      - HF_HOME=/opt/hf-cache
+```
+
+- **`HF_HOME` on the host** (the bind-mount source) — the folder on *your machine*
+  that stores the models. Defaults to `~/.cache/huggingface`; override it (e.g.
+  to relocate the cache to a larger disk) by exporting `HF_HOME` on the host or
+  setting it in `.env` **before** launching:
+
+  ```bash
+  # Option A — export on the host (used by compose and the Dev Container)
+  export HF_HOME="~/.cache/huggingface"      # or absolute, e.g. /data/hf-cache
+
+  # Option B — set it in the repo-root .env (for direct `docker compose`)
+  echo 'HF_HOME=~/.cache/huggingface' >> .env
+  ```
+
+- **`HF_HOME=/opt/hf-cache` in the container** (the `environment:` entry) — tells
+  Docling / Hugging Face where the cache lives *inside* the container, and must
+  match the mount target. Setting it here makes the layout work even if the image
+  wasn't built with `ENV HF_HOME=/opt/hf-cache` (e.g. a pre-built `0.0.3` image
+  pulled from Docker Hub). **Leave this as-is** — only the host side is meant to
+  be customized.
+
+Because the cache is a bind mount, the models **persist across
+`docker compose down` / `up`** and are shared with any other project pointing at
+the same host folder.
+
+### Pre-warming the cache
+
+The dev image caches the models at build time. If you're on a pre-built image (or
+want to fetch them explicitly), run this **inside the container** once — it
+downloads the Docling and cross-encoder models into `$HF_HOME` so the first
+ingestion and first query don't stall:
+
+```bash
+bash docker/cache_models.sh
+```
+
+---
+
+## 8. Verifying the environment
 
 Once the container is up, from a terminal **inside** it:
 
