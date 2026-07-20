@@ -25,11 +25,9 @@ For more detailed guidance, see:
 
 ## Instructor
 
-Rami Krispin is a senior manager of data science and engineering.
+Rami Krispin is a senior data science and engineering manager, Docker Captain, and LinkedIn Learning instructor. His work focuses on AI, MLOps, time series analysis, and forecasting.
 
-Rami Krispin is a data science and engineering manager who mainly focuses on time series analysis, forecasting, and MLOps applications. He is passionate about open source, Docker and MLOps, working with data and APIs, machine learning, Bayesian statistics, data visualization, and GIS data.
-
-Rami is also an open-source contributor and the author of Hands-On Time Series Analysis with R and several R packages for time series analysis and machine learning applications.
+He is passionate about open source, machine learning, and turning data-driven ideas into production systems. He creates educational content about Docker, AI, and MLOps, writes a weekly [newsletter](https://ramikrispin.substack.com/), and teaches LinkedIn Learning courses on building production-ready [SQL AI agents](https://www.linkedin.com/learning/build-with-ai-sql-ai-agents-in-production) and automating data pipelines with [GitHub Actions](https://www.linkedin.com/learning/data-pipeline-automation-with-github-actions-using-r-and-python).
 
 Check out my other courses on [LinkedIn Learning](https://www.linkedin.com/learning/instructors/rami-krispin).
 
